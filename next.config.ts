@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    // Set workspace root to current project directory to avoid lockfile detection warnings
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;
