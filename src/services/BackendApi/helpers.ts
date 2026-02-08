@@ -7,7 +7,7 @@ import {
   CONTENT_TYPE_JSON,
   CACHE_REVALIDATE_SECONDS,
 } from "@/types/constants"
-import { BackendApiError } from "./errors"
+import { BackendApiError } from "@/services/BackendApi/errors"
 
 export function getBaseUrl(): string {
   return process.env.BACKEND_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL

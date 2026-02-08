@@ -2,7 +2,7 @@
  * Database service helpers.
  */
 
-import { DbError } from "./errors"
+import { DbError } from "@/services/Db/errors"
 
 export function toDbError(error: unknown): DbError {
   return new DbError({

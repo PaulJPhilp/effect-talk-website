@@ -1,65 +1,43 @@
 import { requireAuth } from "@/services/Auth"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import Link from "next/link"
-import { User, Settings, Mail, Key } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ProfileForm } from "@/components/ProfileForm"
 import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
-  title: "Settings",
+  title: "Profile",
   noIndex: true,
 })
 
 export default async function SettingsPage() {
   const user = await requireAuth()
 
-  const sections = [
-    {
-      title: "Profile",
-      description: "Update your name and profile info.",
-      href: "/settings/profile",
-      icon: User,
-    },
-    {
-      title: "Preferences",
-      description: "Customize your experience.",
-      href: "/settings/preferences",
-      icon: Settings,
-    },
-    {
-      title: "Email",
-      description: "Manage your email address.",
-      href: "/settings/email",
-      icon: Mail,
-    },
-    {
-      title: "API Keys",
-      description: "Create and manage API keys.",
-      href: "/settings/api-keys",
-      icon: Key,
-    },
-  ] as const
+  const initials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : user.email[0].toUpperCase()
 
   return (
-    <div>
-      <p className="text-muted-foreground mb-6">
-        Signed in as <span className="font-medium text-foreground">{user.email}</span>
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {sections.map((section) => {
-          const Icon = section.icon
-          return (
-            <Link key={section.href} href={section.href}>
-              <Card className="h-full hover:bg-muted/50 transition-colors">
-                <CardHeader>
-                  <Icon className="h-5 w-5 mb-1 text-muted-foreground" />
-                  <CardTitle className="text-base">{section.title}</CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
+            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-2xl">{user.name || "User"}</CardTitle>
+            <p className="text-muted-foreground mt-1">{user.email}</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ProfileForm initialName={user.name} initialEmail={user.email} />
+      </CardContent>
+    </Card>
   )
 }

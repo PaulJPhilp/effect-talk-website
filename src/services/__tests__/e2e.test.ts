@@ -4,12 +4,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { Effect } from "effect"
-import * as DbApi from "../Db/api"
-import * as AuthApi from "../Auth/api"
-import * as ApiKeysApi from "../ApiKeys/api"
-import * as AnalyticsApi from "../Analytics/api"
-import * as EmailApi from "../Email/api"
-import type { DbUser } from "../Db/types"
+import * as DbApi from "@/services/Db/api"
+import * as AuthApi from "@/services/Auth/api"
+import * as ApiKeysApi from "@/services/ApiKeys/api"
+import * as AnalyticsApi from "@/services/Analytics/api"
+import * as EmailApi from "@/services/Email/api"
+import type { DbUser } from "@/services/Db/types"
 
 // Mock types for Drizzle query builders
 interface MockInsertBuilder {
@@ -58,11 +58,13 @@ describe("E2E Service Flows", () => {
     vi.clearAllMocks()
     process.env.WORKOS_API_KEY = "sk_test"
     process.env.WORKOS_CLIENT_ID = "client_test"
-    process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/callback"
+    process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+    process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+    process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
   })
 
-  describe("User Registration Flow", () => {
-    it("should complete full user registration flow", async () => {
+  describe("User registration sync (callback onSuccess flow)", () => {
+    it("upserts user from WorkOS profile and sets session cookie", async () => {
       const createdAt = new Date()
       const updatedAt = new Date()
       const mockUser: DbUser = {
@@ -76,20 +78,6 @@ describe("E2E Service Flows", () => {
         updated_at: updatedAt.toISOString(),
       }
 
-      // Step 1: Mock WorkOS OAuth exchange
-      vi.spyOn(global, "fetch").mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          user: {
-            id: "workos-123",
-            email: "newuser@example.com",
-            name: "New User",
-            profile_picture_url: "https://example.com/avatar.jpg",
-          },
-        }),
-      } as Response)
-
-      // Step 2: Mock database upsert
       const drizzleRow = {
         id: "user-123",
         workosId: "workos-123",
@@ -108,15 +96,20 @@ describe("E2E Service Flows", () => {
       }
       vi.mocked(db.insert).mockReturnValue(mockInsert as unknown as ReturnType<typeof db.insert>)
 
-      // Step 3: Mock session cookie
       const { cookies } = await import("next/headers")
-      const mockCookieStore = {
-        set: vi.fn(),
-      }
+      const mockCookieStore = { set: vi.fn() }
       vi.mocked(cookies).mockResolvedValue(mockCookieStore as unknown as Awaited<ReturnType<typeof cookies>>)
 
-      // Execute flow
-      const user = await Effect.runPromise(AuthApi.handleCallback("auth-code-123"))
+      // Same logic as auth callback onSuccess: upsert user then set session cookie
+      const user = await Effect.runPromise(
+        DbApi.upsertUser({
+          workosId: "workos-123",
+          email: "newuser@example.com",
+          name: "New User",
+          avatarUrl: "https://example.com/avatar.jpg",
+        })
+      )
+      await AuthApi.setSessionCookie(user.workos_id)
 
       expect(user).toEqual(mockUser)
       expect(mockCookieStore.set).toHaveBeenCalled()
@@ -230,18 +223,18 @@ describe("E2E Service Flows", () => {
 
   describe("Waitlist Signup Flow", () => {
     it("should complete waitlist signup with email and analytics", async () => {
+      const signupCreatedAt = new Date()
       const mockSignup = {
         id: "signup-123",
         email: "waitlist@example.com",
         role_or_company: "Developer",
         source: "playground" as const,
-        created_at: new Date().toISOString(),
+        created_at: signupCreatedAt.toISOString(),
       }
 
       const { db } = await import("../../db/client")
 
       // Step 1: Insert waitlist signup
-      const signupCreatedAt = new Date()
       const drizzleSignupRow = {
         id: "signup-123",
         email: "waitlist@example.com",

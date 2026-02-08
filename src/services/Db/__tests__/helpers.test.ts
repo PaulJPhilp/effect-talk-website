@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { toDbError } from "../helpers"
-import { DbError } from "../errors"
+import { toDbError } from "@/services/Db/helpers"
+import { DbError } from "@/services/Db/errors"
 
 describe("Db helpers", () => {
   describe("toDbError", () => {

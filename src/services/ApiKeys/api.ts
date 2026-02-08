@@ -10,11 +10,11 @@
 
 import { Effect } from "effect"
 import { API_KEY_PREFIX_LENGTH } from "@/types/constants"
-import { insertApiKey, listApiKeys, revokeApiKey } from "../Db/api"
-import type { DbApiKey } from "../Db/types"
-import { ApiKeyError } from "./errors"
-import type { CreatedApiKey } from "./types"
-import { hashToken, generateToken } from "./helpers"
+import { insertApiKey, listApiKeys, revokeApiKey } from "@/services/Db/api"
+import type { DbApiKey } from "@/services/Db/types"
+import { ApiKeyError } from "@/services/ApiKeys/errors"
+import type { CreatedApiKey } from "@/services/ApiKeys/types"
+import { hashToken, generateToken } from "@/services/ApiKeys/helpers"
 
 /**
  * Create a new API key for a user.

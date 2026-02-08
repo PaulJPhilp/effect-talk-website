@@ -1,0 +1,55 @@
+---
+description: Always use project-relative paths (@/...) instead of relative paths (./ or ../)
+alwaysApply: true
+---
+
+# Project-Relative Paths
+
+Always use project-relative paths (aliased with `@/`) instead of relative paths (`./` or `../`).
+
+## Rule
+
+**Never use relative imports.** Always use the `@/` alias that maps to `src/` (configured in `tsconfig.json`).
+
+## Examples
+
+### ❌ Bad - Relative Paths
+
+```typescript
+import { getUserById } from "../Db/api"
+import type { DbUser } from "../Db/types"
+import { SESSION_COOKIE } from "./helpers"
+import { SearchInput } from "./SearchInput"
+```
+
+### ✅ Good - Project-Relative Paths
+
+```typescript
+import { getUserById } from "@/services/Db/api"
+import type { DbUser } from "@/services/Db/types"
+import { SESSION_COOKIE } from "@/services/Auth/helpers"
+import { SearchInput } from "@/components/SearchInput"
+```
+
+## Path Mapping
+
+- `@/` → `src/`
+- `@/services/` → `src/services/`
+- `@/components/` → `src/components/`
+- `@/db/` → `src/db/`
+- `@/lib/` → `src/lib/`
+- `@/types/` → `src/types/`
+- `@/app/` → `src/app/`
+
+## Benefits
+
+1. **Consistency**: Same import path regardless of file location
+2. **Refactoring**: Moving files doesn't break imports
+3. **Clarity**: Easier to understand where imports come from
+4. **Maintainability**: Less brittle code structure
+
+## When Editing Code
+
+- Replace all `./` and `../` imports with `@/` paths
+- Verify imports resolve correctly (TypeScript will error if path is wrong)
+- Update existing code when you encounter relative paths

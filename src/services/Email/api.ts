@@ -12,8 +12,8 @@ import {
   PRODUCT_NAME_CODE_REVIEW,
 } from "@/types/constants"
 import type { WaitlistSource } from "@/types/strings"
-import { EmailError } from "./errors"
-import { getResendClient } from "./helpers"
+import { EmailError } from "@/services/Email/errors"
+import { getResendClient } from "@/services/Email/helpers"
 
 /**
  * Send a waitlist confirmation email.

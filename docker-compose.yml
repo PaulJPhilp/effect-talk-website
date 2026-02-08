@@ -1,0 +1,19 @@
+# Local Postgres for development and integration tests.
+# Uses port 5433 to avoid conflicting with a local Postgres on 5432.
+# Run: docker compose up -d
+# Then: DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effecttalk
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: effecttalk
+    ports:
+      - "5433:5432"
+    volumes:
+      - effecttalk_pgdata:/var/lib/postgresql/data
+
+volumes:
+  effecttalk_pgdata:

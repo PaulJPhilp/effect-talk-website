@@ -9,9 +9,9 @@
  */
 
 import { Effect } from "effect"
-import { insertAnalyticsEvent } from "../Db/api"
-import type { DbError } from "../Db/errors"
-import type { AnalyticsEvent } from "./types"
+import { insertAnalyticsEvent } from "@/services/Db/api"
+import type { DbError } from "@/services/Db/errors"
+import type { AnalyticsEvent } from "@/services/Analytics/types"
 
 /**
  * Track an analytics event. Fires and forgets — errors are logged but don't

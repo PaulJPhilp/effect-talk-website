@@ -2,6 +2,6 @@
  * Db service barrel export.
  */
 
-export * from "./api"
-export * from "./errors"
-export * from "./types"
+export * from "@/services/Db/api"
+export * from "@/services/Db/errors"
+export * from "@/services/Db/types"

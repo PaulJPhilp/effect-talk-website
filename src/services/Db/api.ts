@@ -14,9 +14,9 @@ import {
   analyticsEvents,
 } from "@/db/schema"
 import type { WaitlistSource, AnalyticsEventType } from "@/types/strings"
-import { DbError } from "./errors"
-import type { WaitlistSignup, ConsultingInquiry, DbUser, DbApiKey } from "./types"
-import { toDbError } from "./helpers"
+import type { DbError } from "@/services/Db/errors"
+import type { WaitlistSignup, ConsultingInquiry, DbUser, DbApiKey } from "@/services/Db/types"
+import { toDbError } from "@/services/Db/helpers"
 
 // ---------------------------------------------------------------------------
 // Waitlist
@@ -109,6 +109,7 @@ export function upsertUser(data: {
           email: data.email,
           name: data.name ?? null,
           avatarUrl: data.avatarUrl ?? null,
+          preferences: {},
         })
         .onConflictDoUpdate({
           target: users.workosId,
@@ -144,6 +145,28 @@ export function getUserByWorkosId(workosId: string): Effect.Effect<DbUser | null
         .select()
         .from(users)
         .where(eq(users.workosId, workosId))
+      const row = rows[0]
+      if (!row) return null
+      // Map Drizzle row to our type
+      return {
+        id: row.id,
+        workos_id: row.workosId,
+        email: row.email,
+        name: row.name,
+        avatar_url: row.avatarUrl,
+        preferences: row.preferences as Record<string, unknown>,
+        created_at: row.createdAt.toISOString(),
+        updated_at: row.updatedAt.toISOString(),
+      } satisfies DbUser
+    },
+    catch: toDbError,
+  })
+}
+
+export function getUserById(userId: string): Effect.Effect<DbUser | null, DbError> {
+  return Effect.tryPromise({
+    try: async () => {
+      const rows = await db.select().from(users).where(eq(users.id, userId))
       const row = rows[0]
       if (!row) return null
       // Map Drizzle row to our type

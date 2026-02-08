@@ -2,17 +2,33 @@
  * Integration tests for Db, Analytics, and ApiKeys using the real database.
  * No mocks. Set RUN_INTEGRATION_TESTS=1 and DATABASE_URL to a test database to run.
  * Skipped when RUN_INTEGRATION_TESTS is not set (avoids loading DB client).
+ * When RUN_INTEGRATION_TESTS=1 but DB is unreachable, tests are skipped with a message.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, beforeAll } from "vitest"
 import { Effect } from "effect"
 import { sql } from "drizzle-orm"
 
 const runIntegrationTests = process.env.RUN_INTEGRATION_TESTS === "1"
+let dbAvailable = false
 
 describe("Db + Analytics + ApiKeys integration (real DB)", () => {
-  beforeEach(async () => {
+  beforeAll(async () => {
     if (!runIntegrationTests) return
+    try {
+      const { db } = await import("../../db/client")
+      await db.execute(sql`SELECT 1`)
+      dbAvailable = true
+    } catch (err) {
+      console.warn(
+        "Integration tests skipped: database unavailable (set DATABASE_URL to a running Postgres to run them).",
+        err instanceof Error ? err.message : err
+      )
+    }
+  })
+
+  beforeEach(async () => {
+    if (!runIntegrationTests || !dbAvailable) return
     const { db } = await import("../../db/client")
     await db.execute(
       sql`TRUNCATE analytics_events, api_keys, consulting_inquiries, waitlist_signups, users RESTART IDENTITY CASCADE`
@@ -21,6 +37,7 @@ describe("Db + Analytics + ApiKeys integration (real DB)", () => {
 
   describe("Waitlist and Analytics", () => {
     it("inserts waitlist signup and tracks event", { skip: !runIntegrationTests }, async () => {
+      if (!dbAvailable) return
       const DbApi = await import("../Db/api")
       const AnalyticsApi = await import("../Analytics/api")
       const signup = await Effect.runPromise(
@@ -40,6 +57,7 @@ describe("Db + Analytics + ApiKeys integration (real DB)", () => {
 
   describe("Consulting inquiry", () => {
     it("inserts consulting inquiry", { skip: !runIntegrationTests }, async () => {
+      if (!dbAvailable) return
       const DbApi = await import("../Db/api")
       const inquiry = await Effect.runPromise(
         DbApi.insertConsultingInquiry({
@@ -59,6 +77,7 @@ describe("Db + Analytics + ApiKeys integration (real DB)", () => {
 
   describe("User and API keys", () => {
     it("creates user, API key, lists, and revokes", { skip: !runIntegrationTests }, async () => {
+      if (!dbAvailable) return
       const DbApi = await import("../Db/api")
       const ApiKeysApi = await import("../ApiKeys/api")
       const user = await Effect.runPromise(

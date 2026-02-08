@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { SearchInput } from "./SearchInput"
-import { AvatarMenu } from "./AvatarMenu"
+import { SearchInput } from "@/components/SearchInput"
+import { AvatarMenu } from "@/components/AvatarMenu"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { getCurrentUser } from "@/services/Auth"
 
 export async function Header() {
@@ -25,6 +26,7 @@ export async function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
             <Link href="/consulting">Consulting</Link>
           </Button>

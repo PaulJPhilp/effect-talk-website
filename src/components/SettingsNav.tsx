@@ -3,13 +3,10 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { User, Settings, Mail, Key } from "lucide-react"
+import { User, Key } from "lucide-react"
 
 const navItems = [
-  { label: "Overview", href: "/settings", icon: Settings },
-  { label: "Profile", href: "/settings/profile", icon: User },
-  { label: "Preferences", href: "/settings/preferences", icon: Settings },
-  { label: "Email", href: "/settings/email", icon: Mail },
+  { label: "Profile", href: "/settings", icon: User },
   { label: "API Keys", href: "/settings/api-keys", icon: Key },
 ] as const
 

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { hashToken, generateToken } from "../helpers"
+import { hashToken, generateToken } from "@/services/ApiKeys/helpers"
 
 describe("ApiKeys helpers", () => {
   const originalPepper = process.env.API_KEY_PEPPER

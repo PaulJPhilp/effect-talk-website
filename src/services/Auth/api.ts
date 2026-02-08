@@ -1,139 +1,46 @@
 /**
- * Auth service API: WorkOS GitHub OAuth + session management.
+ * Auth service API: WorkOS AuthKit (SDK) + session sync with our DB.
  *
- * WorkOS handles the OAuth flow. We store a session cookie with the user ID.
- * For v1, we use a signed cookie (no JWT library needed).
- *
- * Assumption: WorkOS SSO is configured with GitHub as an OAuth provider.
- * The WorkOS SDK is not used; we call their REST API directly for simplicity.
+ * We use @workos-inc/authkit-nextjs for the OAuth flow. The callback route uses
+ * handleAuth() and in onSuccess we upsert the user to our DB and set our session
+ * cookie as a cache. getCurrentUser() uses WorkOS's withAuth() as the source of
+ * truth for authentication, ensuring sessions persist correctly.
  */
 
 import { Effect } from "effect"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { withAuth } from "@workos-inc/authkit-nextjs"
 import {
-  WORKOS_AUTHORIZE_ENDPOINT,
-  WORKOS_AUTHENTICATE_ENDPOINT,
   WORKOS_PLACEHOLDER_CHECK,
-  HTTP_METHOD_POST,
-  CONTENT_TYPE_JSON,
-  AUTH_SCHEME_BEARER,
-  OAUTH_GRANT_TYPE_AUTHORIZATION_CODE,
-  OAUTH_RESPONSE_TYPE_CODE,
   COOKIE_SAME_SITE_LAX,
   COOKIE_PATH_ROOT,
-  JSON_INDENT_SPACES,
   DEFAULT_APP_ENV,
 } from "@/types/constants"
 import type { AppEnvironment } from "@/types/strings"
-import { upsertUser, getUserByWorkosId } from "../Db/api"
-import type { DbUser } from "../Db/types"
-import { AuthError } from "./errors"
-import { SESSION_COOKIE, SESSION_MAX_AGE } from "./helpers"
+import { getUserById, getUserByWorkosId } from "@/services/Db/api"
+import type { DbUser } from "@/services/Db/types"
+import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/services/Auth/helpers"
 
 // ---------------------------------------------------------------------------
-// WorkOS OAuth
+// WorkOS AuthKit (SDK) configuration check
 // ---------------------------------------------------------------------------
 
 /**
- * Check if WorkOS is properly configured.
+ * Check if WorkOS AuthKit SDK is properly configured (required env vars for @workos-inc/authkit-nextjs).
  */
 export function isWorkOSConfigured(): boolean {
   const clientId = process.env.WORKOS_CLIENT_ID
-  const redirectUri = process.env.WORKOS_REDIRECT_URI
+  const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? process.env.WORKOS_REDIRECT_URI
+  const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD
   return Boolean(
     clientId &&
       redirectUri &&
+    cookiePassword &&
+      cookiePassword.length >= 32 &&
       !clientId.includes(WORKOS_PLACEHOLDER_CHECK) &&
       !redirectUri.includes(WORKOS_PLACEHOLDER_CHECK)
   )
-}
-
-/**
- * Build the WorkOS authorization URL for AuthKit.
- * AuthKit handles provider selection automatically based on configured providers.
- */
-export function getAuthorizationUrl(): string {
-  const clientId = process.env.WORKOS_CLIENT_ID ?? ""
-  const redirectUri = process.env.WORKOS_REDIRECT_URI ?? ""
-
-  // WorkOS AuthKit hosted flow - no provider parameter needed
-  // AuthKit will show provider selection or redirect to the only configured provider
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: OAUTH_RESPONSE_TYPE_CODE,
-  })
-
-  // Use AuthKit endpoint (not SSO endpoint)
-  return `${WORKOS_AUTHORIZE_ENDPOINT}?${params.toString()}`
-}
-
-/**
- * Exchange an authorization code for user profile info via WorkOS.
- */
-export function exchangeCode(code: string): Effect.Effect<
-  { workosId: string; email: string; name?: string; avatarUrl?: string },
-  AuthError
-> {
-  return Effect.tryPromise({
-    try: async () => {
-      const apiKey = process.env.WORKOS_API_KEY ?? ""
-      const clientId = process.env.WORKOS_CLIENT_ID ?? ""
-
-      // WorkOS AuthKit uses User Management authenticate endpoint
-      const res = await fetch(WORKOS_AUTHENTICATE_ENDPOINT, {
-        method: HTTP_METHOD_POST,
-        headers: {
-          "Content-Type": CONTENT_TYPE_JSON,
-          Authorization: `${AUTH_SCHEME_BEARER} ${apiKey}`,
-        },
-        body: JSON.stringify({
-          code,
-          client_id: clientId,
-          client_secret: apiKey,
-          grant_type: OAUTH_GRANT_TYPE_AUTHORIZATION_CODE,
-        }),
-      })
-
-      if (!res.ok) {
-        const body = await res.text()
-        throw new Error(`WorkOS auth failed: ${res.status} ${body}`)
-      }
-
-      const data = await res.json()
-      // Log WorkOS response for debugging (only in development)
-      if (process.env.NODE_ENV === "development") {
-        console.log("WorkOS authenticate response:", JSON.stringify(data, null, JSON_INDENT_SPACES))
-      }
-      
-      // WorkOS User Management authenticate returns user directly
-      const user = data.user ?? data
-
-      if (!user || !user.id || !user.email) {
-        throw new Error(`Invalid user data from WorkOS: ${JSON.stringify(user)}`)
-      }
-
-      // Parse name - WorkOS might have first_name, last_name, or name field
-      let name: string | undefined
-      if (user.first_name || user.last_name) {
-        name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || undefined
-      } else if (user.name) {
-        name = user.name
-      }
-
-      return {
-        workosId: user.id as string,
-        email: user.email as string,
-        name: name || user.email.split("@")[0],
-        avatarUrl: user.profile_picture_url as string | undefined,
-      }
-    },
-    catch: (error) =>
-      new AuthError({
-        message: error instanceof Error ? error.message : "Code exchange failed",
-      }),
-  })
 }
 
 // ---------------------------------------------------------------------------
@@ -176,22 +83,85 @@ export async function getSessionUserId(): Promise<string | null> {
 
 /**
  * Get the current logged-in user, or null.
- * Uses Effect internally but resolves to a plain Promise for convenience in RSCs.
+ * Uses WorkOS AuthKit's withAuth() as the source of truth for authentication,
+ * then looks up the DB user by workos_id. This ensures sessions persist correctly
+ * even if the custom cookie is lost.
  */
 export async function getCurrentUser(): Promise<DbUser | null> {
-  const userId = await getSessionUserId()
-  if (!userId) return null
+  // Check WorkOS configuration first
+  if (!isWorkOSConfigured()) {
+    console.warn("getCurrentUser: WorkOS not configured")
+    return null
+  }
 
-  // userId is actually the workos_id stored after login
-  // We store workos_id in cookie for lookup
   try {
-    const user = await Effect.runPromise(
-      getUserByWorkosId(userId).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
+    // Check WorkOS session first (source of truth)
+    // withAuth() returns { user: null } if no session, throws if middleware missing
+    const authResult = await withAuth()
+    const { user: workosUser } = authResult
+
+    if (!workosUser) {
+      // No session - user not logged in
+      // NOTE: If you just changed WORKOS_COOKIE_PASSWORD, you need to clear browser cookies
+      // and log in again, as old cookies were encrypted with the old password
+      console.log("[getCurrentUser] No WorkOS session found - user not logged in")
+      return null
+    }
+
+    console.log("[getCurrentUser] WorkOS session found for user:", workosUser.id, workosUser.email)
+
+    // Look up DB user by WorkOS user ID
+    const dbUser = await Effect.runPromise(
+      getUserByWorkosId(workosUser.id).pipe(
+        Effect.catchAll((error) => {
+          console.error("getCurrentUser: DB lookup failed for workosId:", workosUser.id, error)
+          return Effect.succeed(null)
+        })
       )
     )
-    return user
-  } catch {
+
+    if (!dbUser) {
+      console.warn("getCurrentUser: WorkOS user exists but DB user not found:", workosUser.id)
+    }
+
+    return dbUser
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes("isn't covered by the AuthKit middleware")
+    ) {
+      // Middleware not running; fallback to our own session cookie
+      const sessionValue = await getSessionUserId()
+      if (!sessionValue) return null
+
+      // Cookie may contain a DB UUID (new) or a WorkOS ID (old).
+      // Try WorkOS ID first (starts with "user_"), then UUID.
+      const isWorkosId = sessionValue.startsWith("user_")
+      const dbUser = await Effect.runPromise(
+        (isWorkosId
+          ? getUserByWorkosId(sessionValue)
+          : getUserById(sessionValue)
+        ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+      )
+      return dbUser
+    }
+
+    // Don't catch Next.js internal errors - let them propagate
+    // NEXT_REDIRECT: Next.js redirect (from withAuth when ensureSignedIn: true)
+    // DYNAMIC_SERVER_USAGE: Expected during build when withAuth() accesses headers
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      (String(error.digest).includes("NEXT_REDIRECT") ||
+        String(error.digest).includes("DYNAMIC_SERVER_USAGE"))
+    ) {
+      // These are Next.js internal errors - rethrow so Next.js can handle them
+      throw error
+    }
+    
+    // Only catch actual unexpected errors (config issues, etc.)
+    console.error("getCurrentUser: unexpected error:", error)
     return null
   }
 }
@@ -205,24 +175,4 @@ export async function requireAuth(): Promise<DbUser> {
     redirect("/auth/sign-in")
   }
   return user
-}
-
-/**
- * Handle the OAuth callback: exchange code, upsert user, set session.
- */
-export function handleCallback(code: string): Effect.Effect<DbUser, AuthError> {
-  return Effect.gen(function* () {
-    const profile = yield* exchangeCode(code)
-    const user = yield* upsertUser({
-      workosId: profile.workosId,
-      email: profile.email,
-      name: profile.name,
-      avatarUrl: profile.avatarUrl,
-    }).pipe(
-      Effect.mapError((e) => new AuthError({ message: e.message }))
-    )
-    // Set session cookie (stores workos_id for lookup)
-    yield* Effect.promise(() => setSessionCookie(user.workos_id))
-    return user
-  })
 }

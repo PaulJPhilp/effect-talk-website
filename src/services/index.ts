@@ -9,22 +9,22 @@
  */
 
 // Export all APIs
-export * from "./Db/api"
-export * from "./Auth/api"
-export * from "./ApiKeys/api"
-export * from "./Analytics/api"
-export * from "./Email/api"
-export * from "./BackendApi/api"
+export * from "@/services/Db/api"
+export * from "@/services/Auth/api"
+export * from "@/services/ApiKeys/api"
+export * from "@/services/Analytics/api"
+export * from "@/services/Email/api"
+export * from "@/services/BackendApi/api"
 
 // Export types for convenience
-export * from "./Db/types"
-export * from "./ApiKeys/types"
-export * from "./Analytics/types"
-export * from "./BackendApi/types"
+export * from "@/services/Db/types"
+export * from "@/services/ApiKeys/types"
+export * from "@/services/Analytics/types"
+export * from "@/services/BackendApi/types"
 
 // Export errors for convenience
-export * from "./Db/errors"
-export * from "./Auth/errors"
-export * from "./ApiKeys/errors"
-export * from "./Email/errors"
-export * from "./BackendApi/errors"
+export * from "@/services/Db/errors"
+export * from "@/services/Auth/errors"
+export * from "@/services/ApiKeys/errors"
+export * from "@/services/Email/errors"
+export * from "@/services/BackendApi/errors"

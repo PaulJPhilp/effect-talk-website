@@ -1,16 +1,38 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Local database (Docker)
+
+To run Postgres locally for development and integration tests:
+
+1. Start Docker, then:
+   ```bash
+   docker compose up -d
+   ```
+2. In `.env.local`, set:
+   ```bash
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effecttalk
+   ```
+3. Apply the schema:
+   ```bash
+   bun run db:push
+   ```
+4. (Optional) Run integration tests: `RUN_INTEGRATION_TESTS=1 bun run test:run`
+
+## Sign-in (WorkOS AuthKit)
+
+GitHub sign-in uses [WorkOS AuthKit](https://workos.com/docs/authkit) via `@workos-inc/authkit-nextjs`. In `.env.local` set:
+
+- `WORKOS_CLIENT_ID`, `WORKOS_API_KEY` — from WorkOS Dashboard (e.g. Staging)
+- `WORKOS_REDIRECT_URI` and `NEXT_PUBLIC_WORKOS_REDIRECT_URI` — e.g. `http://localhost:3000/auth/callback`
+- `WORKOS_COOKIE_PASSWORD` — at least 32 characters (e.g. `openssl rand -base64 24`)
+
+In [WorkOS Dashboard](https://dashboard.workos.com) → **Redirects**, add that same callback URL. If you see "Couldn't sign in", check the GitHub provider uses your app's credentials (not Demo), and that Redirect URI and environment match.
+
 ## Getting Started
 
 First, run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
 bun dev
 ```
 

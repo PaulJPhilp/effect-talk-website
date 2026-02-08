@@ -12,9 +12,9 @@
  */
 
 import { Effect } from "effect"
-import { BackendApiError } from "./errors"
-import type { Pattern, Rule, SearchResult } from "./types"
-import { apiFetch } from "./helpers"
+import { BackendApiError } from "@/services/BackendApi/errors"
+import type { Pattern, Rule, SearchResult } from "@/services/BackendApi/types"
+import { apiFetch } from "@/services/BackendApi/helpers"
 
 // ---------------------------------------------------------------------------
 // Public API (Effect wrappers)

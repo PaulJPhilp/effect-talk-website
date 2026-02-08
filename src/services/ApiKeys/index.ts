@@ -2,6 +2,6 @@
  * ApiKeys service barrel export.
  */
 
-export * from "./api"
-export * from "./errors"
-export * from "./types"
+export * from "@/services/ApiKeys/api"
+export * from "@/services/ApiKeys/errors"
+export * from "@/services/ApiKeys/types"

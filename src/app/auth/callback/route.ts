@@ -1,26 +1,34 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { handleAuth } from "@workos-inc/authkit-nextjs"
 import { Effect } from "effect"
-import { handleCallback } from "@/services/Auth"
+import { upsertUser } from "@/services/Db/api"
+import { setSessionCookie } from "@/services/Auth"
+
+const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000"
 
 /**
- * WorkOS OAuth callback handler.
- * Exchanges the authorization code for user info, upserts the user, and sets session.
+ * WorkOS AuthKit callback: SDK exchanges the code and sets its session.
+ * We upsert the user into our DB and set our session cookie so getCurrentUser() and API routes keep working.
  */
-export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code")
-  const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000"
-
-  if (!code) {
-    return NextResponse.redirect(`${appBaseUrl}/auth/sign-in?error=missing_code`)
-  }
-
-  try {
-    await Effect.runPromise(handleCallback(code))
-    return NextResponse.redirect(`${appBaseUrl}/settings`)
-  } catch (error) {
-    console.error("Auth callback error:", error)
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    console.error("Error details:", errorMessage)
-    return NextResponse.redirect(`${appBaseUrl}/auth/sign-in?error=auth_failed&details=${encodeURIComponent(errorMessage)}`)
-  }
-}
+export const GET = handleAuth({
+  returnPathname: "/settings",
+  baseURL: appBaseUrl,
+  onSuccess: async ({ user }) => {
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || undefined
+    try {
+      const dbUser = await Effect.runPromise(
+        upsertUser({
+          workosId: user.id,
+          email: user.email,
+          name: name || undefined,
+          avatarUrl: user.profilePictureUrl ?? undefined,
+        })
+      )
+      await setSessionCookie(dbUser.id)
+      console.log("[Auth callback] User upserted and session cookie set for:", user.email, "DB ID:", dbUser.id)
+    } catch (error) {
+      console.error("Auth callback: user upsert failed", error)
+      if (error instanceof Error && error.cause) console.error("Cause:", error.cause)
+      throw error
+    }
+  },
+})
