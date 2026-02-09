@@ -6,7 +6,9 @@ import {
   SandpackCodeEditor,
   SandpackConsole,
   SandpackProvider,
+  SandpackPreview,
 } from "@codesandbox/sandpack-react"
+import { githubLight } from "@codesandbox/sandpack-themes"
 
 interface TourCodeRunnerProps {
   readonly code: string
@@ -68,16 +70,25 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
             active: true,
           },
         }}
-        // Force light theme for readability against the lesson's dark-muted panel.
-        // We can switch this back to dynamic theme once layout is stable.
-        theme="light"
+        // Light theme with font ~25% smaller than default (13px → 10px).
+        theme={{
+          ...githubLight,
+          font: { ...githubLight.font, size: "10px", lineHeight: "16px" },
+        }}
         options={{
           autorun: true,
           recompileMode: "immediate",
           recompileDelay: 300,
         }}
       >
-        <div className="flex flex-col h-full min-h-[500px]">
+        <div className="relative flex flex-col h-full min-h-[500px]">
+          {/* Off-screen Preview required for bundler to run code and populate Console */}
+          <div
+            className="absolute -left-[9999px] top-0 w-[400px] h-[300px] overflow-hidden"
+            aria-hidden="true"
+          >
+            <SandpackPreview />
+          </div>
           <div className="min-h-0 h-full flex-1">
             <SandpackCodeEditor
               showTabs={false}
@@ -88,7 +99,7 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
               showReadOnly={false}
             />
           </div>
-          <div className="px-1.5 py-0.5 text-[0.65rem] font-medium border-y bg-muted/50">
+          <div className="px-1.5 py-0.5 text-[0.65rem] font-medium border-y bg-muted/50 dark:text-white">
             Console
           </div>
           <div className="h-[140px] max-h-[140px] overflow-auto">

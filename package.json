@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@codesandbox/sandpack-themes": "^2.0.21",
     "@effect/platform": "^0.94.4",
     "@effect/schema": "^0.75.5",
     "@tailwindcss/typography": "^0.5.19",
