@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { SearchInput } from "@/components/SearchInput"
 import { AvatarMenu } from "@/components/AvatarMenu"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { TourProgressSyncer } from "@/components/tour/TourProgressSyncer"
@@ -22,14 +21,12 @@ export async function Header() {
           <span>Talk</span>
         </Link>
 
-        {/* Search */}
-        <div className="flex-1 flex justify-center">
-          <SearchInput />
-        </div>
-
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-3">
           <ThemeToggle />
+          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+            <Link href="/blog">Blog</Link>
+          </Button>
           <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
             <Link href="/consulting">Consulting</Link>
           </Button>
