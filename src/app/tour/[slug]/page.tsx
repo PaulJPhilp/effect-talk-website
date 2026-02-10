@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import { notFound } from "next/navigation"
 import { getLessonWithSteps } from "@/services/TourProgress"
+import { getCurrentUser } from "@/services/Auth"
 import { TourLessonView } from "@/components/tour/TourLessonView"
 import { buildMetadata } from "@/lib/seo"
 import type { Metadata } from "next"
@@ -33,13 +34,16 @@ export async function generateMetadata({ params }: LessonPageProps): Promise<Met
 export default async function LessonPage({ params }: LessonPageProps) {
   const { slug } = await params
 
-  const lesson = await Effect.runPromise(
-    getLessonWithSteps(slug).pipe(Effect.catchAll(() => Effect.succeed(null)))
-  )
+  const [lesson, currentUser] = await Promise.all([
+    Effect.runPromise(
+      getLessonWithSteps(slug).pipe(Effect.catchAll(() => Effect.succeed(null)))
+    ),
+    getCurrentUser(),
+  ])
 
   if (!lesson) {
     notFound()
   }
 
-  return <TourLessonView lesson={lesson} />
+  return <TourLessonView lesson={lesson} isLoggedIn={Boolean(currentUser)} />
 }

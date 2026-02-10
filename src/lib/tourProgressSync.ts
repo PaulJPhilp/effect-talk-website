@@ -1,5 +1,5 @@
 /**
- * Utility functions for syncing tour progress between localStorage (guest) and DB (sovereign).
+ * Utility functions for syncing tour progress between localStorage (guest) and DB (logged-in).
  */
 
 const PROGRESS_STORAGE_KEY = "tour_progress"
@@ -19,6 +19,23 @@ export function getLocalStorageProgress(): LocalStorageProgress {
     return JSON.parse(stored) as LocalStorageProgress
   } catch {
     return {}
+  }
+}
+
+/**
+ * Mark a single step as completed in localStorage.
+ */
+export function setLocalStorageStepCompleted(stepId: string): void {
+  if (typeof window === "undefined") return
+  try {
+    const current = getLocalStorageProgress()
+    const next: LocalStorageProgress = {
+      ...current,
+      [stepId]: "completed",
+    }
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // Ignore errors
   }
 }
 

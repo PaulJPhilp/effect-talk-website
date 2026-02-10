@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
 import { TourCodeRunner } from "@/components/tour/TourCodeRunner"
@@ -13,15 +13,27 @@ interface TourStepProps {
   readonly lessonSlug: string
   readonly steps: readonly TourStepType[]
   readonly currentStepIndex: number
+  readonly completedStepIds: ReadonlySet<string>
+  readonly onStepCompleted: (stepId: string) => void
 }
 
-export function TourStep({ step, lessonSlug, steps, currentStepIndex }: TourStepProps) {
+export function TourStep({
+  step,
+  lessonSlug,
+  steps,
+  currentStepIndex,
+  completedStepIds,
+  onStepCompleted,
+}: TourStepProps) {
   const hasSolution = Boolean(step.solution_code)
 
   // Radix Tabs use useId() which causes hydration mismatch in Next.js 15.5+ / React 19.2.
-  // Defer Tabs render until after mount so server and first client render match.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  // We gate Tabs to the client without a setState-in-effect pattern.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
@@ -69,6 +81,9 @@ export function TourStep({ step, lessonSlug, steps, currentStepIndex }: TourStep
             currentStepIndex={currentStepIndex}
             steps={steps}
             lessonSlug={lessonSlug}
+            currentStepId={step.id}
+            completedStepIds={completedStepIds}
+            onMarkCurrentStepComplete={onStepCompleted}
           />
         </div>
       </div>

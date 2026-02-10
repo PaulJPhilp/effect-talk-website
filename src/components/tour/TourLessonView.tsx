@@ -3,14 +3,16 @@
 import { useMemo, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { TourStep } from "@/components/tour/TourStep"
+import { useTourProgress } from "@/hooks/useTourProgress"
 import { trackEventClient } from "@/lib/analytics-client"
 import type { TourLessonWithSteps } from "@/services/TourProgress/types"
 
 interface TourLessonViewProps {
   readonly lesson: TourLessonWithSteps
+  readonly isLoggedIn: boolean
 }
 
-export function TourLessonView({ lesson }: TourLessonViewProps) {
+export function TourLessonView({ lesson, isLoggedIn }: TourLessonViewProps) {
   const searchParams = useSearchParams()
   const stepParam = searchParams.get("step")
 
@@ -28,6 +30,11 @@ export function TourLessonView({ lesson }: TourLessonViewProps) {
     trackEventClient({ type: "lesson_started", lessonSlug: lesson.slug }).catch(() => {})
   }, [lesson.slug])
 
+  const { completedStepIds, markStepCompleted } = useTourProgress({
+    steps: lesson.steps,
+    isLoggedIn,
+  })
+
   const currentStep = lesson.steps[currentStepIndex]
 
   if (!currentStep) {
@@ -41,6 +48,8 @@ export function TourLessonView({ lesson }: TourLessonViewProps) {
       lessonSlug={lesson.slug}
       steps={lesson.steps}
       currentStepIndex={currentStepIndex}
+      completedStepIds={completedStepIds}
+      onStepCompleted={markStepCompleted}
     />
   )
 }
