@@ -29,6 +29,8 @@ export interface TourStep {
   readonly hints: readonly string[] | null
   readonly feedback_on_complete: string | null
   readonly pattern_id: string | null
+  /** True when the linked pattern is marked new (e.g. release_version >= cutoff). */
+  readonly pattern_new?: boolean
   readonly created_at: string
 }
 

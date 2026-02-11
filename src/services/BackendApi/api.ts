@@ -16,7 +16,16 @@ import {
   getRuleById,
   searchPatternsAndRules,
 } from "@/services/Db/api"
+import type { DbError } from "@/services/Db/errors"
 import type { DbPattern, DbRule } from "@/services/Db/types"
+
+function formatDbErrorMessage(e: DbError): string {
+  const base = e.message
+  if (e.cause instanceof Error && e.cause.message && e.cause.message !== base) {
+    return `${base} ${e.cause.message}`
+  }
+  return base
+}
 
 // ---------------------------------------------------------------------------
 // Mappers (Db types -> public API types)
@@ -54,14 +63,14 @@ function toRule(db: DbRule): Rule {
 export function fetchPatterns(): Effect.Effect<readonly Pattern[], BackendApiError> {
   return getAllPatterns().pipe(
     Effect.map((rows) => rows.map(toPattern)),
-    Effect.mapError((e) => new BackendApiError({ message: e.message })),
+    Effect.mapError((e) => new BackendApiError({ message: formatDbErrorMessage(e) })),
   )
 }
 
 export function fetchPattern(id: string): Effect.Effect<Pattern | null, BackendApiError> {
   return getPatternById(id).pipe(
     Effect.map((row) => (row ? toPattern(row) : null)),
-    Effect.mapError((e) => new BackendApiError({ message: e.message })),
+    Effect.mapError((e) => new BackendApiError({ message: formatDbErrorMessage(e) })),
   )
 }
 

@@ -65,6 +65,13 @@ export const EMAIL_PATTERNS_LINK = "https://effecttalk.com/patterns" as const
 export const BUSINESS_DAYS_RESPONSE_TIME = 2
 
 // ---------------------------------------------------------------------------
+// External Links
+// ---------------------------------------------------------------------------
+
+export const EFFECT_PATTERNS_GITHUB_URL =
+  "https://github.com/PaulJPhilp/EffectPatterns" as const
+
+// ---------------------------------------------------------------------------
 // Product Names
 // ---------------------------------------------------------------------------
 

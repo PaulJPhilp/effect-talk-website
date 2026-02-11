@@ -1,9 +1,11 @@
 import Link from "next/link"
+import { Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AvatarMenu } from "@/components/AvatarMenu"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { TourProgressSyncer } from "@/components/tour/TourProgressSyncer"
 import { getCurrentUser } from "@/services/Auth"
+import { EFFECT_PATTERNS_GITHUB_URL } from "@/types/constants"
 
 export async function Header() {
   const user = await getCurrentUser()
@@ -23,6 +25,17 @@ export async function Header() {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+            <a
+              href={EFFECT_PATTERNS_GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5"
+            >
+              <Github className="h-3.5 w-3.5" />
+              <span>Effect Patterns</span>
+            </a>
+          </Button>
           <ThemeToggle />
           <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
             <Link href="/blog">Blog</Link>

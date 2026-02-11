@@ -2219,6 +2219,151 @@ Effect.runPromise(program).then(console.log)`,
 ]
 
 // ---------------------------------------------------------------------------
+// Lesson 18: Effect Schema
+// ---------------------------------------------------------------------------
+
+const lesson18EffectSchemaSteps = [
+  {
+    orderIndex: 1,
+    title: "Schema.Class for class-based schemas",
+    patternTitle: "Parse and Validate Data with Schema.decode",
+    instruction:
+      "Use `Schema.Class` to define a schema that decodes to a class instance. You get a constructor and optional/default fields with `Schema.optional` and `Schema.default`.",
+    conceptCode:
+      'import { Effect, Schema } from "effect"\n\n// We want a User class with name (required) and optional nickname\n// Schema.Class gives us a typed decode + a class we can use',
+    conceptCodeLanguage: "typescript",
+    solutionCode: `import { Effect, Schema } from "effect"
+
+class User extends Schema.Class<User>("User")({
+  name: Schema.String,
+  nickname: Schema.optional(Schema.String),
+}) {}
+
+const program = Schema.decodeUnknown(User)({
+  name: "Alice",
+  nickname: "Al",
+}).pipe(
+  Effect.tap((user) => Effect.sync(() => console.log(user.name, user.nickname)))
+)
+
+Effect.runPromise(program)`,
+    hints: [
+      "Use Schema.Class<Type>(\"Name\")({ ... }) for class-based schemas",
+      "Use Schema.optional(schema) for optional fields",
+      "Decoded value is an instance of the class",
+    ],
+    feedbackOnComplete:
+      "Schema.Class gives you a class and a decoder in one. Optional fields stay type-safe.",
+  },
+  {
+    orderIndex: 2,
+    title: "Schema.Union and Schema.Literal",
+    patternTitle: "Transform Data During Validation with Schema",
+    instruction:
+      "Model discriminated unions with `Schema.Union` and `Schema.Literal`. Use a shared literal field (e.g. `_tag`) to distinguish variants. Decoding picks the right branch.",
+    conceptCode:
+      'import { Effect, Schema } from "effect"\n\n// Result: Success { _tag: "Success", value } | Failure { _tag: "Failure", error }\n// Schema.Union + Literal for each variant',
+    conceptCodeLanguage: "typescript",
+    solutionCode: `import { Effect, Schema } from "effect"
+
+const SuccessSchema = Schema.Struct({
+  _tag: Schema.Literal("Success"),
+  value: Schema.Number,
+})
+
+const FailureSchema = Schema.Struct({
+  _tag: Schema.Literal("Failure"),
+  error: Schema.String,
+})
+
+const ResultSchema = Schema.Union(SuccessSchema, FailureSchema)
+
+const program = Schema.decodeUnknown(ResultSchema)({ _tag: "Success", value: 42 }).pipe(
+  Effect.tap((r) => Effect.sync(() => console.log(r)))
+)
+
+Effect.runPromise(program)`,
+    hints: [
+      "Use Schema.Literal(\"value\") for literal discriminators",
+      "Use Schema.Union(SchemaA, SchemaB) for union types",
+      "Decoding tries each branch in order",
+    ],
+    feedbackOnComplete:
+      "Unions and literals give you type-safe discriminated unions. Perfect for API responses and state shapes.",
+  },
+  {
+    orderIndex: 3,
+    title: "Schema.transform for encode/decode",
+    patternTitle: "Transform Data During Validation with Schema",
+    instruction:
+      "Use `Schema.transform` (or `Schema.transformOrFail`) to convert values during decode/encode. Map external shapes to internal types (e.g. string → Date) with validation.",
+    conceptCode:
+      'import { Effect, Schema } from "effect"\n\n// API sends date as ISO string; we want a Date inside our app\n// transform: decode string → Date, encode Date → string',
+    conceptCodeLanguage: "typescript",
+    solutionCode: `import { Effect, Schema } from "effect"
+
+const DateFromString = Schema.String.pipe(
+  Schema.transform(
+    (s) => new Date(s),
+    (d) => d.toISOString()
+  )
+)
+
+const EventSchema = Schema.Struct({
+  name: Schema.String,
+  at: DateFromString,
+})
+
+const program = Schema.decodeUnknown(EventSchema)({
+  name: "Launch",
+  at: "2025-06-01T12:00:00.000Z",
+}).pipe(
+  Effect.tap((e) => Effect.sync(() => console.log(e.at instanceof Date)))
+)
+
+Effect.runPromise(program)`,
+    hints: [
+      "Schema.transform(decode, encode) for bidirectional conversion",
+      "Use transformOrFail when decode can fail (e.g. invalid date string)",
+      "Compose with Schema.pipe after base schema",
+    ],
+    feedbackOnComplete:
+      "Transform keeps validation and conversion in one place. Encode/decode round-trip for serialization.",
+  },
+  {
+    orderIndex: 4,
+    title: "Schema.Array and optional fields",
+    patternTitle: "Parse and Validate Data with Schema.decode",
+    instruction:
+      "Use `Schema.Array(schema)` for arrays of validated items. Combine with `Schema.optional` and `Schema.default` for flexible request/response shapes.",
+    conceptCode:
+      'import { Effect, Schema } from "effect"\n\n// Payload: optional tags (array of strings), optional limit (number, default 10)\n// Schema.Array(Schema.String), Schema.optional, Schema.default',
+    conceptCodeLanguage: "typescript",
+    solutionCode: `import { Effect, Schema } from "effect"
+
+const QuerySchema = Schema.Struct({
+  tags: Schema.optional(Schema.Array(Schema.String)),
+  limit: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.positive())).pipe(
+    Schema.default(10)
+  ),
+})
+
+const program = Schema.decodeUnknown(QuerySchema)({ tags: ["a", "b"] }).pipe(
+  Effect.tap((q) => Effect.sync(() => console.log(q.limit, q.tags)))
+)
+
+Effect.runPromise(program)`,
+    hints: [
+      "Schema.Array(itemSchema) validates each element",
+      "Schema.default(value) provides a value when input is undefined",
+      "Combine optional + default for \"optional with fallback\"",
+    ],
+    feedbackOnComplete:
+      "Arrays and optionals compose cleanly. Every element is validated; defaults keep types simple.",
+  },
+]
+
+// ---------------------------------------------------------------------------
 // Pattern title → ID resolver
 // ---------------------------------------------------------------------------
 
@@ -2461,6 +2606,16 @@ const allLessons: LessonDefinition[] = [
     difficulty: "intermediate",
     estimatedMinutes: 12,
     steps: lesson17Steps,
+  },
+  {
+    slug: "effect-schema",
+    title: "Effect Schema",
+    description: "Go deeper with Schema.Class, Schema.Union and Literal, Schema.transform for encode/decode, and Schema.Array with optional and default fields.",
+    orderIndex: 18,
+    group: "Validation",
+    difficulty: "intermediate",
+    estimatedMinutes: 15,
+    steps: lesson18EffectSchemaSteps,
   },
 ]
 

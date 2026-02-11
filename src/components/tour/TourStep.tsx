@@ -66,13 +66,23 @@ export function TourStep({
 
         {/* Related Pattern */}
         {step.pattern_id && (
-          <Link
-            href={`/patterns/${step.pattern_id}?from=${encodeURIComponent(lessonSlug)}&step=${step.order_index}`}
-            className="mt-4 flex items-center gap-1.5 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            View related pattern
-          </Link>
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/patterns/${step.pattern_id}?from=${encodeURIComponent(lessonSlug)}&step=${step.order_index}`}
+              className="flex items-center gap-1.5 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              View related pattern
+            </Link>
+            {step.pattern_new && (
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.6rem] font-medium bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                aria-label="New pattern"
+              >
+                New
+              </span>
+            )}
+          </div>
         )}
 
         {/* Navigation */}

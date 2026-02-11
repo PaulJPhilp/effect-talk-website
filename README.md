@@ -2,6 +2,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Local database (Docker)
 
+The **Effect Pattern repo** is the schema source of truth for the shared `effect_patterns` table. This app only reads from it; see [docs/database.md](docs/database.md) for the contract and configuration. To verify the database has the effect_patterns table and required columns, run: `bun run db:check`.
+
 To run Postgres locally for development and integration tests:
 
 1. Start Docker, then:

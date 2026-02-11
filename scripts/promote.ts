@@ -43,8 +43,8 @@ const isDryRun = args.includes("--dry-run")
 const keepRetired = args.includes("--keep-retired")
 const target = args.find((a) => !a.startsWith("--"))
 
-if (!target || !["patterns", "rules", "tour", "all"].includes(target)) {
-  console.error("Usage: bun run scripts/promote.ts <patterns|rules|tour|all> [--dry-run] [--keep-retired]")
+if (!target || !["rules", "tour", "all"].includes(target)) {
+  console.error("Usage: bun run scripts/promote.ts <rules|tour|all> [--dry-run] [--keep-retired]")
   process.exit(1)
 }
 
@@ -53,7 +53,7 @@ if (!target || !["patterns", "rules", "tour", "all"].includes(target)) {
 // ---------------------------------------------------------------------------
 
 function getGroups(): SwapGroupName[] {
-  if (target === "all") return ["patterns", "rules", "tour"]
+  if (target === "all") return ["rules", "tour"]
   return [target as SwapGroupName]
 }
 

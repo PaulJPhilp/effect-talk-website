@@ -14,6 +14,7 @@ import {
   analyticsEvents,
   patterns,
   rules,
+  NEW_PATTERN_RELEASE_CUTOFF,
 } from "@/db/schema"
 import type { WaitlistSource, AnalyticsEventType } from "@/types/strings"
 import type { DbError } from "@/services/Db/errors"
@@ -347,16 +348,27 @@ export function revokeApiKey(keyId: string, userId: string): Effect.Effect<DbApi
 // Patterns
 // ---------------------------------------------------------------------------
 
+function parseTagsJsonb(tags: unknown): readonly string[] | null {
+  if (tags == null) return null
+  if (Array.isArray(tags)) {
+    const arr = tags.filter((x): x is string => typeof x === "string")
+    return arr.length > 0 ? arr : null
+  }
+  return null
+}
+
 function mapPattern(row: typeof patterns.$inferSelect): DbPattern {
+  const isNewFromRelease =
+    row.releaseVersion != null && row.releaseVersion >= NEW_PATTERN_RELEASE_CUTOFF
   return {
     id: row.id,
     title: row.title,
-    description: row.description,
-    content: row.content,
+    description: row.summary,
+    content: row.content ?? "",
     category: row.category,
     difficulty: row.difficulty,
-    tags: row.tags as readonly string[] | null,
-    new: row.new,
+    tags: parseTagsJsonb(row.tags),
+    new: isNewFromRelease,
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
   }
@@ -433,7 +445,7 @@ export function searchPatternsAndRules(query: string): Effect.Effect<{
       const q = `%${query.toLowerCase()}%`
 
       const patternRows = await db.select().from(patterns).where(
-        sql`lower(${patterns.title}) like ${q} or lower(${patterns.description}) like ${q}`
+        sql`lower(${patterns.title}) like ${q} or lower(${patterns.summary}) like ${q}`
       )
       const ruleRows = await db.select().from(rules).where(
         sql`lower(${rules.title}) like ${q} or lower(${rules.description}) like ${q}`

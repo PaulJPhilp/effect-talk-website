@@ -2,14 +2,16 @@
 
 import { useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { PatternsSearch } from "@/components/PatternsSearch"
 import { PatternsSidebar } from "@/components/PatternsSidebar"
 import { PatternCard } from "@/components/PatternCard"
+import { Badge } from "@/components/ui/badge"
 import type { Pattern } from "@/services/BackendApi"
 import { cn } from "@/lib/utils"
 
 interface PatternsBrowserProps {
   readonly patterns: readonly Pattern[]
+  /** Optional hint when patterns.length === 0 (e.g. DATABASE_URL / docs link). */
+  readonly emptyStateHint?: React.ReactNode
 }
 
 interface FacetCount {
@@ -22,7 +24,7 @@ interface FacetCount {
  * All patterns are passed from server, then filtered client-side for instant UX.
  * Filter state is synced with URL search params for deep linking.
  */
-export function PatternsBrowser({ patterns }: PatternsBrowserProps) {
+export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -187,22 +189,13 @@ export function PatternsBrowser({ patterns }: PatternsBrowserProps) {
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
-      {/* Sidebar - hidden on mobile, shown on md+ */}
+      {/* Sidebar - visible on all viewports so New and other filters are always available */}
       {patterns.length > 0 && (
-        <div className="hidden md:block">
+        <div className="w-full md:w-auto">
           <PatternsSidebar
             categories={categories}
-            difficulties={difficulties}
-            tags={tags}
-            newCount={newCount}
             activeCategory={activeCategory}
-            activeDifficulty={activeDifficulty}
-            activeTags={activeTags}
-            activeNewOnly={activeNewOnly}
             onCategoryChange={handleCategoryChange}
-            onDifficultyChange={handleDifficultyChange}
-            onTagToggle={handleTagToggle}
-            onNewFilterChange={handleNewFilterChange}
             onClearAll={handleClearAll}
           />
         </div>
@@ -210,13 +203,6 @@ export function PatternsBrowser({ patterns }: PatternsBrowserProps) {
 
       {/* Main content area */}
       <div className="flex-1 min-w-0">
-        {/* Search bar - only show if there are patterns */}
-        {patterns.length > 0 && (
-          <div className="mb-6">
-            <PatternsSearch />
-          </div>
-        )}
-
         {/* Result count */}
         {patterns.length > 0 && (
           <div className="mb-4">
@@ -232,10 +218,97 @@ export function PatternsBrowser({ patterns }: PatternsBrowserProps) {
           </div>
         )}
 
+        {/* New filter - top of patterns area */}
+        {patterns.length > 0 && (
+          <div className="mb-3">
+            <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              New
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleNewFilterChange(false)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                  !activeNewOnly
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground"
+                )}
+              >
+                <span>All</span>
+                <Badge variant="secondary" className="text-xs">
+                  {patterns.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNewFilterChange(true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                  activeNewOnly
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground"
+                )}
+              >
+                <span>New only</span>
+                <Badge variant="secondary" className="text-xs">
+                  {newCount}
+                </Badge>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Difficulty filter - below New */}
+        {patterns.length > 0 && difficulties.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              Difficulty
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleDifficultyChange(null)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors capitalize",
+                  activeDifficulty === null
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground"
+                )}
+              >
+                <span>All</span>
+                <Badge variant="secondary" className="text-xs">
+                  {difficulties.reduce((sum, d) => sum + d.count, 0)}
+                </Badge>
+              </button>
+              {difficulties.map((diff) => (
+                <button
+                  type="button"
+                  key={diff.value}
+                  onClick={() =>
+                    handleDifficultyChange(diff.value === activeDifficulty ? null : diff.value)
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors capitalize",
+                    activeDifficulty === diff.value
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-muted/50 text-muted-foreground"
+                  )}
+                >
+                  <span>{diff.value}</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {diff.count}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Pattern cards grid */}
         {patterns.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No patterns available.</p>
+            {emptyStateHint ?? <p className="text-muted-foreground">No patterns available.</p>}
           </div>
         ) : filteredPatterns.length === 0 ? (
           <div className="text-center py-12">

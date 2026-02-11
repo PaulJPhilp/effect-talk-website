@@ -6,7 +6,7 @@
 import { Effect } from "effect"
 import { eq, and, asc } from "drizzle-orm"
 import { db } from "@/db/client"
-import { tourLessons, tourSteps, tourProgress } from "@/db/schema"
+import { tourLessons, tourSteps, tourProgress, patterns, NEW_PATTERN_RELEASE_CUTOFF } from "@/db/schema"
 import type { DbError } from "@/services/Db/errors"
 import { toDbError } from "@/services/Db/helpers"
 import type {
@@ -66,14 +66,30 @@ export function getLessonWithSteps(slug: string): Effect.Effect<TourLessonWithSt
       if (!lessonRow) return null
 
       const stepRows = await db
-        .select()
+        .select({
+          id: tourSteps.id,
+          lessonId: tourSteps.lessonId,
+          orderIndex: tourSteps.orderIndex,
+          title: tourSteps.title,
+          instruction: tourSteps.instruction,
+          conceptCode: tourSteps.conceptCode,
+          conceptCodeLanguage: tourSteps.conceptCodeLanguage,
+          solutionCode: tourSteps.solutionCode,
+          playgroundUrl: tourSteps.playgroundUrl,
+          hints: tourSteps.hints,
+          feedbackOnComplete: tourSteps.feedbackOnComplete,
+          patternId: tourSteps.patternId,
+          createdAt: tourSteps.createdAt,
+          patternReleaseVersion: patterns.releaseVersion,
+        })
         .from(tourSteps)
+        .leftJoin(patterns, eq(tourSteps.patternId, patterns.id))
         .where(eq(tourSteps.lessonId, lessonRow.id))
         .orderBy(asc(tourSteps.orderIndex))
 
       return {
         ...mapLesson(lessonRow),
-        steps: stepRows.map(mapStep),
+        steps: stepRows.map((row) => mapStepWithPatternNew(row)),
       }
     },
     catch: toDbError,
@@ -99,6 +115,20 @@ function mapStep(row: typeof tourSteps.$inferSelect): TourStep {
     feedback_on_complete: row.feedbackOnComplete,
     pattern_id: row.patternId,
     created_at: row.createdAt.toISOString(),
+  }
+}
+
+type StepRowWithPatternRelease = typeof tourSteps.$inferSelect & {
+  patternReleaseVersion?: string | null
+}
+
+function mapStepWithPatternNew(row: StepRowWithPatternRelease): TourStep {
+  const isNewFromRelease =
+    row.patternReleaseVersion != null &&
+    row.patternReleaseVersion >= NEW_PATTERN_RELEASE_CUTOFF
+  return {
+    ...mapStep(row),
+    pattern_new: isNewFromRelease ? true : undefined,
   }
 }
 

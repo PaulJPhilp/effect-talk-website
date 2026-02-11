@@ -30,7 +30,7 @@ interface SwapGroup {
    * Table names to swap, in order. Each entry is swapped:
    *   live → retired, staging → live
    */
-  readonly tables: string[]
+  readonly tables: readonly string[]
   /**
    * Write-lock trigger names per table. These are disabled on the outgoing
    * live table and enabled on the incoming (previously staging) table.
@@ -57,12 +57,8 @@ interface SwapGroup {
 // Pre-defined swap groups
 // ---------------------------------------------------------------------------
 
+/** effect_patterns is read-only in this app; no staging/swap. */
 export const SWAP_GROUPS = {
-  patterns: {
-    name: "patterns",
-    tables: ["patterns"],
-    lockTriggers: [{ table: "patterns", triggerName: "lock_patterns" }],
-  },
   rules: {
     name: "rules",
     tables: ["rules"],
@@ -225,8 +221,7 @@ export async function swapTables(
   // 5. Enable write-lock triggers on the NEW live tables
   for (const lt of group.lockTriggers) {
     statements.push(
-      `CREATE TRIGGER "${lt.triggerName}" BEFORE INSERT OR UPDATE OR DELETE ON "${lt.table}" ` +
-      `FOR EACH ROW EXECUTE FUNCTION reject_content_writes()`,
+      `CREATE TRIGGER "${lt.triggerName}" BEFORE INSERT OR UPDATE OR DELETE ON "${lt.table}" FOR EACH ROW EXECUTE FUNCTION reject_content_writes()`,
     )
   }
 

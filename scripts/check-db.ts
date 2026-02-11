@@ -30,8 +30,7 @@ const REQUIRED_TABLES = [
   "waitlist_signups",
   "consulting_inquiries",
   "api_keys",
-  "patterns",
-  "patterns_staging",
+  "effect_patterns",
   "rules",
   "rules_staging",
   "tour_lessons",
@@ -62,21 +61,21 @@ async function main(): Promise<void> {
     }
   }
 
-  // 2. Check patterns has "new" column
+  // 2. Check effect_patterns has release_version column (used to derive "new" in UI)
   const patternColumns = await db.execute(sql.raw(`
     SELECT column_name FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'patterns'
+    WHERE table_schema = 'public' AND table_name = 'effect_patterns'
   `))
   const patternColSet = new Set(
     (patternColumns.rows as Array<{ column_name: string }>).map((r) => r.column_name),
   )
-  if (!patternColSet.has("new")) {
-    console.error("patterns table missing column: new (run db:push or db:migrate)")
+  if (!patternColSet.has("release_version")) {
+    console.error("effect_patterns table missing column: release_version")
     hasError = true
   }
 
   // 3. Row counts for content tables
-  const contentTables = ["patterns", "patterns_staging", "rules", "rules_staging", "tour_lessons", "tour_lessons_staging", "tour_steps", "tour_steps_staging"]
+  const contentTables = ["effect_patterns", "rules", "rules_staging", "tour_lessons", "tour_lessons_staging", "tour_steps", "tour_steps_staging"]
   const counts: Record<string, number> = {}
   for (const table of contentTables) {
     if (!existingSet.has(table)) continue
@@ -108,7 +107,7 @@ async function main(): Promise<void> {
   }
 
   console.log("Tables: all required tables present")
-  console.log("patterns.new: column present")
+  console.log("effect_patterns.release_version: column present")
   console.log("\nContent row counts:")
   for (const table of contentTables) {
     const c = counts[table] ?? 0

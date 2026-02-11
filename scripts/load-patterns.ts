@@ -17,8 +17,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { readFile, readdir, stat } from "node:fs/promises"
 import { drizzle } from "drizzle-orm/node-postgres"
-import { patternsStaging, rulesStaging, contentDeployments } from "../src/db/schema"
-import { patternId } from "./lib/deterministic-ids"
+import { rulesStaging, contentDeployments } from "../src/db/schema"
 import { sql } from "drizzle-orm"
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
@@ -199,58 +198,21 @@ async function seed() {
     process.exit(1)
   }
 
-  console.log(`Found ${jsonData.patterns.length} patterns in JSON index`)
+  // Patterns: not loaded here. effect_patterns is owned by the other project (sync-patterns-from-mdx).
+  // This script only loads rules into rules_staging.
 
-  // Clear staging tables (always — staging is a scratch space)
-  console.log("Clearing staging tables...")
-  await db.delete(patternsStaging)
+  // Clear rules staging (staging is a scratch space)
+  console.log("Clearing rules staging...")
   await db.delete(rulesStaging)
 
-  // Insert patterns into STAGING table
-  let inserted = 0
-  let skipped = 0
-
-  for (const p of jsonData.patterns) {
-    // Try to load MDX content
-    const mdxPath = await findMdxFile(p.id)
-    let content: string
-
-    if (mdxPath) {
-      const mdxRaw = await readFile(mdxPath, "utf-8")
-      content = mdxToHtml(mdxRaw)
-    } else {
-      // Fallback: generate minimal content from metadata
-      content = `<h1>${p.title}</h1>\n<p>${p.description}</p>`
-    }
-
-    try {
-      await db.insert(patternsStaging).values({
-        id: patternId(p.id),
-        title: p.title,
-        description: p.description,
-        content,
-        category: p.category,
-        difficulty: p.difficulty,
-        tags: p.tags,
-        new: false,
-      })
-      inserted++
-    } catch (err) {
-      console.error(`  Failed to insert "${p.title}":`, err)
-      skipped++
-    }
-  }
-
-  console.log(`Staged ${inserted} patterns (${skipped} skipped)`)
-
-  // Also load rules from the content/published/rules directory if it exists
+  // Load rules from the content/published/rules directory if it exists
   const rulesDir = path.join(EFFECT_PATTERNS_ROOT, "content/published/rules")
   const rulesDirExists = await stat(rulesDir).catch(() => null)
+  let rulesInserted = 0
 
   if (rulesDirExists?.isDirectory()) {
     const ruleFiles = await readdir(rulesDir)
     const mdxRuleFiles = ruleFiles.filter((f) => f.endsWith(".mdx"))
-    let rulesInserted = 0
 
     for (const file of mdxRuleFiles) {
       const mdxRaw = await readFile(path.join(rulesDir, file), "utf-8")
@@ -293,25 +255,16 @@ async function seed() {
     console.log("No rules directory found, skipping rules")
   }
 
-  // Record deployments for both groups
-  await db.insert(contentDeployments).values({
-    tableGroup: "patterns",
-    status: "staged",
-    rowCount: inserted,
-    metadata: { patternsVersion: jsonData.version, lastUpdated: jsonData.lastUpdated },
-  })
-
+  // Record deployment for rules only (patterns/effect_patterns not managed by this script)
   await db.insert(contentDeployments).values({
     tableGroup: "rules",
     status: "staged",
-    rowCount: inserted,
+    rowCount: rulesInserted,
     metadata: {},
   })
 
-  console.log("\nStaging complete! To promote to live, run:")
-  console.log("  bun run db:promote patterns")
+  console.log("\nStaging complete! To promote rules to live, run:")
   console.log("  bun run db:promote rules")
-  console.log("  (or: bun run db:promote all)")
   process.exit(0)
 }
 

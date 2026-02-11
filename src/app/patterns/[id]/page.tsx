@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { PatternContent } from "@/components/PatternContent"
 import { fetchPattern, fetchPatternIds } from "@/services/BackendApi"
 import { buildMetadata } from "@/lib/seo"
+import { patternContentToHtml } from "@/lib/patternContent"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -62,6 +63,10 @@ export default async function PatternDetailPage({ params, searchParams }: Patter
     notFound()
   }
 
+  const contentHtml = await Effect.runPromise(
+    patternContentToHtml(pattern.content)
+  )
+
   const backHref =
     lessonSlug && stepParam
       ? `/tour/${lessonSlug}?step=${stepParam}`
@@ -80,7 +85,15 @@ export default async function PatternDetailPage({ params, searchParams }: Patter
       </Link>
 
       <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {pattern.new && (
+            <Badge
+              variant="outline"
+              className="bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+            >
+              New
+            </Badge>
+          )}
           {pattern.category && (
             <Badge variant="secondary">{pattern.category}</Badge>
           )}
@@ -93,7 +106,7 @@ export default async function PatternDetailPage({ params, searchParams }: Patter
       </div>
 
       {/* Pattern content with syntax-highlighted code blocks */}
-      <PatternContent html={pattern.content} />
+      <PatternContent html={contentHtml} />
     </div>
   )
 }
