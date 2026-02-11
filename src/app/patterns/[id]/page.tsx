@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { PatternContent } from "@/components/PatternContent"
 import { fetchPattern, fetchPatternIds } from "@/services/BackendApi"
+import { difficultyDisplayLabel } from "@/lib/difficulty"
 import { buildMetadata } from "@/lib/seo"
 import { patternContentToHtml } from "@/lib/patternContent"
 import { ArrowLeft } from "lucide-react"
@@ -98,7 +99,7 @@ export default async function PatternDetailPage({ params, searchParams }: Patter
             <Badge variant="secondary">{pattern.category}</Badge>
           )}
           {pattern.difficulty && (
-            <Badge variant="outline">{pattern.difficulty}</Badge>
+            <Badge variant="outline">{difficultyDisplayLabel(pattern.difficulty)}</Badge>
           )}
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{pattern.title}</h1>

@@ -22,10 +22,14 @@ export function PatternsSearch({ className }: PatternsSearchProps) {
     setLocalQuery(queryParam)
   }, [queryParam])
 
-  // Debounced URL update
+  // Debounced URL update: only run when user types (localQuery). Read current URL
+  // from window when the timer fires so we preserve filter params and don't
+  // overwrite them (effect must not depend on searchParams or it re-runs on
+  // filter clicks and races with the filter's router.replace).
   useEffect(() => {
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString())
+      const currentSearch = window.location.search
+      const params = new URLSearchParams(currentSearch)
       if (localQuery.trim()) {
         params.set("q", localQuery.trim())
       } else {
@@ -35,7 +39,7 @@ export function PatternsSearch({ className }: PatternsSearchProps) {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [localQuery, router, searchParams])
+  }, [localQuery, router])
 
   const handleClear = useCallback(() => {
     setLocalQuery("")

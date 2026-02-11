@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { difficultyDisplayLabel } from "@/lib/difficulty"
 import type { Pattern } from "@/services/BackendApi"
 
 interface PatternsListProps {
@@ -32,7 +33,7 @@ export function PatternsList({ patterns }: PatternsListProps) {
                 <div className="flex gap-1 shrink-0">
                   {pattern.difficulty && (
                     <Badge variant="outline" className="text-xs">
-                      {pattern.difficulty}
+                      {difficultyDisplayLabel(pattern.difficulty)}
                     </Badge>
                   )}
                   {pattern.category && (

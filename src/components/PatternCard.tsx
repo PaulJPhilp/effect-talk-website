@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { extractPatternSections } from "@/lib/extractPatternSections"
+import { difficultyDisplayLabel } from "@/lib/difficulty"
 import { CodeHighlight } from "@/components/CodeHighlight"
 import type { Pattern } from "@/services/BackendApi"
 
@@ -44,7 +45,7 @@ export function PatternCard({ pattern }: PatternCardProps) {
               )}
               {pattern.difficulty && (
                 <Badge variant="outline" className="text-xs bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
-                  {pattern.difficulty}
+                  {difficultyDisplayLabel(pattern.difficulty)}
                 </Badge>
               )}
               {pattern.category && (

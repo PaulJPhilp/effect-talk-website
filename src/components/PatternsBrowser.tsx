@@ -2,11 +2,13 @@
 
 import { useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { PatternsSearch } from "@/components/PatternsSearch"
 import { PatternsSidebar } from "@/components/PatternsSidebar"
 import { PatternCard } from "@/components/PatternCard"
 import { Badge } from "@/components/ui/badge"
 import type { Pattern } from "@/services/BackendApi"
 import { cn } from "@/lib/utils"
+import { difficultyDisplayLabel, sortDifficultiesByDisplayOrder } from "@/lib/difficulty"
 
 interface PatternsBrowserProps {
   readonly patterns: readonly Pattern[]
@@ -63,9 +65,12 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
         .map(([value, count]) => ({ value, count }))
         .sort((a, b) => b.count - a.count)
 
+    const difficultyFacets = toFacetArray(difficultyMap)
+    const orderedDifficulties = sortDifficultiesByDisplayOrder(difficultyFacets)
+
     return {
       categories: toFacetArray(categoryMap),
-      difficulties: toFacetArray(difficultyMap),
+      difficulties: orderedDifficulties,
       tags: toFacetArray(tagMap),
       newCount: newPatternCount,
     }
@@ -203,6 +208,11 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
 
       {/* Main content area */}
       <div className="flex-1 min-w-0">
+        {patterns.length > 0 && (
+          <div className="mb-4">
+            <PatternsSearch />
+          </div>
+        )}
         {/* Result count */}
         {patterns.length > 0 && (
           <div className="mb-4">
@@ -295,7 +305,7 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
                       : "hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <span>{diff.value}</span>
+                  <span>{difficultyDisplayLabel(diff.value)}</span>
                   <Badge variant="secondary" className="text-xs">
                     {diff.count}
                   </Badge>

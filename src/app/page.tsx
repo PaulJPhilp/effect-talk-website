@@ -53,29 +53,35 @@ export default function HomePage() {
             </Card>
           </Link>
 
-          <Link href="/cli">
-            <Card className="h-full hover:bg-muted/50 transition-colors">
+          <div className="relative h-full pointer-events-none">
+            <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Coming soon
+            </span>
+            <Card className="h-full cursor-not-allowed opacity-60 grayscale">
               <CardHeader>
-                <Terminal className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>CLI Tool</CardTitle>
+                <Terminal className="h-8 w-8 mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">CLI Tool</CardTitle>
                 <CardDescription>
                   Install EffectPatterns locally. Search, browse, and apply patterns from your terminal.
                 </CardDescription>
               </CardHeader>
             </Card>
-          </Link>
+          </div>
 
-          <Link href="/mcp">
-            <Card className="h-full hover:bg-muted/50 transition-colors">
+          <div className="relative h-full pointer-events-none">
+            <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Coming soon
+            </span>
+            <Card className="h-full cursor-not-allowed opacity-60 grayscale">
               <CardHeader>
-                <Cpu className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>MCP Server</CardTitle>
+                <Cpu className="h-8 w-8 mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">MCP Server</CardTitle>
                 <CardDescription>
                   Connect Cursor, Claude, or any MCP-compatible AI to the full patterns library.
                 </CardDescription>
               </CardHeader>
             </Card>
-          </Link>
+          </div>
 
           <Link href="/consulting">
             <Card className="h-full hover:bg-muted/50 transition-colors">

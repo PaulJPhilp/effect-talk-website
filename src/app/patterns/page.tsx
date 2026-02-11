@@ -5,7 +5,7 @@ import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
   title: "Effect.ts Patterns",
-  description: "Browse 200+ production-ready Effect.ts patterns — searchable, categorized, and battle-tested.",
+  description: "Browse 300+ production-ready Effect.ts patterns — searchable, categorized, and battle-tested.",
 })
 
 /**
