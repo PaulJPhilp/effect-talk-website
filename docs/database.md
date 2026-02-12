@@ -13,6 +13,10 @@ This app (**effect-talk-website**) only **reads** from the shared database. It d
 - **DATABASE_URL** must point at the same database the Effect Pattern repo uses (the one where `effect_patterns` exists with the expected columns, including `release_version`).
 - If the patterns page shows "0 patterns", verify that `DATABASE_URL` is correct and that the database has the `effect_patterns` table with a `release_version` column.
 
+### Production (Neon + Vercel)
+
+When deployed on Vercel with `APP_ENV=production` or `APP_ENV=staging`, the app uses Neon's serverless driver (`@neondatabase/serverless`) instead of node-postgres. This avoids connection pool exhaustion in serverless. Set `DATABASE_URL` to your Neon connection string in Vercel environment variables. See `.env.example` for the full production env var list.
+
 ## Keeping the schema in sync
 
 When the Effect Pattern repo adds or changes columns on `effect_patterns`, update the Drizzle definition in `src/db/schema.ts` in this repo to match (same table name, same column names and types). Do not add migrations in this repo that create or alter `effect_patterns`; migrations for that table live only in the Effect Pattern repo.

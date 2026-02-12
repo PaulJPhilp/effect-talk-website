@@ -1,5 +1,9 @@
+import { config } from "dotenv"
 import { defineConfig } from "vitest/config"
 import { resolve } from "node:path"
+
+// Load .env.local so DATABASE_URL and other vars are available for integration tests
+config({ path: resolve(process.cwd(), ".env.local") })
 
 export default defineConfig({
   test: {
