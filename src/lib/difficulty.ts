@@ -3,6 +3,7 @@
  * URL/filter values stay as stored (e.g. "advanced"); only labels are mapped.
  */
 export const DIFFICULTY_DISPLAY_ORDER = ["beginner", "intermediate", "advanced"] as const
+type DifficultyDisplayOrderValue = (typeof DIFFICULTY_DISPLAY_ORDER)[number]
 
 const DIFFICULTY_LABELS: Record<string, string> = {
   beginner: "Beginner",
@@ -25,9 +26,19 @@ export function difficultyDisplayLabel(difficulty: string | null | undefined): s
  */
 export function sortDifficultiesByDisplayOrder<T extends { value: string }>(entries: T[]): T[] {
   const order = DIFFICULTY_DISPLAY_ORDER
+  const orderIndexMap = new Map<DifficultyDisplayOrderValue, number>(
+    order.map((value, index) => [value, index] as const)
+  )
+
+  function getOrderIndex(value: string): number {
+    const normalizedValue = value.toLowerCase() as DifficultyDisplayOrderValue
+    const index = orderIndexMap.get(normalizedValue)
+    return index ?? -1
+  }
+
   return [...entries].sort((a, b) => {
-    const i = order.indexOf(a.value.toLowerCase())
-    const j = order.indexOf(b.value.toLowerCase())
+    const i = getOrderIndex(a.value)
+    const j = getOrderIndex(b.value)
     if (i === -1 && j === -1) return 0
     if (i === -1) return 1
     if (j === -1) return -1

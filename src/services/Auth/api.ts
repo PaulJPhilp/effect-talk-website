@@ -8,6 +8,7 @@
  */
 
 import { Effect } from "effect"
+import { createHmac, timingSafeEqual } from "node:crypto"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { withAuth } from "@workos-inc/authkit-nextjs"
@@ -22,6 +23,34 @@ import { getUserById, getUserByWorkosId } from "@/services/Db/api"
 import type { DbUser } from "@/services/Db/types"
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/services/Auth/helpers"
 
+const SESSION_TOKEN_SEPARATOR = "."
+
+function getSessionSigningSecret(): string | null {
+  const secret = process.env.SESSION_COOKIE_SECRET ?? process.env.WORKOS_COOKIE_PASSWORD
+  if (!secret || secret.length < 32) return null
+  return secret
+}
+
+function signSessionValue(value: string, secret: string): string {
+  const signature = createHmac("sha256", secret).update(value).digest("base64url")
+  return `${value}${SESSION_TOKEN_SEPARATOR}${signature}`
+}
+
+function verifySessionValue(signedValue: string, secret: string): string | null {
+  const separatorIndex = signedValue.lastIndexOf(SESSION_TOKEN_SEPARATOR)
+  if (separatorIndex <= 0) return null
+
+  const value = signedValue.slice(0, separatorIndex)
+  const signature = signedValue.slice(separatorIndex + 1)
+  const expectedSignature = createHmac("sha256", secret).update(value).digest("base64url")
+
+  const signatureBuffer = Buffer.from(signature)
+  const expectedBuffer = Buffer.from(expectedSignature)
+  if (signatureBuffer.length !== expectedBuffer.length) return null
+
+  return timingSafeEqual(signatureBuffer, expectedBuffer) ? value : null
+}
+
 // ---------------------------------------------------------------------------
 // WorkOS AuthKit (SDK) configuration check
 // ---------------------------------------------------------------------------
@@ -30,16 +59,19 @@ import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/services/Auth/helpers"
  * Check if WorkOS AuthKit SDK is properly configured (required env vars for @workos-inc/authkit-nextjs).
  */
 export function isWorkOSConfigured(): boolean {
+  const apiKey = process.env.WORKOS_API_KEY
   const clientId = process.env.WORKOS_CLIENT_ID
   const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? process.env.WORKOS_REDIRECT_URI
   const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD
   return Boolean(
+    apiKey &&
+      !apiKey.includes(WORKOS_PLACEHOLDER_CHECK) &&
     clientId &&
-      redirectUri &&
-    cookiePassword &&
-      cookiePassword.length >= 32 &&
       !clientId.includes(WORKOS_PLACEHOLDER_CHECK) &&
-      !redirectUri.includes(WORKOS_PLACEHOLDER_CHECK)
+    redirectUri &&
+      !redirectUri.includes(WORKOS_PLACEHOLDER_CHECK) &&
+    cookiePassword &&
+      cookiePassword.length >= 32
   )
 }
 
@@ -54,7 +86,13 @@ export function isWorkOSConfigured(): boolean {
 export async function setSessionCookie(userId: string): Promise<void> {
   const cookieStore = await cookies()
   const appEnv = (process.env.APP_ENV as AppEnvironment | undefined) ?? DEFAULT_APP_ENV
-  cookieStore.set(SESSION_COOKIE, userId, {
+  const secret = getSessionSigningSecret()
+  if (!secret) {
+    console.warn("setSessionCookie: missing SESSION_COOKIE_SECRET (or valid WORKOS_COOKIE_PASSWORD)")
+    return
+  }
+
+  cookieStore.set(SESSION_COOKIE, signSessionValue(userId, secret), {
     httpOnly: true,
     secure: appEnv !== DEFAULT_APP_ENV,
     sameSite: COOKIE_SAME_SITE_LAX,
@@ -78,7 +116,23 @@ export async function clearSessionCookie(): Promise<void> {
 export async function getSessionUserId(): Promise<string | null> {
   const cookieStore = await cookies()
   const session = cookieStore.get(SESSION_COOKIE)
-  return session?.value ?? null
+  if (!session?.value) return null
+
+  const secret = getSessionSigningSecret()
+  if (!secret) return null
+
+  const verifiedValue = verifySessionValue(session.value, secret)
+  if (!verifiedValue) {
+    // This succeeds in Route Handlers / Server Actions and no-ops in render-only contexts.
+    try {
+      cookieStore.delete(SESSION_COOKIE)
+    } catch {
+      // Ignore: cookie mutations are not allowed in all Next.js execution contexts.
+    }
+    return null
+  }
+
+  return verifiedValue
 }
 
 /**

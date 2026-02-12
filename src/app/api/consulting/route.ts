@@ -25,11 +25,23 @@ const ConsultingSchema = Schema.Struct({
 export async function POST(request: NextRequest) {
   // Rate limit
   const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown"
-  const rateCheck = checkRateLimit(`consulting:${ip}`, RATE_LIMITS.form)
+  const rateCheck = await checkRateLimit(`consulting:${ip}`, RATE_LIMITS.form)
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": String(RATE_LIMITS.form.maxRequests),
+    "X-RateLimit-Remaining": String(rateCheck.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(rateCheck.resetAt / 1000)),
+  }
   if (!rateCheck.allowed) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((rateCheck.resetAt - Date.now()) / 1000))
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      { status: 429 }
+      {
+        status: 429,
+        headers: {
+          ...rateLimitHeaders,
+          "Retry-After": String(retryAfterSeconds),
+        },
+      }
     )
   }
 
@@ -73,12 +85,12 @@ export async function POST(request: NextRequest) {
       // Silently ignore
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, { headers: rateLimitHeaders })
   } catch (error) {
     console.error("Consulting inquiry error:", error)
     return NextResponse.json(
       { error: "Failed to process inquiry. Please try again." },
-      { status: 500 }
+      { status: 500, headers: rateLimitHeaders }
     )
   }
 }

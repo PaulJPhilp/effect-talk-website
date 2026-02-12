@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect, Schema, Either } from "effect"
-import { getSessionUserId } from "@/services/Auth"
-import { getUserByWorkosId, updateUserPreferences } from "@/services/Db"
+import { getCurrentUser } from "@/services/Auth"
+import { updateUserPreferences } from "@/services/Db"
 import { formatSchemaErrors } from "@/lib/schema"
 
 const PreferencesSchema = Schema.Struct({
@@ -12,8 +12,8 @@ const PreferencesSchema = Schema.Struct({
  * POST /api/preferences - Update user preferences.
  */
 export async function POST(request: NextRequest) {
-  const workosId = await getSessionUserId()
-  if (!workosId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -33,16 +33,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserByWorkosId(workosId).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
-      )
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const updated = await Effect.runPromise(
       updateUserPreferences(user.id, decoded.right.preferences as Record<string, unknown>).pipe(
         Effect.catchAll(() => Effect.succeed(null))

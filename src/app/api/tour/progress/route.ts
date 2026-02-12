@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect, Schema, Either } from "effect"
-import { getSessionUserId } from "@/services/Auth"
-import { getUserById } from "@/services/Db"
-import { getUserProgress, getStepProgress, upsertStepProgress } from "@/services/TourProgress"
+import { getCurrentUser } from "@/services/Auth"
+import { getUserProgress, upsertStepProgress } from "@/services/TourProgress"
 import { formatSchemaErrors } from "@/lib/schema"
 
 const UpdateProgressSchema = Schema.Struct({
@@ -14,23 +13,15 @@ const UpdateProgressSchema = Schema.Struct({
 /**
  * GET /api/tour/progress - Get all progress for the current user.
  */
-export async function GET(request: NextRequest) {
-  const userId = await getSessionUserId()
-  if (!userId) {
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserById(userId).pipe(Effect.catchAll(() => Effect.succeed(null)))
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const progress = await Effect.runPromise(
-      getUserProgress(userId).pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+      getUserProgress(user.id).pipe(Effect.catchAll(() => Effect.succeed([] as const)))
     )
 
     return NextResponse.json({ progress })
@@ -44,8 +35,8 @@ export async function GET(request: NextRequest) {
  * POST /api/tour/progress - Update progress for a single step.
  */
 export async function POST(request: NextRequest) {
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -65,16 +56,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserById(userId).pipe(Effect.catchAll(() => Effect.succeed(null)))
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const updated = await Effect.runPromise(
-      upsertStepProgress(userId, decoded.right.stepId, decoded.right.status, decoded.right.feedback).pipe(
+      upsertStepProgress(user.id, decoded.right.stepId, decoded.right.status, decoded.right.feedback).pipe(
         Effect.catchAll(() => Effect.succeed(null))
       )
     )

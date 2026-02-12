@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowRight, BookOpen, Terminal, Cpu, MessageSquare, GraduationCap } from "lucide-react"
+import { ArrowRight, BookOpen, Terminal, Cpu, MessageSquare, FileSearch, ArrowRightLeft } from "lucide-react"
 import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
@@ -94,6 +94,39 @@ export default function HomePage() {
               </CardHeader>
             </Card>
           </Link>
+
+          {/* Placeholder so row 2 aligns: Code Review under CLI, V3 under MCP */}
+          <div aria-hidden className="hidden lg:block" />
+
+          <div className="relative h-full pointer-events-none">
+            <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Coming soon
+            </span>
+            <Card className="h-full cursor-not-allowed opacity-60 grayscale">
+              <CardHeader>
+                <FileSearch className="h-8 w-8 mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">Code Review and Refactoring</CardTitle>
+                <CardDescription>
+                  AI-powered code review and refactoring for Effect.ts applications.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="relative h-full pointer-events-none">
+            <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Coming soon
+            </span>
+            <Card className="h-full cursor-not-allowed opacity-60 grayscale">
+              <CardHeader>
+                <ArrowRightLeft className="h-8 w-8 mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">V3 to V4 Migration</CardTitle>
+                <CardDescription>
+                  Guided migration from Effect v3 to v4 — patterns, tooling, and best practices.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
         </div>
       </section>
     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import { useTheme } from "next-themes"
 import { Sun, Moon, Monitor } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,13 +13,13 @@ import {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
+  if (!isMounted) {
     return (
       <Button variant="outline" size="sm" className="h-9 w-9 p-0" disabled>
         <Sun className="h-4 w-4" />

@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect, Schema, Either } from "effect"
-import { getSessionUserId } from "@/services/Auth"
-import { getUserByWorkosId } from "@/services/Db"
+import { getCurrentUser } from "@/services/Auth"
 import { createApiKey, listUserApiKeys } from "@/services/ApiKeys"
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit"
 import { formatSchemaErrors } from "@/lib/schema"
@@ -10,22 +9,12 @@ import { formatSchemaErrors } from "@/lib/schema"
  * GET /api/api-keys - List all API keys for the current user.
  */
 export async function GET() {
-  const workosId = await getSessionUserId()
-  if (!workosId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserByWorkosId(workosId).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
-      )
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const keys = await Effect.runPromise(
       listUserApiKeys(user.id).pipe(
         Effect.catchAll(() => Effect.succeed([] as const))
@@ -33,7 +22,11 @@ export async function GET() {
     )
 
     // Strip key_hash from response
-    const safeKeys = keys.map(({ key_hash: _, ...rest }) => rest)
+    const safeKeys = keys.map((key) => {
+      const { key_hash, ...rest } = key
+      void key_hash
+      return rest
+    })
 
     return NextResponse.json({ keys: safeKeys })
   } catch (error) {
@@ -53,17 +46,29 @@ const CreateKeySchema = Schema.Struct({
  * POST /api/api-keys - Create a new API key.
  */
 export async function POST(request: NextRequest) {
-  const workosId = await getSessionUserId()
-  if (!workosId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   // Rate limit
-  const rateCheck = checkRateLimit(`api-keys:${workosId}`, RATE_LIMITS.apiKey)
+  const rateCheck = await checkRateLimit(`api-keys:${user.id}`, RATE_LIMITS.apiKey)
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": String(RATE_LIMITS.apiKey.maxRequests),
+    "X-RateLimit-Remaining": String(rateCheck.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(rateCheck.resetAt / 1000)),
+  }
   if (!rateCheck.allowed) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((rateCheck.resetAt - Date.now()) / 1000))
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      { status: 429 }
+      {
+        status: 429,
+        headers: {
+          ...rateLimitHeaders,
+          "Retry-After": String(retryAfterSeconds),
+        },
+      }
     )
   }
 
@@ -78,36 +83,32 @@ export async function POST(request: NextRequest) {
   if (Either.isLeft(decoded)) {
     return NextResponse.json(
       { error: "Validation failed", details: formatSchemaErrors(decoded.left) },
-      { status: 400 }
+      { status: 400, headers: rateLimitHeaders }
     )
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserByWorkosId(workosId).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
-      )
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const result = await Effect.runPromise(
       createApiKey(user.id, decoded.right.name)
     )
 
-    return NextResponse.json({
-      plaintext: result.plaintext,
-      key: {
-        id: result.record.id,
-        name: result.record.name,
-        key_prefix: result.record.key_prefix,
-        created_at: result.record.created_at,
+    return NextResponse.json(
+      {
+        plaintext: result.plaintext,
+        key: {
+          id: result.record.id,
+          name: result.record.name,
+          key_prefix: result.record.key_prefix,
+          created_at: result.record.created_at,
+        },
       },
-    })
+      { headers: rateLimitHeaders }
+    )
   } catch (error) {
     console.error("Create API key error:", error)
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal error" },
+      { status: 500, headers: rateLimitHeaders }
+    )
   }
 }

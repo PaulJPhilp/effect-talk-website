@@ -18,7 +18,6 @@ import { fileURLToPath } from "node:url"
 import { readFile, readdir, stat } from "node:fs/promises"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { rulesStaging, contentDeployments } from "../src/db/schema"
-import { sql } from "drizzle-orm"
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 config({ path: path.join(rootDir, "..", ".env.local") })
@@ -37,7 +36,6 @@ const db = drizzle(databaseUrl)
 
 const EFFECT_PATTERNS_ROOT = path.resolve(rootDir, "../../../Public/Effect-Patterns")
 const ALL_PATTERNS_JSON = path.join(EFFECT_PATTERNS_ROOT, "packages/mcp-server/data/all-patterns.json")
-const CONTENT_DIR = path.join(EFFECT_PATTERNS_ROOT, "content/published/patterns")
 
 // ---------------------------------------------------------------------------
 // Types for the JSON index
@@ -63,24 +61,6 @@ interface PatternsFile {
   readonly version: string
   readonly patterns: PatternData[]
   readonly lastUpdated: string
-}
-
-// ---------------------------------------------------------------------------
-// MDX loading
-// ---------------------------------------------------------------------------
-
-async function findMdxFile(slug: string): Promise<string | null> {
-  // Search recursively in CONTENT_DIR for <slug>.mdx
-  const categories = await readdir(CONTENT_DIR)
-  for (const cat of categories) {
-    const catPath = path.join(CONTENT_DIR, cat)
-    const catStat = await stat(catPath).catch(() => null)
-    if (!catStat?.isDirectory()) continue
-    const filePath = path.join(catPath, `${slug}.mdx`)
-    const fileStat = await stat(filePath).catch(() => null)
-    if (fileStat?.isFile()) return filePath
-  }
-  return null
 }
 
 function mdxToHtml(mdxContent: string): string {
@@ -188,10 +168,9 @@ function mdxToHtml(mdxContent: string): string {
 
 async function seed() {
   // Read JSON index
-  let jsonData: PatternsFile
   try {
     const raw = await readFile(ALL_PATTERNS_JSON, "utf-8")
-    jsonData = JSON.parse(raw)
+    JSON.parse(raw) as PatternsFile
   } catch (err) {
     console.error(`Failed to read ${ALL_PATTERNS_JSON}:`, err)
     console.error("Make sure the Effect-Patterns project exists at:", EFFECT_PATTERNS_ROOT)

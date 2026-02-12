@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect, Schema, Either } from "effect"
-import { getSessionUserId } from "@/services/Auth"
-import { getUserById } from "@/services/Db"
+import { getCurrentUser } from "@/services/Auth"
 import { bulkUpsertProgress, type TourProgressStatus } from "@/services/TourProgress"
 import { formatSchemaErrors } from "@/lib/schema"
 
@@ -18,8 +17,8 @@ const BulkSyncSchema = Schema.Struct({
  * POST /api/tour/progress/sync - Bulk sync progress from localStorage (guest to sovereign).
  */
 export async function POST(request: NextRequest) {
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -39,17 +38,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const user = await Effect.runPromise(
-      getUserById(userId).pipe(Effect.catchAll(() => Effect.succeed(null)))
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const synced = await Effect.runPromise(
       bulkUpsertProgress(
-        userId,
+        user.id,
         decoded.right.progress.map((p) => ({
           stepId: p.stepId,
           status: p.status as TourProgressStatus,

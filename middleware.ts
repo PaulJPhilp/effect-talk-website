@@ -5,7 +5,7 @@ import { authkitMiddleware } from "@workos-inc/authkit-nextjs"
  * Configured to eagerly refresh sessions to ensure persistence across requests.
  */
 export default authkitMiddleware({
-  debug: true, // Enable debug logging to troubleshoot session issues
+  debug: process.env.NODE_ENV !== "production",
   eagerAuth: true, // Eagerly refresh sessions to ensure persistence
 })
 

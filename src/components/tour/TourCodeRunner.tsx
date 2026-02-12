@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
+import { useSyncExternalStore } from "react"
 import {
   SandpackCodeEditor,
   SandpackConsole,
@@ -23,24 +22,14 @@ interface TourCodeRunnerProps {
  * so we only render it after the component has mounted on the client.
  */
 export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) {
-  const { theme, systemTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  // Wait for component to mount on client to avoid hydration mismatch
-  // Sandpack generates random IDs that differ between SSR and client
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Determine current theme (system theme fallback)
-  const currentTheme = mounted
-    ? theme === "system"
-      ? systemTheme ?? "light"
-      : theme ?? "light"
-    : "light"
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   // Don't render Sandpack during SSR to avoid hydration mismatch
-  if (!mounted) {
+  if (!isMounted) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-muted/30">
         <div className="text-sm text-muted-foreground">Loading code editor...</div>

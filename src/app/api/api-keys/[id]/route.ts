@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect } from "effect"
-import { getSessionUserId } from "@/services/Auth"
-import { getUserByWorkosId } from "@/services/Db"
+import { getCurrentUser } from "@/services/Auth"
 import { revokeUserApiKey } from "@/services/ApiKeys"
 
 /**
@@ -11,24 +10,14 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const workosId = await getSessionUserId()
-  if (!workosId) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const { id: keyId } = await params
 
   try {
-    const user = await Effect.runPromise(
-      getUserByWorkosId(workosId).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
-      )
-    )
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     const revoked = await Effect.runPromise(
       revokeUserApiKey(keyId, user.id).pipe(
         Effect.catchAll(() => Effect.succeed(null))

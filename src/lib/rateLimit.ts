@@ -1,10 +1,4 @@
-/**
- * Simple in-memory rate limiter by IP address.
- *
- * NOTE: In a serverless environment (Vercel), each instance has its own memory,
- * so this is not globally consistent. Acceptable for v1 abuse protection.
- * For production, consider Upstash Redis rate limiting.
- */
+import { Redis } from "@upstash/redis"
 
 interface RateLimitEntry {
   count: number
@@ -12,6 +6,7 @@ interface RateLimitEntry {
 }
 
 const store = new Map<string, RateLimitEntry>()
+const rateLimitRedis = createRateLimitRedisClient()
 
 // Clean up expired entries periodically (every 60s)
 setInterval(() => {
@@ -36,10 +31,53 @@ export interface RateLimitResult {
   readonly resetAt: number
 }
 
-/**
- * Check and consume a rate limit token for the given key (typically IP).
- */
-export function checkRateLimit(
+function createRateLimitRedisClient(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return null
+  return new Redis({ url, token })
+}
+
+function getWindowSlot(now: number, windowMs: number): number {
+  return Math.floor(now / windowMs)
+}
+
+function getWindowResetAt(windowSlot: number, windowMs: number): number {
+  return (windowSlot + 1) * windowMs
+}
+
+function buildRedisRateLimitKey(key: string, windowSlot: number): string {
+  return `rl:${key}:${windowSlot}`
+}
+
+async function checkRateLimitRedis(
+  key: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  if (!rateLimitRedis) {
+    throw new Error("Upstash Redis is not configured")
+  }
+
+  const now = Date.now()
+  const windowSlot = getWindowSlot(now, config.windowMs)
+  const redisKey = buildRedisRateLimitKey(key, windowSlot)
+  const resetAt = getWindowResetAt(windowSlot, config.windowMs)
+
+  const count = await rateLimitRedis.incr(redisKey)
+  if (count === 1) {
+    const windowSeconds = Math.max(1, Math.ceil(config.windowMs / 1000))
+    await rateLimitRedis.expire(redisKey, windowSeconds)
+  }
+
+  const remaining = Math.max(0, config.maxRequests - count)
+  return {
+    allowed: count <= config.maxRequests,
+    remaining,
+    resetAt,
+  }
+}
+
+function checkRateLimitMemory(
   key: string,
   config: RateLimitConfig
 ): RateLimitResult {
@@ -58,6 +96,26 @@ export function checkRateLimit(
 
   entry.count++
   return { allowed: true, remaining: config.maxRequests - entry.count, resetAt: entry.resetAt }
+}
+
+/**
+ * Check and consume a rate limit token for the given key (typically IP/user ID).
+ * Uses Upstash Redis when configured, and falls back to in-memory in local/dev.
+ */
+export async function checkRateLimit(
+  key: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  if (!rateLimitRedis) {
+    return checkRateLimitMemory(key, config)
+  }
+
+  try {
+    return await checkRateLimitRedis(key, config)
+  } catch (error) {
+    console.error("Rate limit Redis error, falling back to memory:", error)
+    return checkRateLimitMemory(key, config)
+  }
 }
 
 /**

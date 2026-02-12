@@ -38,10 +38,9 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
   const activeNewOnly = searchParams.get("new") === "1"
 
   // Compute available facets from ALL patterns (not filtered subset)
-  const { categories, difficulties, tags, newCount } = useMemo(() => {
+  const { categories, difficulties, newCount } = useMemo(() => {
     const categoryMap = new Map<string, number>()
     const difficultyMap = new Map<string, number>()
-    const tagMap = new Map<string, number>()
     let newPatternCount = 0
 
     for (const pattern of patterns) {
@@ -52,11 +51,6 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
       if (pattern.difficulty) {
         const diffLower = pattern.difficulty.toLowerCase()
         difficultyMap.set(diffLower, (difficultyMap.get(diffLower) ?? 0) + 1)
-      }
-      if (pattern.tags) {
-        for (const tag of pattern.tags) {
-          tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
-        }
       }
     }
 
@@ -71,7 +65,6 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     return {
       categories: toFacetArray(categoryMap),
       difficulties: orderedDifficulties,
-      tags: toFacetArray(tagMap),
       newCount: newPatternCount,
     }
   }, [patterns])
@@ -170,23 +163,9 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     updateSearchParams({ difficulty })
   }
 
-  const handleTagToggle = (tag: string) => {
-    const currentTags = activeTags
-    const newTags = currentTags.includes(tag)
-      ? currentTags.filter((t) => t !== tag)
-      : [...currentTags, tag]
-    updateSearchParams({ tag: newTags.length > 0 ? newTags : null })
-  }
-
   const handleNewFilterChange = (newOnly: boolean) => {
     updateSearchParams({ new: newOnly || null })
   }
-
-  const hasActiveFilters =
-    activeCategory !== null ||
-    activeDifficulty !== null ||
-    activeTags.length > 0 ||
-    activeNewOnly
 
   const handleClearAll = () => {
     router.replace("/patterns", { scroll: false })

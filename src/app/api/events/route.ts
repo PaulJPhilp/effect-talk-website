@@ -63,9 +63,24 @@ const EventSchema = Schema.Union(
 export async function POST(request: NextRequest) {
   // Rate limit
   const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown"
-  const rateCheck = checkRateLimit(`events:${ip}`, RATE_LIMITS.events)
+  const rateCheck = await checkRateLimit(`events:${ip}`, RATE_LIMITS.events)
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": String(RATE_LIMITS.events.maxRequests),
+    "X-RateLimit-Remaining": String(rateCheck.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(rateCheck.resetAt / 1000)),
+  }
   if (!rateCheck.allowed) {
-    return NextResponse.json({ error: "Rate limited" }, { status: 429 })
+    const retryAfterSeconds = Math.max(1, Math.ceil((rateCheck.resetAt - Date.now()) / 1000))
+    return NextResponse.json(
+      { error: "Rate limited" },
+      {
+        status: 429,
+        headers: {
+          ...rateLimitHeaders,
+          "Retry-After": String(retryAfterSeconds),
+        },
+      }
+    )
   }
 
   let body: unknown
@@ -79,15 +94,18 @@ export async function POST(request: NextRequest) {
   if (Either.isLeft(decoded)) {
     return NextResponse.json(
       { error: "Invalid event", details: formatSchemaErrors(decoded.left) },
-      { status: 400 }
+      { status: 400, headers: rateLimitHeaders }
     )
   }
 
   try {
     await Effect.runPromise(trackEvent(decoded.right as AnalyticsEvent))
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, { headers: rateLimitHeaders })
   } catch (error) {
     console.error("Analytics event error:", error)
-    return NextResponse.json({ error: "Failed to track event" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to track event" },
+      { status: 500, headers: rateLimitHeaders }
+    )
   }
 }

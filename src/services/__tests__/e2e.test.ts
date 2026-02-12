@@ -53,6 +53,12 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }))
 
+vi.mock("@workos-inc/authkit-nextjs", () => ({
+  withAuth: vi.fn(async () => {
+    throw new Error("isn't covered by the AuthKit middleware")
+  }),
+}))
+
 describe("E2E Service Flows", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -118,17 +124,6 @@ describe("E2E Service Flows", () => {
 
   describe("API Key Management Flow", () => {
     it("should complete full API key lifecycle", async () => {
-      const mockUser: DbUser = {
-        id: "user-123",
-        workos_id: "workos-123",
-        email: "user@example.com",
-        name: "Test User",
-        avatar_url: null,
-        preferences: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-
       const mockApiKey = {
         id: "key-123",
         user_id: "user-123",
@@ -291,6 +286,7 @@ describe("E2E Service Flows", () => {
 
   describe("Consulting Inquiry Flow", () => {
     it("should complete consulting inquiry with email and analytics", async () => {
+      const inquiryCreatedAt = new Date()
       const mockInquiry = {
         id: "inquiry-123",
         name: "John Doe",
@@ -298,13 +294,12 @@ describe("E2E Service Flows", () => {
         role: "CTO",
         company: "Acme Corp",
         description: "Need help with Effect.ts",
-        created_at: new Date().toISOString(),
+        created_at: inquiryCreatedAt.toISOString(),
       }
 
       const { db } = await import("../../db/client")
 
       // Step 1: Insert consulting inquiry
-      const inquiryCreatedAt = new Date()
       const drizzleInquiryRow = {
         id: "inquiry-123",
         name: "John Doe",
@@ -377,13 +372,13 @@ describe("E2E Service Flows", () => {
       }
 
       const { db } = await import("../../db/client")
-
-      // Mock session
-      const { cookies } = await import("next/headers")
-      const mockCookieStore = {
-        get: vi.fn().mockReturnValue({ value: "workos-123" }),
-      }
-      vi.mocked(cookies).mockResolvedValue(mockCookieStore as unknown as Awaited<ReturnType<typeof cookies>>)
+      const { withAuth } = await import("@workos-inc/authkit-nextjs")
+      vi.mocked(withAuth).mockResolvedValue({
+        user: {
+          id: "workos-123",
+          email: "user@example.com",
+        },
+      } as Awaited<ReturnType<typeof withAuth>>)
 
       // Mock user lookup
       const drizzleUserRow = {
