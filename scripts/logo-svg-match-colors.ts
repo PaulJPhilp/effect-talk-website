@@ -5,9 +5,10 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const rootDir = join(import.meta.dir, "..")
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..")
 const svgPath = join(rootDir, "public", "logo.svg")
 
 // Brand colors from logo description: orange ring, dark teal bar, white text

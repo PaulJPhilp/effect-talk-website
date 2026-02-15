@@ -5,13 +5,14 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 // @ts-expect-error no types
 import { PNG } from "pngjs"
 // @ts-expect-error no types
 import ImageTracer from "imagetracerjs"
 
-const rootDir = join(import.meta.dir, "..")
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..")
 const inputPath = join(rootDir, "public", "logo.png")
 const outputPath = join(rootDir, "public", "logo.svg")
 
