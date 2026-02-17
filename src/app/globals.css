@@ -25,6 +25,10 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-tag-level: var(--tag-level);
+  --color-tag-category: var(--tag-category);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -75,6 +79,10 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.527 0.154 150.069);
+  --success-foreground: oklch(0.985 0 0);
+  --tag-level: oklch(0.7 0.15 290);
+  --tag-category: oklch(0.6 0.13 240);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -121,6 +129,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.696 0.17 162.48);
+  --success-foreground: oklch(0.145 0 0);
+  --tag-level: oklch(0.72 0.14 295);
+  --tag-category: oklch(0.68 0.12 245);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -323,33 +335,33 @@
     padding: 0.125rem 0.25rem !important;
   }
 
-  /* Sandpack syntax highlighting colors (light theme) */
+  /* Sandpack syntax highlighting (uses --sh-* tokens for light/dark mode) */
   .tour-code-runner .sp-code-editor .sp-syntax-keyword,
   .tour-code-runner .sp-code-editor code .sp-syntax-keyword {
-    color: #cf222e !important;
+    color: var(--sh-keyword) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-string,
   .tour-code-runner .sp-code-editor code .sp-syntax-string {
-    color: #00a99a !important;
+    color: var(--sh-string) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-comment,
   .tour-code-runner .sp-code-editor code .sp-syntax-comment {
-    color: #8b949e !important;
+    color: var(--sh-comment) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-punctuation,
   .tour-code-runner .sp-code-editor code .sp-syntax-punctuation {
-    color: #8996a3 !important;
+    color: var(--sh-sign) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-plain,
   .tour-code-runner .sp-code-editor code .sp-syntax-plain {
-    color: #354150 !important;
+    color: var(--sh-identifier) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-property,
   .tour-code-runner .sp-code-editor code .sp-syntax-property {
-    color: #0550ae !important;
+    color: var(--sh-property) !important;
   }
   .tour-code-runner .sp-code-editor .sp-syntax-static,
   .tour-code-runner .sp-code-editor code .sp-syntax-static {
-    color: #6f42c1 !important;
+    color: var(--sh-number) !important;
   }
 }

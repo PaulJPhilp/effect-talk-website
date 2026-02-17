@@ -82,7 +82,7 @@ export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
                       </div>
                       <div className="flex items-center gap-2 shrink-0 mt-1">
                         {done && (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-500 font-medium">
+                          <span className="inline-flex items-center gap-1 text-xs text-success font-medium">
                             <Check className="h-3.5 w-3.5" />
                             Done
                           </span>

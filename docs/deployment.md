@@ -30,6 +30,19 @@ Set these in Vercel (or your host) for the **build** and **runtime** environment
 3. **Secrets**: Confirm `API_KEY_PEPPER`, `WORKOS_COOKIE_PASSWORD`, and WorkOS keys are set and are not placeholder values.
 4. **WorkOS**: In the WorkOS Dashboard, add your production redirect URI and ensure the GitHub (or other) provider is configured for the production client.
 
+## Applying schema changes (app-owned tables)
+
+To add the **feedback** table on production (or any DB that was not built from Drizzle migrations), run:
+
+- `bun run db:apply-feedback`
+
+Run it with `DATABASE_URL` pointing at the target DB (e.g. production Neon URL). Options:
+
+- Temporarily set `DATABASE_URL` in `.env.local` to the Neon production connection string, run the script, then revert `.env.local`, or
+- Run: `DATABASE_URL='<neon-production-url>' bun run db:apply-feedback` (env set in the shell is not overwritten when loading `.env.local`).
+
+Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all required tables, including `feedback`, are present.
+
 ## Optional
 
 - **PostHog**: Set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` for analytics; omit for no-op.

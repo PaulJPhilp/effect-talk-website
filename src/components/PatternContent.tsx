@@ -28,7 +28,7 @@ export function PatternContent({ html }: PatternContentProps) {
       {blocks.map((block) => {
         if (block.type === "code") {
           return (
-            <div key={block.key} className="not-prose my-4 rounded-lg border bg-muted/40 overflow-hidden">
+            <div key={block.key} className="not-prose my-4 rounded-lg border bg-muted/50 overflow-hidden">
               <CodeHighlight
                 code={block.content}
                 language={block.language}

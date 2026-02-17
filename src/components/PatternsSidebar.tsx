@@ -70,7 +70,7 @@ export function PatternsSidebar({
                 )}
               >
                 <span>All</span>
-                <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                <Badge variant="secondary" className="text-xs">
                   {categories.reduce((sum, cat) => sum + cat.count, 0)}
                 </Badge>
               </button>
@@ -86,8 +86,8 @@ export function PatternsSidebar({
                       : "hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <span className="truncate text-blue-900 dark:text-blue-300">{cat.value}</span>
-                  <Badge variant="secondary" className="text-xs shrink-0 ml-2 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                  <span className="truncate text-foreground">{cat.value}</span>
+                  <Badge variant="secondary" className="text-xs shrink-0 ml-2">
                     {cat.count}
                   </Badge>
                 </button>

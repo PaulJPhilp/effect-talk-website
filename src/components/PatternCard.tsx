@@ -39,17 +39,17 @@ export function PatternCard({ pattern }: PatternCardProps) {
           {(pattern.new || pattern.difficulty || pattern.category) && (
             <div className="flex flex-wrap gap-1 mb-1">
               {pattern.new && (
-                <Badge variant="outline" className="text-xs bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                <Badge variant="outline" className="text-xs bg-success/10 border-success/50 text-success">
                   New
                 </Badge>
               )}
               {pattern.difficulty && (
-                <Badge variant="outline" className="text-xs bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+                <Badge variant="outline" className="text-xs bg-tag-level/10 border-tag-level/50 text-tag-level">
                   {difficultyDisplayLabel(pattern.difficulty)}
                 </Badge>
               )}
               {pattern.category && (
-                <Badge variant="secondary" className="text-xs bg-blue-950/10 dark:bg-blue-900/30 text-blue-900 dark:text-blue-300">
+                <Badge variant="outline" className="text-xs bg-tag-category/10 border-tag-category/50 text-tag-category">
                   {pattern.category}
                 </Badge>
               )}
@@ -142,19 +142,19 @@ interface CodePreviewBlockProps {
 
 function CodePreviewBlock({ label, variant, code, language }: CodePreviewBlockProps) {
   const borderColor = variant === "good"
-    ? "border-l-emerald-500/60"
-    : "border-l-red-500/60"
+    ? "border-l-success/60"
+    : "border-l-destructive/60"
 
   const labelColor = variant === "good"
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-red-600 dark:text-red-400"
+    ? "text-success"
+    : "text-destructive"
 
   const dotColor = variant === "good"
-    ? "bg-emerald-500"
-    : "bg-red-500"
+    ? "bg-success"
+    : "bg-destructive"
 
   return (
-    <div className={`relative rounded-md border border-l-[3px] ${borderColor} bg-muted/40 overflow-hidden flex flex-col min-h-0`}>
+    <div className={`relative rounded-md border border-l-[3px] ${borderColor} bg-muted/50 overflow-hidden flex flex-col min-h-0`}>
       {/* Label */}
       <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1 shrink-0">
         <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotColor}`} />

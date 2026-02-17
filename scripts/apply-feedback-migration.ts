@@ -21,7 +21,7 @@ config({ path: path.join(projectRoot, ".env.local") })
 
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
-  console.error("Missing DATABASE_URL in .env.local")
+  console.error("Missing DATABASE_URL. Set it in .env.local or pass DATABASE_URL=... for production.")
   process.exit(1)
 }
 

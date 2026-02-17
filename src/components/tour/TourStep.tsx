@@ -76,7 +76,7 @@ export function TourStep({
             </Link>
             {step.pattern_new && (
               <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.6rem] font-medium bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.6rem] font-medium bg-success/10 border border-success/50 text-success"
                 aria-label="New pattern"
               >
                 New
@@ -127,7 +127,7 @@ export function TourStep({
                         <TourCodeRunner code={step.solution_code} readOnly={true} />
                       )}
                       {step.feedback_on_complete && (
-                        <div className="px-3 py-2 border-t bg-muted/20">
+                        <div className="px-3 py-2 border-t bg-muted/30">
                           <p className="text-[0.65rem] text-muted-foreground italic">
                             {step.feedback_on_complete}
                           </p>
