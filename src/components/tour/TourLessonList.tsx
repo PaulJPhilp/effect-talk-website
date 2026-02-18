@@ -1,9 +1,10 @@
 "use client"
 
+import { useMemo } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { useAllTourProgress } from "@/hooks/useAllTourProgress"
-import type { TourLessonWithSteps } from "@/services/TourProgress/types"
+import type { TourLessonListItem } from "@/services/TourProgress/types"
 
 const GROUP_ORDER = [
   "Fundamentals",
@@ -13,8 +14,8 @@ const GROUP_ORDER = [
   "Validation",
 ] as const
 
-function groupLessons(items: TourLessonWithSteps[]): Map<string | null, TourLessonWithSteps[]> {
-  const map = new Map<string | null, TourLessonWithSteps[]>()
+function groupLessons(items: readonly TourLessonListItem[]): Map<string | null, TourLessonListItem[]> {
+  const map = new Map<string | null, TourLessonListItem[]>()
   for (const lesson of items) {
     const key = lesson.group
     const list = map.get(key) ?? []
@@ -25,33 +26,37 @@ function groupLessons(items: TourLessonWithSteps[]): Map<string | null, TourLess
 }
 
 interface TourLessonListProps {
-  readonly lessons: readonly TourLessonWithSteps[]
+  readonly lessons: readonly TourLessonListItem[]
   readonly isLoggedIn: boolean
 }
 
 export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
   const completedStepIds = useAllTourProgress(isLoggedIn)
-  const byGroup = groupLessons([...lessons])
+  const byGroup = useMemo(() => groupLessons(lessons), [lessons])
 
-  function isLessonComplete(lesson: TourLessonWithSteps): boolean {
-    if (lesson.steps.length === 0) return false
-    return lesson.steps.every((step) => completedStepIds.has(step.id))
-  }
+  const numberedGroups = useMemo(() => {
+    const groups: { groupName: string; items: { lesson: TourLessonListItem; displayIndex: number }[] }[] = []
+    let counter = 1
+    for (const groupName of GROUP_ORDER) {
+      const items = byGroup.get(groupName)
+      if (!items || items.length === 0) continue
+      const numbered = items.map((lesson) => ({ lesson, displayIndex: counter++ }))
+      groups.push({ groupName, items: numbered })
+    }
+    const uncategorized = byGroup.get(null) ?? []
+    if (uncategorized.length > 0) {
+      const numbered = uncategorized.map((lesson) => ({ lesson, displayIndex: counter++ }))
+      groups.push({ groupName: "More", items: numbered })
+    }
+    return groups
+  }, [byGroup])
 
-  // Build a flat, display-ordered list with sequential numbering
-  const numberedGroups: { groupName: string; items: { lesson: TourLessonWithSteps; displayIndex: number }[] }[] = []
-  let counter = 1
-  for (const groupName of GROUP_ORDER) {
-    const items = byGroup.get(groupName)
-    if (!items || items.length === 0) continue
-    const numbered = items.map((lesson) => ({ lesson, displayIndex: counter++ }))
-    numberedGroups.push({ groupName, items: numbered })
-  }
-  const uncategorized = byGroup.get(null) ?? []
-  if (uncategorized.length > 0) {
-    const numbered = uncategorized.map((lesson) => ({ lesson, displayIndex: counter++ }))
-    numberedGroups.push({ groupName: "More", items: numbered })
-  }
+  const isLessonComplete = useMemo(() => {
+    return function isComplete(lesson: TourLessonListItem): boolean {
+      if (lesson.step_ids.length === 0) return false
+      return lesson.step_ids.every((stepId) => completedStepIds.has(stepId))
+    }
+  }, [completedStepIds])
 
   return (
     <div className="space-y-10">
@@ -63,7 +68,7 @@ export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
           <ol className="space-y-4">
             {items.map(({ lesson, displayIndex }) => {
               const done = isLessonComplete(lesson)
-              const stepCount = lesson.steps.length
+              const stepCount = lesson.step_count
 
               return (
                 <li key={lesson.id}>

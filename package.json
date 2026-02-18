@@ -25,7 +25,8 @@
     "db:check": "bun run scripts/check-db.ts",
     "db:apply-feedback": "bun run scripts/apply-feedback-migration.ts",
     "db:seed-migrations-then-migrate": "bun run scripts/seed-drizzle-migrations-and-migrate-feedback.ts",
-    "env:check": "bun run scripts/check-env-for-deploy.ts"
+    "env:check": "bun run scripts/check-env-for-deploy.ts",
+    "perf:tour": "bun run scripts/tour-performance-baseline.ts"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",

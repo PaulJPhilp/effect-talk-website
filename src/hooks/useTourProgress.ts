@@ -1,17 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react"
 import {
-  getLocalStorageProgress,
-  setLocalStorageStepCompleted,
-  syncProgressToDB,
-} from "@/lib/tourProgressSync"
+  ensureTourProgressLoaded,
+  getTourProgressSnapshot,
+  markTourStepCompletedLocally,
+  persistTourStepCompleted,
+  subscribeTourProgress,
+} from "@/lib/tourProgressStore"
 import type { TourStep } from "@/services/TourProgress/types"
-
-interface TourProgressApiItem {
-  readonly step_id: string
-  readonly status: "not_started" | "completed" | "skipped"
-}
 
 interface UseTourProgressArgs {
   readonly steps: readonly TourStep[]
@@ -27,7 +24,11 @@ export function useTourProgress({
   steps,
   isLoggedIn,
 }: UseTourProgressArgs): UseTourProgressResult {
-  const [completedStepIds, setCompletedStepIds] = useState<ReadonlySet<string>>(new Set())
+  const allCompletedStepIds = useSyncExternalStore(
+    subscribeTourProgress,
+    getTourProgressSnapshot,
+    () => new Set<string>()
+  )
 
   const validStepIds = useMemo(
     () => new Set(steps.map((step) => step.id)),
@@ -35,88 +36,28 @@ export function useTourProgress({
   )
 
   useEffect(() => {
-    let isCancelled = false
+    ensureTourProgressLoaded(isLoggedIn).catch(() => {})
+  }, [isLoggedIn])
 
-    async function loadProgress(): Promise<void> {
-      if (!isLoggedIn) {
-        const local = getLocalStorageProgress()
-        const completed = new Set<string>()
-        for (const [stepId, status] of Object.entries(local)) {
-          if (status === "completed" && validStepIds.has(stepId)) {
-            completed.add(stepId)
-          }
-        }
-        if (!isCancelled) {
-          setCompletedStepIds(completed)
-        }
-        return
-      }
-
-      // Merge any guest session progress after authentication.
-      await syncProgressToDB()
-
-      const response = await fetch("/api/tour/progress", { method: "GET" })
-      if (!response.ok) {
-        if (!isCancelled) {
-          setCompletedStepIds(new Set())
-        }
-        return
-      }
-
-      const payload = await response.json() as {
-        readonly progress?: readonly TourProgressApiItem[]
-      }
-
-      const completed = new Set<string>()
-      for (const item of payload.progress ?? []) {
-        if (item.status === "completed" && validStepIds.has(item.step_id)) {
-          completed.add(item.step_id)
-        }
-      }
-
-      if (!isCancelled) {
-        setCompletedStepIds(completed)
+  const completedStepIds = useMemo(() => {
+    const filtered = new Set<string>()
+    for (const stepId of allCompletedStepIds) {
+      if (validStepIds.has(stepId)) {
+        filtered.add(stepId)
       }
     }
-
-    loadProgress().catch(() => {
-      if (!isCancelled) {
-        setCompletedStepIds(new Set())
-      }
-    })
-
-    return () => {
-      isCancelled = true
-    }
-  }, [isLoggedIn, validStepIds])
+    return filtered
+  }, [allCompletedStepIds, validStepIds])
 
   const markStepCompleted = useCallback((stepId: string) => {
     if (!validStepIds.has(stepId)) {
       return
     }
 
-    setCompletedStepIds((previous) => {
-      if (previous.has(stepId)) {
-        return previous
-      }
-      const next = new Set(previous)
-      next.add(stepId)
-      return next
-    })
-
-    if (!isLoggedIn) {
-      setLocalStorageStepCompleted(stepId)
-      return
+    markTourStepCompletedLocally(stepId, isLoggedIn)
+    if (isLoggedIn) {
+      persistTourStepCompleted(stepId).catch(() => {})
     }
-
-    fetch("/api/tour/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        stepId,
-        status: "completed",
-      }),
-    }).catch(() => {})
   }, [isLoggedIn, validStepIds])
 
   return {

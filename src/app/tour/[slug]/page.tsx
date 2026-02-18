@@ -1,5 +1,6 @@
 import { Effect } from "effect"
 import { notFound } from "next/navigation"
+import { cache } from "react"
 import { getLessonWithSteps } from "@/services/TourProgress"
 import { getCurrentUser } from "@/services/Auth"
 import { TourLessonView } from "@/components/tour/TourLessonView"
@@ -15,11 +16,15 @@ interface LessonPageProps {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: LessonPageProps): Promise<Metadata> {
-  const { slug } = await params
-  const lesson = await Effect.runPromise(
+const getLessonWithStepsCached = cache(async (slug: string) => {
+  return Effect.runPromise(
     getLessonWithSteps(slug).pipe(Effect.catchAll(() => Effect.succeed(null)))
   )
+})
+
+export async function generateMetadata({ params }: LessonPageProps): Promise<Metadata> {
+  const { slug } = await params
+  const lesson = await getLessonWithStepsCached(slug)
 
   if (!lesson) {
     return buildMetadata({ title: "Lesson Not Found" })
@@ -35,9 +40,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const { slug } = await params
 
   const [lesson, currentUser] = await Promise.all([
-    Effect.runPromise(
-      getLessonWithSteps(slug).pipe(Effect.catchAll(() => Effect.succeed(null)))
-    ),
+    getLessonWithStepsCached(slug),
     getCurrentUser(),
   ])
 

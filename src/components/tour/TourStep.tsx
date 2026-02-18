@@ -1,12 +1,24 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { useMemo, useState, useSyncExternalStore } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
-import { TourCodeRunner } from "@/components/tour/TourCodeRunner"
 import { TourStepNavigation } from "@/components/tour/TourStepNavigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { TourStep as TourStepType } from "@/services/TourProgress/types"
+
+const TourCodeRunner = dynamic(
+  () => import("@/components/tour/TourCodeRunner").then((module) => module.TourCodeRunner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex flex-col items-center justify-center bg-muted/30">
+        <div className="text-sm text-muted-foreground">Loading code editor...</div>
+      </div>
+    ),
+  }
+)
 
 interface TourStepProps {
   readonly step: TourStepType
@@ -26,6 +38,7 @@ export function TourStep({
   onStepCompleted,
 }: TourStepProps) {
   const hasSolution = Boolean(step.solution_code)
+  const [selectedTab, setSelectedTab] = useState<"anti-pattern" | "solution">("anti-pattern")
 
   // Radix Tabs use useId() which causes hydration mismatch in Next.js 15.5+ / React 19.2.
   // We gate Tabs to the client without a setState-in-effect pattern.
@@ -35,6 +48,14 @@ export function TourStep({
     () => false
   )
 
+  const instructionParagraphs = useMemo(() => {
+    return step.instruction
+      .split("\n\n")
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph.length > 0)
+      .map((paragraph) => paragraph.split("\n").join(" "))
+  }, [step.instruction])
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
       {/* Left: Explanation */}
@@ -42,15 +63,9 @@ export function TourStep({
         <h2 className="text-xl font-bold tracking-tight mb-4">{step.title}</h2>
 
         <div className="text-[0.65rem] leading-relaxed space-y-2">
-          {step.instruction.split("\n\n").map((paragraph) => {
-            const trimmed = paragraph.trim()
-            if (!trimmed) return null
-            return (
-              <p key={trimmed.slice(0, 40)}>
-                {trimmed.split("\n").join(" ")}
-              </p>
-            )
-          })}
+          {instructionParagraphs.map((paragraph) => (
+            <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+          ))}
         </div>
 
         {/* Hints */}
@@ -107,7 +122,15 @@ export function TourStep({
           <div className="w-full flex-1 flex flex-col min-h-[500px]" style={{ minHeight: "600px" }}>
             {hasSolution ? (
               mounted ? (
-                <Tabs defaultValue="anti-pattern" className="flex flex-col flex-1 min-h-0">
+                <Tabs
+                  value={selectedTab}
+                  onValueChange={(value) => {
+                    if (value === "anti-pattern" || value === "solution") {
+                      setSelectedTab(value)
+                    }
+                  }}
+                  className="flex flex-col flex-1 min-h-0"
+                >
                   <TabsList variant="line" className="h-8 shrink-0 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
                     <TabsTrigger value="anti-pattern" className="text-[0.65rem] px-3 py-1.5 after:hidden data-[state=active]:font-semibold">
                       Anti-pattern
@@ -118,12 +141,14 @@ export function TourStep({
                   </TabsList>
                   <TabsContent value="anti-pattern" className="flex-1 min-h-0 mt-0">
                     <div className="h-full min-h-[500px]">
-                      <TourCodeRunner code={step.concept_code} readOnly={true} />
+                      {selectedTab === "anti-pattern" ? (
+                        <TourCodeRunner code={step.concept_code} readOnly={true} />
+                      ) : null}
                     </div>
                   </TabsContent>
                   <TabsContent value="solution" className="flex-1 min-h-0 mt-0">
                     <div className="h-full min-h-[500px] flex flex-col">
-                      {step.solution_code && (
+                      {step.solution_code && selectedTab === "solution" && (
                         <TourCodeRunner code={step.solution_code} readOnly={true} />
                       )}
                       {step.feedback_on_complete && (

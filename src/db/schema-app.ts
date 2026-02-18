@@ -207,6 +207,7 @@ export const tourProgress = pgTable("tour_progress", {
 }, (table) => [
   index("idx_tour_progress_user").on(table.userId),
   index("idx_tour_progress_step").on(table.stepId),
+  uniqueIndex("idx_tour_progress_user_step").on(table.userId, table.stepId),
 ])
 
 // ---------------------------------------------------------------------------

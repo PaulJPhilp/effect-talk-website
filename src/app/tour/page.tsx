@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { getAllLessons, getLessonWithSteps } from "@/services/TourProgress"
+import { getAllLessonsForList } from "@/services/TourProgress"
 import { getCurrentUser } from "@/services/Auth"
 import { TourLessonList } from "@/components/tour/TourLessonList"
 import { TourStartedTracker } from "@/components/tour/TourStartedTracker"
@@ -14,19 +14,7 @@ export const revalidate = 300
 
 export default async function TourPage() {
   const lessons = await Effect.runPromise(
-    getAllLessons().pipe(Effect.catchAll(() => Effect.succeed([] as const)))
-  )
-
-  const lessonsWithSteps = await Promise.all(
-    lessons.map((lesson) =>
-      Effect.runPromise(
-        getLessonWithSteps(lesson.slug).pipe(
-          Effect.catchAll(() => Effect.succeed(null))
-        )
-      )
-    )
-  ).then((results) =>
-    results.filter((r): r is NonNullable<typeof r> => r !== null)
+    getAllLessonsForList().pipe(Effect.catchAll(() => Effect.succeed([] as const)))
   )
 
   const currentUser = await getCurrentUser()
@@ -45,7 +33,7 @@ export default async function TourPage() {
           <p className="text-muted-foreground">No lessons available yet. Check back soon!</p>
         ) : (
           <TourLessonList
-            lessons={lessonsWithSteps}
+            lessons={lessons}
             isLoggedIn={Boolean(currentUser)}
           />
         )}

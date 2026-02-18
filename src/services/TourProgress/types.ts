@@ -51,3 +51,8 @@ export interface TourLessonWithSteps extends TourLesson {
 export interface TourStepWithProgress extends TourStep {
   readonly progress: TourProgress | null
 }
+
+export interface TourLessonListItem extends TourLesson {
+  readonly step_ids: readonly string[]
+  readonly step_count: number
+}

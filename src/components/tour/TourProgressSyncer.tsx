@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { syncProgressToDB } from "@/lib/tourProgressSync"
+import { usePathname } from "next/navigation"
+import { primeTourAuthenticatedSync } from "@/lib/tourProgressStore"
 
 interface TourProgressSyncerProps {
   readonly isLoggedIn: boolean
@@ -12,13 +13,28 @@ interface TourProgressSyncerProps {
  * guest localStorage progress into the database.
  */
 export function TourProgressSyncer({ isLoggedIn }: TourProgressSyncerProps) {
+  const pathname = usePathname()
+
   useEffect(() => {
     if (!isLoggedIn) {
       return
     }
 
-    syncProgressToDB().catch(() => {})
-  }, [isLoggedIn])
+    if (!pathname.startsWith("/tour")) {
+      return
+    }
+
+    const sessionKey = "tour_progress_sync_done"
+    if (sessionStorage.getItem(sessionKey) === "1") {
+      return
+    }
+
+    primeTourAuthenticatedSync()
+      .then(() => {
+        sessionStorage.setItem(sessionKey, "1")
+      })
+      .catch(() => {})
+  }, [isLoggedIn, pathname])
 
   return null
 }
