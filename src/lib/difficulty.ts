@@ -24,7 +24,9 @@ export function difficultyDisplayLabel(difficulty: string | null | undefined): s
 /**
  * Sort difficulty facet entries by display order (Beginner, Intermediate, Senior).
  */
-export function sortDifficultiesByDisplayOrder<T extends { value: string }>(entries: T[]): T[] {
+export function sortDifficultiesByDisplayOrder<T extends { value: string }>(
+  entries: readonly T[],
+): T[] {
   const order = DIFFICULTY_DISPLAY_ORDER
   const orderIndexMap = new Map<DifficultyDisplayOrderValue, number>(
     order.map((value, index) => [value, index] as const)

@@ -18,6 +18,7 @@ import {
   measureSync,
   recordPaintFromInput,
 } from "@/lib/pattern-browser-perf"
+import { computeBrowserFacets } from "@/lib/pattern-browser-facets"
 
 const VIRTUALIZE_THRESHOLD = 60
 /** Card height estimate + gap-3 (12px) for accurate scroll height */
@@ -86,11 +87,6 @@ interface PatternsBrowserProps {
   readonly emptyStateHint?: React.ReactNode
 }
 
-interface FacetCount {
-  readonly value: string
-  readonly count: number
-}
-
 /**
  * Client-side filtering and browsing for patterns.
  * All patterns are passed from server, then filtered client-side for instant UX.
@@ -147,62 +143,33 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     )
   }, [precomputedEntries, query])
 
-  const searchFilteredPatterns = useMemo(
-    () => searchFilteredEntries.map((e) => e.pattern),
-    [searchFilteredEntries],
-  )
-
-  // Compute facet counts from the search-filtered subset
-  const { categories, difficulties, newCount, totalAfterSearch } = useMemo(() => {
-    return measureSync("facetCountMs", () => {
-      const categoryMap = new Map<string, number>()
-      const difficultyMap = new Map<string, number>()
-      let newPatternCount = 0
-
-      for (const { pattern } of searchFilteredEntries) {
-        if (pattern.new) newPatternCount++
-        if (pattern.category) {
-          categoryMap.set(pattern.category, (categoryMap.get(pattern.category) ?? 0) + 1)
-        }
-        if (pattern.difficulty) {
-          const diffLower = pattern.difficulty.toLowerCase()
-          difficultyMap.set(diffLower, (difficultyMap.get(diffLower) ?? 0) + 1)
-        }
-      }
-
-      const toFacetArray = (map: Map<string, number>): FacetCount[] =>
-        Array.from(map.entries())
-          .map(([value, count]) => ({ value, count }))
-          .sort((a, b) => b.count - a.count)
-
-      const difficultyFacets = toFacetArray(difficultyMap)
-      const orderedDifficulties = sortDifficultiesByDisplayOrder(difficultyFacets)
-
-      return {
-        categories: toFacetArray(categoryMap),
-        difficulties: orderedDifficulties,
-        newCount: newPatternCount,
-        totalAfterSearch: searchFilteredEntries.length,
-      }
-    })
-  }, [searchFilteredEntries])
-
   // Apply category/difficulty/tag/new filters to search-filtered list (no duplicate search)
   const activeTagsSet = useMemo(() => new Set(activeTags), [activeTags])
+
+  const facetData = useMemo(() => {
+    return measureSync("facetCountMs", () => {
+      return computeBrowserFacets(searchFilteredEntries, {
+        activeCategory,
+        activeDifficulty,
+        activeTags: activeTagsSet,
+        activeNewOnly,
+      })
+    })
+  }, [searchFilteredEntries, activeCategory, activeDifficulty, activeTagsSet, activeNewOnly])
+
+  const categories = facetData.categories
+  const difficulties = useMemo(
+    () => sortDifficultiesByDisplayOrder(facetData.difficulties),
+    [facetData.difficulties],
+  )
+  const newCount = facetData.newCount
+  const totalAfterSearch = facetData.totalAfterSearch
+
   const filteredPatterns = useMemo(() => {
     return measureSync("filterApplyMs", () =>
-      searchFilteredEntries
-        .filter((entry) => {
-          const p = entry.pattern
-          if (activeCategory && p.category !== activeCategory) return false
-          if (activeDifficulty && p.difficulty?.toLowerCase() !== activeDifficulty) return false
-          if (activeTagsSet.size > 0 && ![...activeTagsSet].every((tag) => entry.tagSet.has(tag))) return false
-          if (activeNewOnly && !p.new) return false
-          return true
-        })
-        .map((e) => e.pattern),
+      facetData.filteredEntries.map((entry) => entry.pattern),
     )
-  }, [searchFilteredEntries, activeCategory, activeDifficulty, activeTagsSet, activeNewOnly])
+  }, [facetData.filteredEntries])
 
   // Sort filtered patterns by difficulty (beginner → senior or senior → beginner)
   const difficultyOrderMap = useMemo(() => {
