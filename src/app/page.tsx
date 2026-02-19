@@ -6,7 +6,7 @@ import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
   description:
-    "Production-ready Effect.ts patterns, tools, and consulting for TypeScript teams. Browse 200+ patterns and rules.",
+    "Production-ready Effect.ts patterns, tools, and consulting for TypeScript teams. Browse 300+ patterns and rules.",
 })
 
 export default function HomePage() {
@@ -19,7 +19,7 @@ export default function HomePage() {
           <span className="text-primary"> production-ready patterns</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-          Browse 200+ curated patterns and rules. Use the CLI. Connect your AI
+          Browse 300+ curated patterns and rules. Use the CLI. Connect your AI
           assistant. Get expert consulting.
         </p>
         <div className="mt-8 flex flex-wrap gap-3 justify-center">
@@ -47,7 +47,7 @@ export default function HomePage() {
                 <BookOpen className="h-8 w-8 mb-2 text-primary" />
                 <CardTitle>Patterns Library</CardTitle>
                 <CardDescription>
-                  200+ Effect.ts patterns — searchable, categorized, and production-tested.
+                  300+ Effect.ts patterns — searchable, categorized, and production-tested.
                 </CardDescription>
               </CardHeader>
             </Card>
