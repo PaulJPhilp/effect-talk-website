@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import { PatternsBrowser } from "@/components/PatternsBrowser"
 import { fetchPatterns } from "@/services/BackendApi"
+import { getCurrentUser } from "@/services/Auth"
 import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
@@ -18,14 +19,17 @@ const DB_DOCS_HINT =
 const DB_CHECK_CMD = "bun run db:check"
 
 export default async function PatternsPage() {
-  const result = await Effect.runPromise(
-    fetchPatterns().pipe(
-      Effect.match({
-        onFailure: (e) => ({ patterns: [] as const, loadError: e.message }),
-        onSuccess: (patterns) => ({ patterns, loadError: undefined as string | undefined }),
-      })
-    )
-  )
+  const [result, currentUser] = await Promise.all([
+    Effect.runPromise(
+      fetchPatterns().pipe(
+        Effect.match({
+          onFailure: (e) => ({ patterns: [] as const, loadError: e.message }),
+          onSuccess: (patterns) => ({ patterns, loadError: undefined as string | undefined }),
+        })
+      )
+    ),
+    getCurrentUser(),
+  ])
 
   const { patterns, loadError } = result
 
@@ -51,6 +55,7 @@ export default async function PatternsPage() {
       ) : (
         <PatternsBrowser
           patterns={patterns}
+          isLoggedIn={Boolean(currentUser)}
           emptyStateHint={
             patterns.length === 0 ? (
               <p className="text-muted-foreground">

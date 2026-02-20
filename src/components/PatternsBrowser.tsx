@@ -19,6 +19,7 @@ import {
   recordPaintFromInput,
 } from "@/lib/pattern-browser-perf"
 import { computeBrowserFacets } from "@/lib/pattern-browser-facets"
+import { useBookmarks } from "@/hooks/useBookmarks"
 
 const VIRTUALIZE_THRESHOLD = 60
 /** Card height estimate + gap-3 (12px) for accurate scroll height */
@@ -30,9 +31,11 @@ type SortOrder = typeof SORT_BEGINNER_FIRST | typeof SORT_SENIOR_FIRST
 
 interface PatternsVirtualListProps {
   readonly patterns: readonly Pattern[]
+  readonly bookmarkedIds: ReadonlySet<string>
+  readonly onToggleBookmark: (patternId: string) => void
 }
 
-function PatternsVirtualList({ patterns }: PatternsVirtualListProps) {
+function PatternsVirtualList({ patterns, bookmarkedIds, onToggleBookmark }: PatternsVirtualListProps) {
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
     count: patterns.length,
@@ -72,7 +75,11 @@ function PatternsVirtualList({ patterns }: PatternsVirtualListProps) {
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
             >
-              <PatternCard pattern={pattern} />
+              <PatternCard
+                pattern={pattern}
+                isBookmarked={bookmarkedIds.has(pattern.id)}
+                onToggleBookmark={onToggleBookmark}
+              />
             </div>
           )
         })}
@@ -85,6 +92,7 @@ interface PatternsBrowserProps {
   readonly patterns: readonly Pattern[]
   /** Optional hint when patterns.length === 0 (e.g. DATABASE_URL / docs link). */
   readonly emptyStateHint?: React.ReactNode
+  readonly isLoggedIn?: boolean
 }
 
 /**
@@ -92,9 +100,10 @@ interface PatternsBrowserProps {
  * All patterns are passed from server, then filtered client-side for instant UX.
  * Filter state is synced with URL search params for deep linking.
  */
-export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserProps) {
+export function PatternsBrowser({ patterns, emptyStateHint, isLoggedIn = false }: PatternsBrowserProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { bookmarkedIds, toggleBookmark } = useBookmarks(isLoggedIn)
 
   // Read filter state from URL params
   const query = searchParams.get("q")?.toLowerCase().trim() ?? ""
@@ -447,11 +456,20 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
         ) : sortedPatterns.length <= VIRTUALIZE_THRESHOLD ? (
           <div className="grid gap-3">
             {sortedPatterns.map((pattern) => (
-              <PatternCard key={pattern.id} pattern={pattern} />
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                isBookmarked={bookmarkedIds.has(pattern.id)}
+                onToggleBookmark={toggleBookmark}
+              />
             ))}
           </div>
         ) : (
-          <PatternsVirtualList patterns={sortedPatterns} />
+          <PatternsVirtualList
+            patterns={sortedPatterns}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={toggleBookmark}
+          />
         )}
       </div>
     </div>
