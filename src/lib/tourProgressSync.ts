@@ -52,14 +52,43 @@ export function clearLocalStorageProgress(): void {
 }
 
 /**
+ * Fetch all progress from the API (authenticated users only).
+ */
+export async function fetchProgressFromAPI(): Promise<
+  { readonly step_id: string; readonly status: string }[]
+> {
+  const response = await fetch("/api/tour/progress", { method: "GET" })
+  if (!response.ok) return []
+  const payload = await response.json()
+  return payload.progress ?? []
+}
+
+/**
+ * Persist a single step completion to the database.
+ */
+export async function persistStepCompleted(stepId: string): Promise<void> {
+  await fetch("/api/tour/progress", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stepId, status: "completed" }),
+  })
+}
+
+/**
  * Sync localStorage progress to DB (called when guest signs in).
+ *
+ * localStorage is intentionally kept after a successful sync.  The sync
+ * endpoint uses upsert so re-syncing identical data is harmless, and
+ * keeping localStorage ensures progress survives page refreshes even if
+ * the DB write silently failed (the sync API returns 200 on partial
+ * failures due to its catchAll error handling).
  */
 export async function syncProgressToDB(): Promise<void> {
   const localProgress = getLocalStorageProgress()
   if (Object.keys(localProgress).length === 0) return
 
   try {
-    const response = await fetch("/api/tour/progress/sync", {
+    await fetch("/api/tour/progress/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -69,10 +98,6 @@ export async function syncProgressToDB(): Promise<void> {
         })),
       }),
     })
-
-    if (response.ok) {
-      clearLocalStorageProgress()
-    }
   } catch (error) {
     console.error("Failed to sync progress:", error)
   }
