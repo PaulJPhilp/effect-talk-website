@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { User, Settings, LogOut, LogIn } from "lucide-react"
+import { User, Settings, LogOut, LogIn, Bookmark } from "lucide-react"
 import type { DbUser } from "@/services/Db"
 
 interface AvatarMenuProps {
@@ -63,6 +63,12 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
           <Link href="/settings">
             <User className="mr-2 h-4 w-4" />
             Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/patterns?bookmarked=1">
+            <Bookmark className="mr-2 h-4 w-4" />
+            My Bookmarks
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
