@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+/**
+ * Tests for tourProgressSync — localStorage and fetch functions.
+ *
+ * localStorage tests use the real happy-dom localStorage.
+ * Fetch tests override globalThis.fetch with a recording fake
+ * and assert on outcomes (return values, localStorage state,
+ * captured request data). No vi.spyOn or call-verification.
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import {
   getLocalStorageProgress,
   setLocalStorageStepCompleted,
@@ -8,10 +17,66 @@ import {
   persistStepCompleted,
 } from "@/lib/tourProgressSync"
 
+/** Captured request from the fake fetch. */
+interface CapturedRequest {
+  url: string
+  init?: RequestInit
+}
+
+/**
+ * Replace globalThis.fetch with a fake that records calls and
+ * returns a configurable response.
+ */
+function installFakeFetch(
+  response: Response = new Response(
+    JSON.stringify({ ok: true }),
+    { status: 200 },
+  ),
+) {
+  const captured: CapturedRequest[] = []
+  const originalFetch = globalThis.fetch
+  let currentResponse = response
+  let shouldReject = false
+  let rejectError: Error | null = null
+
+  globalThis.fetch = (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url
+    captured.push({ url, init })
+    if (shouldReject) {
+      return Promise.reject(rejectError ?? new Error("fetch error"))
+    }
+    return Promise.resolve(currentResponse.clone())
+  }
+
+  return {
+    captured,
+    setResponse(r: Response) {
+      currentResponse = r
+    },
+    setReject(err: Error) {
+      shouldReject = true
+      rejectError = err
+    },
+    restore() {
+      globalThis.fetch = originalFetch
+    },
+  }
+}
+
 describe("tourProgressSync", () => {
   beforeEach(() => {
     localStorage.clear()
   })
+
+  // ── localStorage tests (already compliant) ──────────────
 
   describe("getLocalStorageProgress", () => {
     it("returns empty object when nothing stored", () => {
@@ -21,7 +86,10 @@ describe("tourProgressSync", () => {
     it("returns parsed progress from localStorage", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed", "step-2": "skipped" })
+        JSON.stringify({
+          "step-1": "completed",
+          "step-2": "skipped",
+        }),
       )
       expect(getLocalStorageProgress()).toEqual({
         "step-1": "completed",
@@ -29,7 +97,7 @@ describe("tourProgressSync", () => {
       })
     })
 
-    it("returns empty object when localStorage contains invalid JSON", () => {
+    it("returns empty object on invalid JSON", () => {
       localStorage.setItem("tour_progress", "not-json")
       expect(getLocalStorageProgress()).toEqual({})
     })
@@ -38,17 +106,21 @@ describe("tourProgressSync", () => {
   describe("setLocalStorageStepCompleted", () => {
     it("sets a step as completed in localStorage", () => {
       setLocalStorageStepCompleted("step-1")
-      const stored = JSON.parse(localStorage.getItem("tour_progress")!)
+      const stored = JSON.parse(
+        localStorage.getItem("tour_progress")!,
+      )
       expect(stored).toEqual({ "step-1": "completed" })
     })
 
     it("preserves existing progress", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" })
+        JSON.stringify({ "step-1": "completed" }),
       )
       setLocalStorageStepCompleted("step-2")
-      const stored = JSON.parse(localStorage.getItem("tour_progress")!)
+      const stored = JSON.parse(
+        localStorage.getItem("tour_progress")!,
+      )
       expect(stored).toEqual({
         "step-1": "completed",
         "step-2": "completed",
@@ -58,17 +130,22 @@ describe("tourProgressSync", () => {
     it("overwrites existing status for the same step", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "skipped" })
+        JSON.stringify({ "step-1": "skipped" }),
       )
       setLocalStorageStepCompleted("step-1")
-      const stored = JSON.parse(localStorage.getItem("tour_progress")!)
+      const stored = JSON.parse(
+        localStorage.getItem("tour_progress")!,
+      )
       expect(stored).toEqual({ "step-1": "completed" })
     })
   })
 
   describe("clearLocalStorageProgress", () => {
     it("removes progress from localStorage", () => {
-      localStorage.setItem("tour_progress", JSON.stringify({ "step-1": "completed" }))
+      localStorage.setItem(
+        "tour_progress",
+        JSON.stringify({ "step-1": "completed" }),
+      )
       clearLocalStorageProgress()
       expect(localStorage.getItem("tour_progress")).toBeNull()
     })
@@ -78,97 +155,108 @@ describe("tourProgressSync", () => {
     })
   })
 
+  // ── Fetch tests (rewritten — no spies) ──────────────────
+
   describe("syncProgressToDB", () => {
-    let fetchSpy: ReturnType<typeof vi.spyOn>
+    let fake: ReturnType<typeof installFakeFetch>
 
     beforeEach(() => {
-      fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), { status: 200 })
-      )
+      fake = installFakeFetch()
     })
-
     afterEach(() => {
-      fetchSpy.mockRestore()
+      fake.restore()
     })
 
     it("does nothing when localStorage is empty", async () => {
       await syncProgressToDB()
-      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(fake.captured).toHaveLength(0)
     })
 
     it("sends localStorage progress to sync endpoint", async () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed", "step-2": "skipped" })
+        JSON.stringify({
+          "step-1": "completed",
+          "step-2": "skipped",
+        }),
       )
 
       await syncProgressToDB()
 
-      expect(fetchSpy).toHaveBeenCalledWith("/api/tour/progress/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          progress: [
-            { stepId: "step-1", status: "completed" },
-            { stepId: "step-2", status: "skipped" },
-          ],
-        }),
+      expect(fake.captured).toHaveLength(1)
+      expect(fake.captured[0].url).toBe("/api/tour/progress/sync")
+      expect(fake.captured[0].init?.method).toBe("POST")
+      const body = JSON.parse(
+        fake.captured[0].init?.body as string,
+      )
+      expect(body).toEqual({
+        progress: [
+          { stepId: "step-1", status: "completed" },
+          { stepId: "step-2", status: "skipped" },
+        ],
       })
     })
 
-    it("keeps localStorage after successful sync (idempotent re-sync is safe)", async () => {
+    it("keeps localStorage after successful sync", async () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" })
+        JSON.stringify({ "step-1": "completed" }),
       )
 
       await syncProgressToDB()
 
-      expect(localStorage.getItem("tour_progress")).not.toBeNull()
+      expect(
+        localStorage.getItem("tour_progress"),
+      ).not.toBeNull()
     })
 
-    it("keeps localStorage when sync fails", async () => {
-      fetchSpy.mockResolvedValue(
-        new Response("Unauthorized", { status: 401 })
+    it("keeps localStorage when sync returns non-OK", async () => {
+      fake.setResponse(
+        new Response("Unauthorized", { status: 401 }),
       )
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" })
+        JSON.stringify({ "step-1": "completed" }),
       )
 
       await syncProgressToDB()
 
-      expect(localStorage.getItem("tour_progress")).not.toBeNull()
+      expect(
+        localStorage.getItem("tour_progress"),
+      ).not.toBeNull()
     })
 
     it("keeps localStorage when fetch throws", async () => {
-      fetchSpy.mockRejectedValue(new Error("Network error"))
+      fake.setReject(new Error("Network error"))
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" })
+        JSON.stringify({ "step-1": "completed" }),
       )
 
       await syncProgressToDB()
 
-      expect(localStorage.getItem("tour_progress")).not.toBeNull()
+      expect(
+        localStorage.getItem("tour_progress"),
+      ).not.toBeNull()
     })
   })
 
   describe("fetchProgressFromAPI", () => {
-    let fetchSpy: ReturnType<typeof vi.spyOn>
+    let fake: ReturnType<typeof installFakeFetch>
 
     beforeEach(() => {
-      fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ progress: [] }), { status: 200 })
+      fake = installFakeFetch(
+        new Response(JSON.stringify({ progress: [] }), {
+          status: 200,
+        }),
       )
     })
-
     afterEach(() => {
-      fetchSpy.mockRestore()
+      fake.restore()
     })
 
     it("fetches progress from the API", async () => {
-      fetchSpy.mockResolvedValue(
+      fake.setResponse(
         new Response(
           JSON.stringify({
             progress: [
@@ -176,13 +264,14 @@ describe("tourProgressSync", () => {
               { step_id: "step-2", status: "not_started" },
             ],
           }),
-          { status: 200 }
-        )
+          { status: 200 },
+        ),
       )
 
       const result = await fetchProgressFromAPI()
 
-      expect(fetchSpy).toHaveBeenCalledWith("/api/tour/progress", { method: "GET" })
+      expect(fake.captured[0].url).toBe("/api/tour/progress")
+      expect(fake.captured[0].init?.method).toBe("GET")
       expect(result).toEqual([
         { step_id: "step-1", status: "completed" },
         { step_id: "step-2", status: "not_started" },
@@ -190,17 +279,17 @@ describe("tourProgressSync", () => {
     })
 
     it("returns empty array on non-OK response", async () => {
-      fetchSpy.mockResolvedValue(
-        new Response("Unauthorized", { status: 401 })
+      fake.setResponse(
+        new Response("Unauthorized", { status: 401 }),
       )
 
       const result = await fetchProgressFromAPI()
       expect(result).toEqual([])
     })
 
-    it("returns empty array when response has no progress field", async () => {
-      fetchSpy.mockResolvedValue(
-        new Response(JSON.stringify({}), { status: 200 })
+    it("returns empty array when no progress field", async () => {
+      fake.setResponse(
+        new Response(JSON.stringify({}), { status: 200 }),
       )
 
       const result = await fetchProgressFromAPI()
@@ -209,25 +298,27 @@ describe("tourProgressSync", () => {
   })
 
   describe("persistStepCompleted", () => {
-    let fetchSpy: ReturnType<typeof vi.spyOn>
+    let fake: ReturnType<typeof installFakeFetch>
 
     beforeEach(() => {
-      fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), { status: 200 })
-      )
+      fake = installFakeFetch()
     })
-
     afterEach(() => {
-      fetchSpy.mockRestore()
+      fake.restore()
     })
 
     it("sends POST to API with step ID and status", async () => {
       await persistStepCompleted("step-1")
 
-      expect(fetchSpy).toHaveBeenCalledWith("/api/tour/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stepId: "step-1", status: "completed" }),
+      expect(fake.captured).toHaveLength(1)
+      expect(fake.captured[0].url).toBe("/api/tour/progress")
+      expect(fake.captured[0].init?.method).toBe("POST")
+      const body = JSON.parse(
+        fake.captured[0].init?.body as string,
+      )
+      expect(body).toEqual({
+        stepId: "step-1",
+        status: "completed",
       })
     })
   })

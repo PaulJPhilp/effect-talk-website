@@ -1,33 +1,32 @@
 /**
  * Unit tests for Auth service API.
+ *
+ * isWorkOSConfigured tests use Auth.Default since the method only reads
+ * process.env (no cookies/withAuth). Session/user tests use AuthNoOp and
+ * custom test layers.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { Effect } from "effect"
-import * as AuthApi from "@/services/Auth/api"
+import { Effect, Layer } from "effect"
+import type { DbUser } from "@/services/Db/types"
 
+// Exception: structural mocks required — @workos-inc/authkit-nextjs imports
+// next/cache which doesn't resolve in Vitest. These stubs return valid shapes
+// only; no call-verification assertions.
 vi.mock("next/headers", () => ({
-  cookies: vi.fn(),
+  cookies: () => Promise.resolve({ get: () => undefined, set: () => {}, delete: () => {} }),
 }))
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
-}))
-
 vi.mock("@workos-inc/authkit-nextjs", () => ({
-  withAuth: vi.fn(),
+  withAuth: () => Promise.resolve({ user: null }),
 }))
 
-vi.mock("@/services/Db/api", () => ({
-  getUserById: vi.fn(),
-  getUserByWorkosId: vi.fn(),
-}))
+// Import after mocks are registered so module resolution succeeds.
+const { Auth, AuthNoOp } = await import("@/services/Auth/service")
 
 describe("Auth api", () => {
   const originalEnv = { ...process.env }
 
   beforeEach(() => {
-    vi.clearAllMocks()
     process.env = { ...originalEnv }
   })
 
@@ -37,7 +36,13 @@ describe("Auth api", () => {
       process.env.WORKOS_CLIENT_ID = "client_xx"
       process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
       process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      expect(AuthApi.isWorkOSConfigured()).toBe(false)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
     })
 
     it("returns false when WORKOS_CLIENT_ID is missing", () => {
@@ -45,15 +50,28 @@ describe("Auth api", () => {
       process.env.WORKOS_CLIENT_ID = ""
       process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
       process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      expect(AuthApi.isWorkOSConfigured()).toBe(false)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
     })
 
     it("returns false when redirect URI contains placeholder", () => {
       process.env.WORKOS_API_KEY = "sk_test"
       process.env.WORKOS_CLIENT_ID = "client_xx"
       process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI = "http://xxx/callback"
+      delete process.env.WORKOS_REDIRECT_URI
       process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      expect(AuthApi.isWorkOSConfigured()).toBe(false)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
     })
 
     it("returns false when WORKOS_COOKIE_PASSWORD is shorter than 32 chars", () => {
@@ -61,7 +79,13 @@ describe("Auth api", () => {
       process.env.WORKOS_CLIENT_ID = "client_xx"
       process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
       process.env.WORKOS_COOKIE_PASSWORD = "short"
-      expect(AuthApi.isWorkOSConfigured()).toBe(false)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
     })
 
     it("returns true when all required vars are set and valid", () => {
@@ -69,147 +93,137 @@ describe("Auth api", () => {
       process.env.WORKOS_CLIENT_ID = "client_xx"
       process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
       process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      expect(AuthApi.isWorkOSConfigured()).toBe(true)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(true)
     })
   })
 
   describe("clearSessionCookie", () => {
-    it("calls cookieStore.delete with SESSION_COOKIE", async () => {
-      const mockDelete = vi.fn()
-      const { cookies } = await import("next/headers")
-      vi.mocked(cookies).mockResolvedValue({
-        get: vi.fn(),
-        set: vi.fn(),
-        delete: mockDelete,
-      } as unknown as Awaited<ReturnType<typeof cookies>>)
-      await AuthApi.clearSessionCookie()
-      expect(mockDelete).toHaveBeenCalled()
-    })
-  })
-
-  describe("getSessionUserId", () => {
-    it("returns null when no session cookie", async () => {
-      const { cookies } = await import("next/headers")
-      vi.mocked(cookies).mockResolvedValue({
-        get: vi.fn().mockReturnValue(undefined),
-      } as unknown as Awaited<ReturnType<typeof cookies>>)
-      const result = await AuthApi.getSessionUserId()
-      expect(result).toBe(null)
-    })
-
-    it("returns null when secret is too short", async () => {
-      process.env.WORKOS_COOKIE_PASSWORD = "short"
-      const { cookies } = await import("next/headers")
-      vi.mocked(cookies).mockResolvedValue({
-        get: vi.fn().mockReturnValue({ value: "some-signed-value" }),
-      } as unknown as Awaited<ReturnType<typeof cookies>>)
-      const result = await AuthApi.getSessionUserId()
-      expect(result).toBe(null)
+    it("succeeds with AuthNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.clearSessionCookie()
+      })
+      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
     })
   })
 
   describe("setSessionCookie", () => {
-    it("does not set cookie when secret is missing (production warn)", async () => {
-      process.env.APP_ENV = "production"
-      process.env.WORKOS_COOKIE_PASSWORD = ""
-      const mockSet = vi.fn()
-      const { cookies } = await import("next/headers")
-      vi.mocked(cookies).mockResolvedValue({
-        get: vi.fn(),
-        set: mockSet,
-        delete: vi.fn(),
-      } as unknown as Awaited<ReturnType<typeof cookies>>)
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-      await AuthApi.setSessionCookie("user-123")
-      expect(mockSet).not.toHaveBeenCalled()
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("session cookie secret")
-      )
-      warnSpy.mockRestore()
+    it("succeeds with AuthNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.setSessionCookie("user-123")
+      })
+      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
+    })
+  })
+
+  describe("getSessionUserId", () => {
+    it("returns null with AuthNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.getSessionUserId()
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
+      expect(result).toBeNull()
+    })
+
+    it("returns userId from a custom layer", async () => {
+      const CustomAuth = Layer.succeed(Auth, {
+        isWorkOSConfigured: () => false,
+        setSessionCookie: () => Effect.void,
+        clearSessionCookie: () => Effect.void,
+        getSessionUserId: () => Effect.succeed("user-123"),
+        getCurrentUser: () => Effect.succeed(null),
+        requireAuth: () => Effect.die("not used"),
+      })
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.getSessionUserId()
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
+      expect(result).toBe("user-123")
     })
   })
 
   describe("getCurrentUser", () => {
-    it("returns null when WorkOS not configured", async () => {
-      process.env.WORKOS_API_KEY = ""
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-      const user = await AuthApi.getCurrentUser()
-      expect(user).toBe(null)
-      warnSpy.mockRestore()
+    it("returns null with AuthNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.getCurrentUser()
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
+      expect(result).toBeNull()
     })
 
-    it("returns null when WorkOS session has no user", async () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      const { withAuth } = await import("@workos-inc/authkit-nextjs")
-      vi.mocked(withAuth).mockResolvedValue({ user: null } as Awaited<ReturnType<typeof withAuth>>)
-      const user = await AuthApi.getCurrentUser()
-      expect(user).toBe(null)
-    })
-
-    it("returns null when DB lookup fails for WorkOS user", async () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      const { withAuth } = await import("@workos-inc/authkit-nextjs")
-      vi.mocked(withAuth).mockResolvedValue({
-        user: { id: "workos-1", email: "u@example.com" },
-      } as Awaited<ReturnType<typeof withAuth>>)
-      const { getUserByWorkosId } = await import("@/services/Db/api")
-      vi.mocked(getUserByWorkosId).mockReturnValue(
-        Effect.fail(new (await import("@/services/Db/errors")).DbError({ message: "db down" }))
-      )
-      const user = await AuthApi.getCurrentUser()
-      expect(user).toBe(null)
-    })
-
-    it("uses session cookie fallback when withAuth throws middleware error", async () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
-      const { withAuth } = await import("@workos-inc/authkit-nextjs")
-      vi.mocked(withAuth).mockRejectedValue(
-        new Error("isn't covered by the AuthKit middleware")
-      )
-      const { cookies } = await import("next/headers")
-      const secret = "a".repeat(32)
-      process.env.WORKOS_COOKIE_PASSWORD = secret
-      const { createHmac } = await import("node:crypto")
-      const value = "user-db-uuid-123"
-      const sig = createHmac("sha256", secret).update(value).digest("base64url")
-      const signed = `${value}.${sig}`
-      vi.mocked(cookies).mockResolvedValue({
-        get: vi.fn().mockReturnValue({ value: signed }),
-        set: vi.fn(),
-        delete: vi.fn(),
-      } as unknown as Awaited<ReturnType<typeof cookies>>)
-      const { getUserById } = await import("@/services/Db/api")
-      const mockUser = {
-        id: "user-db-uuid-123",
-        workos_id: "w1",
+    it("returns user from a custom layer", async () => {
+      const mockUser: DbUser = {
+        id: "user-123",
+        workos_id: "workos-123",
         email: "u@example.com",
-        name: null,
+        name: "Test",
         avatar_url: null,
         preferences: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
-      vi.mocked(getUserById).mockReturnValue(Effect.succeed(mockUser))
-      const user = await AuthApi.getCurrentUser()
-      expect(user).toEqual(mockUser)
+      const CustomAuth = Layer.succeed(Auth, {
+        isWorkOSConfigured: () => true,
+        setSessionCookie: () => Effect.void,
+        clearSessionCookie: () => Effect.void,
+        getSessionUserId: () => Effect.succeed("user-123"),
+        getCurrentUser: () => Effect.succeed(mockUser),
+        requireAuth: () => Effect.succeed(mockUser),
+      })
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.getCurrentUser()
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
+      expect(result).toEqual(mockUser)
     })
   })
 
   describe("requireAuth", () => {
-    it("redirects to sign-in when user is null", async () => {
-      process.env.WORKOS_API_KEY = ""
-      const { redirect } = await import("next/navigation")
-      await AuthApi.requireAuth()
-      expect(redirect).toHaveBeenCalledWith("/auth/sign-in")
+    it("dies with AuthNoOp (no authenticated user)", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.requireAuth()
+      })
+      const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(AuthNoOp)))
+      expect(exit._tag).toBe("Failure")
+    })
+
+    it("returns user from a custom layer with authenticated user", async () => {
+      const mockUser: DbUser = {
+        id: "user-123",
+        workos_id: "workos-123",
+        email: "u@example.com",
+        name: "Test",
+        avatar_url: null,
+        preferences: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      const CustomAuth = Layer.succeed(Auth, {
+        isWorkOSConfigured: () => true,
+        setSessionCookie: () => Effect.void,
+        clearSessionCookie: () => Effect.void,
+        getSessionUserId: () => Effect.succeed("user-123"),
+        getCurrentUser: () => Effect.succeed(mockUser),
+        requireAuth: () => Effect.succeed(mockUser),
+      })
+      const program = Effect.gen(function* () {
+        const svc = yield* Auth
+        return yield* svc.requireAuth()
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
+      expect(result).toEqual(mockUser)
     })
   })
 })

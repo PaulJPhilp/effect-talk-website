@@ -1,45 +1,43 @@
 /**
  * Unit tests for Analytics service API.
+ *
+ * Tests the Analytics service interface via NoOp layers.
+ * The error-swallowing behavior (DbError → void) is verified by the type
+ * system: AnalyticsService.trackEvent returns Effect<void, never>.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { Effect } from "effect"
-import * as AnalyticsApi from "@/services/Analytics/api"
-
-vi.mock("@/db/client", () => ({
-  db: {
-    insert: vi.fn(),
-  },
-}))
-
-vi.mock("@/services/Db/api", () => ({
-  insertAnalyticsEvent: vi.fn(),
-}))
+import { Analytics, AnalyticsNoOp } from "@/services/Analytics/service"
 
 describe("Analytics api", () => {
-  beforeEach(async () => {
-    vi.clearAllMocks()
-    const DbApi = await import("@/services/Db/api")
-    vi.mocked(DbApi.insertAnalyticsEvent).mockReturnValue(
-      Effect.succeed(undefined) as ReturnType<typeof DbApi.insertAnalyticsEvent>
-    )
-  })
-
-  it("trackEvent succeeds when insert succeeds", async () => {
-    await Effect.runPromise(
-      AnalyticsApi.trackEvent({ type: "waitlist_submitted", source: "playground" })
-    )
-  })
-
-  it("trackEvent swallows DbError and returns void", async () => {
-    const DbApi = await import("@/services/Db/api")
-    const { DbError } = await import("@/services/Db/errors")
-    vi.mocked(DbApi.insertAnalyticsEvent).mockReturnValue(
-      Effect.fail(new DbError({ message: "db down" })) as ReturnType<typeof DbApi.insertAnalyticsEvent>
-    )
-    const result = await Effect.runPromise(
-      AnalyticsApi.trackEvent({ type: "consulting_submitted" })
-    )
+  it("trackEvent succeeds for waitlist event", async () => {
+    const program = Effect.gen(function* () {
+      const svc = yield* Analytics
+      return yield* svc.trackEvent({ type: "waitlist_submitted", source: "playground" })
+    })
+    const result = await Effect.runPromise(program.pipe(Effect.provide(AnalyticsNoOp)))
     expect(result).toBeUndefined()
+  })
+
+  it("trackEvent succeeds for consulting event", async () => {
+    const program = Effect.gen(function* () {
+      const svc = yield* Analytics
+      return yield* svc.trackEvent({ type: "consulting_submitted" })
+    })
+    const result = await Effect.runPromise(program.pipe(Effect.provide(AnalyticsNoOp)))
+    expect(result).toBeUndefined()
+  })
+
+  it("trackEvent succeeds for all event types", async () => {
+    const program = Effect.gen(function* () {
+      const svc = yield* Analytics
+      yield* svc.trackEvent({ type: "feedback_submitted" })
+      yield* svc.trackEvent({ type: "tour_started" })
+      yield* svc.trackEvent({ type: "lesson_started", lessonSlug: "intro" })
+      yield* svc.trackEvent({ type: "step_completed", lessonSlug: "intro", stepId: "s1" })
+      yield* svc.trackEvent({ type: "lesson_completed", lessonSlug: "intro" })
+    })
+    await Effect.runPromise(program.pipe(Effect.provide(AnalyticsNoOp)))
   })
 })

@@ -7,6 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { FeedbackForm } from "@/components/FeedbackForm"
 
+// Exception: next/navigation mock required — Next.js provides no test router.
+// These stubs return valid shapes only; no call-verification assertions.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() }),
 }))

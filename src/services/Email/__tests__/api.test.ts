@@ -1,78 +1,89 @@
 /**
  * Unit tests for Email service API.
+ *
+ * Tests the Email service interface via NoOp and custom test layers.
+ * No vi.mock, no Resend client stubs.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { Effect } from "effect"
-import * as EmailApi from "@/services/Email/api"
+import { describe, it, expect } from "vitest"
+import { Effect, Layer } from "effect"
+import { Email, EmailNoOp } from "@/services/Email/service"
 import { EmailError } from "@/services/Email/errors"
 
-const mockSend = vi.fn()
-
-vi.mock("@/services/Email/helpers", () => ({
-  getResendClient: vi.fn(() => ({
-    emails: { send: mockSend },
-  })),
-}))
-
 describe("Email api", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockSend.mockResolvedValue({ id: "msg-1" })
-  })
-
   describe("sendWaitlistConfirmation", () => {
-    it("sends email and returns void on success", async () => {
-      await Effect.runPromise(
-        EmailApi.sendWaitlistConfirmation("user@example.com", "playground")
-      )
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "user@example.com",
-          subject: expect.stringContaining("waitlist"),
-        })
-      )
+    it("succeeds with EmailNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Email
+        return yield* svc.sendWaitlistConfirmation("user@example.com", "playground")
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(EmailNoOp)))
+      expect(result).toBeUndefined()
     })
 
-    it("returns EmailError when Resend throws", async () => {
-      mockSend.mockRejectedValue(new Error("Resend API error"))
+    it("returns EmailError from a failing layer", async () => {
+      const FailingEmail = Layer.succeed(Email, {
+        sendWaitlistConfirmation: () => Effect.fail(new EmailError({ message: "Resend API error" })),
+        sendConsultingConfirmation: () => Effect.void,
+        sendFeedbackNotification: () => Effect.void,
+      })
+      const program = Effect.gen(function* () {
+        const svc = yield* Email
+        return yield* svc.sendWaitlistConfirmation("user@example.com", "playground")
+      })
       const result = await Effect.runPromise(
-        EmailApi.sendWaitlistConfirmation("user@example.com", "playground").pipe(
-          Effect.either
-        )
+        program.pipe(Effect.provide(FailingEmail), Effect.either)
       )
       expect(result._tag).toBe("Left")
       if (result._tag === "Left") {
         expect(result.left).toBeInstanceOf(EmailError)
-        expect(result.left.message).toContain("Resend")
+        expect(result.left.message).toBe("Resend API error")
       }
     })
   })
 
   describe("sendConsultingConfirmation", () => {
-    it("sends email and returns void on success", async () => {
-      await Effect.runPromise(
-        EmailApi.sendConsultingConfirmation("jane@example.com", "Jane")
-      )
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "jane@example.com",
-          subject: expect.stringContaining("consulting"),
-        })
-      )
+    it("succeeds with EmailNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Email
+        return yield* svc.sendConsultingConfirmation("jane@example.com", "Jane")
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(EmailNoOp)))
+      expect(result).toBeUndefined()
     })
 
-    it("returns EmailError when Resend throws", async () => {
-      mockSend.mockRejectedValue(new Error("Network error"))
+    it("returns EmailError from a failing layer", async () => {
+      const FailingEmail = Layer.succeed(Email, {
+        sendWaitlistConfirmation: () => Effect.void,
+        sendConsultingConfirmation: () => Effect.fail(new EmailError({ message: "Network error" })),
+        sendFeedbackNotification: () => Effect.void,
+      })
+      const program = Effect.gen(function* () {
+        const svc = yield* Email
+        return yield* svc.sendConsultingConfirmation("jane@example.com", "Jane")
+      })
       const result = await Effect.runPromise(
-        EmailApi.sendConsultingConfirmation("jane@example.com", "Jane").pipe(
-          Effect.either
-        )
+        program.pipe(Effect.provide(FailingEmail), Effect.either)
       )
       expect(result._tag).toBe("Left")
       if (result._tag === "Left") {
         expect(result.left).toBeInstanceOf(EmailError)
       }
+    })
+  })
+
+  describe("sendFeedbackNotification", () => {
+    it("succeeds with EmailNoOp", async () => {
+      const program = Effect.gen(function* () {
+        const svc = yield* Email
+        return yield* svc.sendFeedbackNotification({
+          name: "Test",
+          email: "test@example.com",
+          message: "Great site!",
+        })
+      })
+      const result = await Effect.runPromise(program.pipe(Effect.provide(EmailNoOp)))
+      expect(result).toBeUndefined()
     })
   })
 

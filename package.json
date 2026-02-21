@@ -26,7 +26,9 @@
     "db:apply-feedback": "bun run scripts/apply-feedback-migration.ts",
     "db:seed-migrations-then-migrate": "bun run scripts/seed-drizzle-migrations-and-migrate-feedback.ts",
     "env:check": "bun run scripts/check-env-for-deploy.ts",
-    "perf:tour": "bun run scripts/tour-performance-baseline.ts"
+    "perf:tour": "bun run scripts/tour-performance-baseline.ts",
+    "test:policy": "bun run scripts/check-test-policy.ts",
+    "test:ci": "vitest run --config vitest.config.mts && bun run scripts/check-test-policy.ts"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
