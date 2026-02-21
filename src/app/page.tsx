@@ -11,7 +11,7 @@ export const metadata = buildMetadata({
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col items-center">
       {/* Hero */}
       <section className="container px-4 md:px-6 py-16 md:py-24 flex flex-col items-center text-center">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-3xl">
