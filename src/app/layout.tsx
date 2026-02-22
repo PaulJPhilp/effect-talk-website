@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+/** Force dynamic so layout can use Auth (cookies) without breaking static generation of /_not-found. */
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: {
     default: "EffectTalk",
