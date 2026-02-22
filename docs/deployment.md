@@ -45,5 +45,6 @@ Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all requir
 
 ## Optional
 
-- **PostHog**: Set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` for analytics; omit for no-op.
+- **PostHog** (analytics): For PostHog to receive events, set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` (e.g. `https://us.i.posthog.com`). Add them to the **Build** environment as well as Production/Preview — Next.js inlines `NEXT_PUBLIC_*` at build time, so if they are missing at build, the client and server treat PostHog as disabled and no events are sent. Omit for no-op.
+- **Honeycomb** (tracing): For traces to appear in Honeycomb, set in the **runtime** environment (e.g. Vercel Production/Preview): `OTEL_SERVICE_NAME` (e.g. `effect-talk-website`), `OTEL_EXPORTER_OTLP_ENDPOINT` (e.g. `https://api.honeycomb.io`), `OTEL_EXPORTER_OTLP_HEADERS` (e.g. `x-honeycomb-team=<your-api-key>`), and optionally `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. If these are unset or use the placeholder key from `.env.example`, no traces will appear in Honeycomb.
 - **BACKEND_API_BASE_URL**: Only needed if you use an external backend API; pattern/rule data comes from the database.

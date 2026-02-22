@@ -101,6 +101,78 @@ describe("Auth api", () => {
       )
       expect(result).toBe(true)
     })
+
+    it("returns false when WORKOS_API_KEY contains placeholder", () => {
+      process.env.WORKOS_API_KEY = "sk_xxx_placeholder"
+      process.env.WORKOS_CLIENT_ID = "client_real"
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
+    })
+
+    it("returns false when WORKOS_CLIENT_ID contains placeholder", () => {
+      process.env.WORKOS_API_KEY = "sk_test"
+      process.env.WORKOS_CLIENT_ID = "client_xxx_placeholder"
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
+    })
+
+    it("falls back to WORKOS_REDIRECT_URI when NEXT_PUBLIC is missing", () => {
+      process.env.WORKOS_API_KEY = "sk_test"
+      process.env.WORKOS_CLIENT_ID = "client_real"
+      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(true)
+    })
+
+    it("returns false when both redirect URI vars are missing", () => {
+      process.env.WORKOS_API_KEY = "sk_test"
+      process.env.WORKOS_CLIENT_ID = "client_real"
+      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI
+      delete process.env.WORKOS_REDIRECT_URI
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
+    })
+
+    it("returns false when WORKOS_COOKIE_PASSWORD is missing", () => {
+      process.env.WORKOS_API_KEY = "sk_test"
+      process.env.WORKOS_CLIENT_ID = "client_real"
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
+      delete process.env.WORKOS_COOKIE_PASSWORD
+      const result = Effect.runSync(
+        Effect.gen(function* () {
+          const svc = yield* Auth
+          return svc.isWorkOSConfigured()
+        }).pipe(Effect.provide(Auth.Default))
+      )
+      expect(result).toBe(false)
+    })
   })
 
   describe("clearSessionCookie", () => {

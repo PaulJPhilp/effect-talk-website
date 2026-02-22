@@ -616,6 +616,72 @@ Run `bun run test:policy` to scan for forbidden patterns. The
 script exits non-zero if any violations are found. See
 `scripts/check-test-policy.ts` for the full rule set.
 
+## Coverage Exclusions
+
+Unit-test coverage thresholds (85% stmts, 75% branch, 85%
+funcs, 85% lines) apply to **core logic** — helpers, crypto,
+mappers, template builders, pure functions. Adapter/wiring code
+that delegates to external SDKs (Drizzle, Resend, WorkOS,
+Next.js cookies) is excluded from thresholds because it can only
+be meaningfully tested by integration tests.
+
+### Exclusion categories
+
+| Category | Pattern | Rationale |
+|----------|---------|-----------|
+| `service.ts` | Explicit per-service | Effect.Service impl calling external SDK |
+| `api.ts` | Explicit per-service | Thin `Effect.provide(*.Default)` wrappers |
+| `index.ts` | Explicit per-service | Barrel re-exports (no runtime logic) |
+| `types.ts` | Explicit per-service | Pure type definitions (no runtime code) |
+
+### Rules for adding exclusions
+
+1. **Explicit paths only** — every excluded file is listed by
+   full path in `vitest.config.mts` (no `src/services/**`
+   wildcards)
+2. **Comment required** — each exclusion has a one-line comment
+   explaining why it's excluded and how it's tested
+3. **Corresponding test required** — core logic must be extracted
+   to a testable module (`helpers.ts`, `crypto.ts`) with 85%+
+   coverage before the adapter file is excluded
+4. **Update this doc** — adding an exclusion requires adding an
+   entry to this section
+
+### Currently excluded adapter files
+
+| File | Extraction | Integration coverage |
+|------|------------|---------------------|
+| `Db/service.ts` | mappers in `helpers.ts` | `integration.db.test.ts` |
+| `Auth/service.ts` | signing in `crypto.ts` | — (future) |
+| `Email/service.ts` | templates in `helpers.ts` | — (future) |
+| `Analytics/service.ts` | error-swallowing by type | `integration.db.test.ts` |
+| `ApiKeys/service.ts` | token logic in `helpers.ts` | `integration.db.test.ts` |
+
+## CI and Contributor Workflow
+
+Run **`bun run test:ci`** before opening a PR. This command:
+
+1. Runs all unit tests via Vitest
+2. Enforces coverage thresholds (85% stmts, 75% branch, 85%
+   funcs, 85% lines)
+3. Runs the policy checker (no behavioral mocks, no wildcard
+   exclusions)
+
+If coverage fails, extract core logic into a testable module
+(helpers, crypto, etc.) and test it there. Do not broaden the
+coverage exclusion list without documenting the rationale.
+
+### Script reference
+
+| Script | Purpose | When to run |
+|--------|---------|-------------|
+| `bun run test` | Watch mode | Local development |
+| `bun run test:run` | Single pass, no coverage | Quick pass/fail |
+| `bun run test:coverage` | Single pass + coverage report | Inspect coverage |
+| `bun run test:policy` | Mock lint + exclusion lint | Standalone check |
+| `bun run test:ci` | Coverage + policy (**PR gate**) | Before opening a PR |
+| `bun run test:integration` | Real DB tests | Nightly / manual (`DATABASE_URL` required) |
+
 ## Key Principles
 
 1. **Test observable outcomes, not internal calls** — Assert on database state, HTTP responses, file contents, not function invocations

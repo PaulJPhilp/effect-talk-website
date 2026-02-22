@@ -10,8 +10,9 @@ import { describe, it, expect } from "vitest"
 import { Effect, Layer } from "effect"
 import { ApiKeys, ApiKeysNoOp } from "@/services/ApiKeys/service"
 import { ApiKeyError } from "@/services/ApiKeys/errors"
-import { hashToken } from "@/services/ApiKeys/helpers"
+import { hashToken, generateToken } from "@/services/ApiKeys/helpers"
 import { verifyApiKey } from "@/services/ApiKeys/api"
+import { API_KEY_PREFIX_LENGTH } from "@/types/constants"
 import type { DbApiKey } from "@/services/Db/types"
 
 describe("ApiKeys api", () => {
@@ -120,6 +121,21 @@ describe("ApiKeys api", () => {
       const result = await Effect.runPromise(program.pipe(Effect.provide(CustomApiKeys)))
       expect(result).toEqual(revokedKey)
       expect(result?.revoked_at).toBeTruthy()
+    })
+  })
+
+  describe("token → prefix → hash composition", () => {
+    it("generated token prefix matches API_KEY_PREFIX_LENGTH", () => {
+      const token = generateToken()
+      const prefix = token.slice(0, API_KEY_PREFIX_LENGTH)
+      expect(prefix.length).toBe(API_KEY_PREFIX_LENGTH)
+      expect(prefix.startsWith("ek_")).toBe(true)
+    })
+
+    it("hashToken of generated token is verifiable", () => {
+      const token = generateToken()
+      const hash = hashToken(token)
+      expect(verifyApiKey(token, hash)).toBe(true)
     })
   })
 

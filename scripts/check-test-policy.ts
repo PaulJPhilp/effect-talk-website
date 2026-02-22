@@ -119,6 +119,36 @@ function scanFile(
   return violations
 }
 
+// ── Coverage exclusion lint ──────────────────────────────────
+// Prevents wildcard regressions in vitest.config.mts coverage
+// exclude list. Only explicit paths are allowed for services.
+
+function checkCoverageExclusions(): string[] {
+  const configPath = join(ROOT, "vitest.config.mts")
+  const content = readFileSync(configPath, "utf-8")
+  const errors: string[] = []
+
+  // Forbidden: service-directory wildcards in coverage exclude
+  const wildcardPatterns = [
+    /["']src\/services\/\*\//,
+    /["']\*\*\/services\/\*\*/,
+    /["']src\/services\/\*["']/,
+  ]
+  const lines = content.split("\n")
+  for (let i = 0; i < lines.length; i++) {
+    for (const wp of wildcardPatterns) {
+      if (wp.test(lines[i])) {
+        errors.push(
+          `vitest.config.mts:${i + 1}  Service coverage exclusion must use explicit paths, not wildcards\n` +
+          `    ${lines[i].trim()}\n` +
+          `    See docs/TESTING_STRATEGY.md § "Coverage Exclusions"`
+        )
+      }
+    }
+  }
+  return errors
+}
+
 // ── Main ────────────────────────────────────────────────────
 
 const files = collectFiles(SRC)
@@ -129,26 +159,37 @@ for (const f of files) {
   allViolations.push(...scanFile(f, rel))
 }
 
-if (allViolations.length === 0) {
+const exclusionErrors = checkCoverageExclusions()
+
+if (allViolations.length === 0 && exclusionErrors.length === 0) {
   console.log(
     `✓ Test policy check passed (${files.length} files scanned)`
   )
   process.exit(0)
 }
 
-console.error(
-  `✗ Test policy check failed — ` +
-    `${allViolations.length} violation(s) in ` +
-    `${new Set(allViolations.map((v) => v.file)).size} file(s):\n`
-)
-
-for (const v of allViolations) {
-  console.error(`  ${v.file}:${v.line}  ${v.label}`)
-  console.error(`    ${v.text}\n`)
+if (allViolations.length > 0) {
+  console.error(
+    `✗ Test policy: ${allViolations.length} mock violation(s) in ` +
+      `${new Set(allViolations.map((v) => v.file)).size} file(s):\n`
+  )
+  for (const v of allViolations) {
+    console.error(`  ${v.file}:${v.line}  ${v.label}`)
+    console.error(`    ${v.text}\n`)
+  }
+  console.error(
+    "See docs/TESTING_STRATEGY.md § 'Structural Exceptions' " +
+      "for allowed patterns.\n"
+  )
 }
 
-console.error(
-  "See docs/TESTING_STRATEGY.md § 'Structural Exceptions' " +
-    "for allowed patterns."
-)
+if (exclusionErrors.length > 0) {
+  console.error(
+    `✗ Coverage exclusion lint: ${exclusionErrors.length} wildcard(s) found:\n`
+  )
+  for (const e of exclusionErrors) {
+    console.error(`  ${e}\n`)
+  }
+}
+
 process.exit(1)

@@ -1,3 +1,4 @@
+<!-- AI agents: see also .ai/shared/conventions.md -->
 # Coding Standards
 
 This document defines coding standards and best practices for the EffectTalk website codebase.
@@ -23,12 +24,16 @@ All services follow this structure:
 ```
 src/services/${ServiceName}/
 ├── __tests__/          # Test files
-├── api.ts              # Service interface
+├── api.ts              # Service interface + convenience functions
+├── service.ts          # Effect.Service class + NoOp layer
 ├── errors.ts           # Service-specific errors
 ├── types.ts            # Service-specific types (if any)
 ├── helpers.ts          # Helper functions and constants
 └── index.ts            # Barrel exports
 ```
+
+- **`api.ts`** — Defines the `*Service` interface and exports convenience functions that auto-provide `Default`. Consumers import from here.
+- **`service.ts`** — Contains the `Effect.Service` class implementation and a `*NoOp` layer (e.g. `BookmarksNoOp`) used in tests instead of mocks.
 
 ### Magic Numbers and String Literals
 

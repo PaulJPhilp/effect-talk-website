@@ -9,9 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest --config vitest.config.mts",
-    "test:ui": "vitest --config vitest.config.mts --ui",
     "test:run": "vitest run --config vitest.config.mts",
     "test:coverage": "vitest run --config vitest.config.mts --coverage",
+    "test:integration": "test -n \"$DATABASE_URL\" || { echo '✗ DATABASE_URL is not set. Point it at a test Postgres instance (never production).'; exit 1; } && RUN_INTEGRATION_TESTS=1 vitest run --config vitest.config.mts src/services/__tests__/integration.db.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
@@ -28,7 +28,7 @@
     "env:check": "bun run scripts/check-env-for-deploy.ts",
     "perf:tour": "bun run scripts/tour-performance-baseline.ts",
     "test:policy": "bun run scripts/check-test-policy.ts",
-    "test:ci": "vitest run --config vitest.config.mts && bun run scripts/check-test-policy.ts"
+    "test:ci": "vitest run --config vitest.config.mts --coverage && bun run scripts/check-test-policy.ts"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
