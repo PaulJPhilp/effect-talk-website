@@ -17,6 +17,8 @@ export const revalidate = 300
 const DB_DOCS_HINT =
   "Check that DATABASE_URL points to the shared database and that the database has the effect_patterns table. See "
 const DB_CHECK_CMD = "bun run db:check"
+const DEPLOY_HINT =
+  "On Vercel (or other host), set DATABASE_URL in Project Settings → Environment Variables for the environment (Production/Preview) you're viewing."
 
 export default async function PatternsPage() {
   const [result, currentUser] = await Promise.all([
@@ -50,7 +52,10 @@ export default async function PatternsPage() {
             <code className="rounded bg-muted px-1">docs/database.md</code>. You can run{" "}
             <code className="rounded bg-muted px-1">{DB_CHECK_CMD}</code> to verify.
           </p>
-          <p className="mt-2 text-muted-foreground">Error: {loadError}</p>
+          <p className="mt-1 text-muted-foreground">{DEPLOY_HINT}</p>
+          <p className="mt-2 text-muted-foreground font-mono text-xs break-all">
+            Error: {loadError}
+          </p>
         </div>
       ) : (
         <PatternsBrowser

@@ -42,7 +42,7 @@ export default function RootLayout({
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 w-full min-w-0">{children}</main>
             <Footer />
             <Toaster />
           </ThemeProvider>

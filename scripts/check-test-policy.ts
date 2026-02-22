@@ -13,9 +13,11 @@
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs"
-import { join, relative } from "node:path"
+import { dirname, join, relative } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const ROOT = join(import.meta.dir, "..")
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(__dirname, "..")
 const SRC = join(ROOT, "src")
 
 // ── Patterns that are ALWAYS forbidden in test files ────────
@@ -139,9 +141,7 @@ function checkCoverageExclusions(): string[] {
     for (const wp of wildcardPatterns) {
       if (wp.test(lines[i])) {
         errors.push(
-          `vitest.config.mts:${i + 1}  Service coverage exclusion must use explicit paths, not wildcards\n` +
-          `    ${lines[i].trim()}\n` +
-          `    See docs/TESTING_STRATEGY.md § "Coverage Exclusions"`
+          `vitest.config.mts:${i + 1}  Service coverage exclusion must use explicit paths, not wildcards\n    ${lines[i].trim()}\n    See docs/TESTING_STRATEGY.md § "Coverage Exclusions"`
         )
       }
     }

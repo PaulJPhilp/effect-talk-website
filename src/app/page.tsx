@@ -11,9 +11,9 @@ export const metadata = buildMetadata({
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col">
-      {/* Hero */}
-      <section className="container px-4 md:px-6 py-16 md:py-24 flex flex-col items-center text-center">
+    <div className="flex flex-col w-full">
+      {/* Hero — full viewport width with padding */}
+      <section className="w-full px-4 md:px-6 lg:px-8 py-16 md:py-24 flex flex-col items-center text-center">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-3xl">
           Master Effect.ts with
           <span className="text-primary"> production-ready patterns</span>
@@ -38,8 +38,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="container px-4 md:px-6 pb-16 md:pb-24">
+      {/* Features — full viewport width with padding */}
+      <section className="w-full px-4 md:px-6 lg:px-8 pb-16 md:pb-24">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Link href="/patterns">
             <Card className="h-full hover:bg-muted/50 transition-colors">
