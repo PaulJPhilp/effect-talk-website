@@ -43,6 +43,59 @@ Run it with `DATABASE_URL` pointing at the target DB (e.g. production Neon URL).
 
 Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all required tables, including `feedback`, are present.
 
+## Staging environment setup
+
+Follow these steps to configure a fully isolated staging environment for Vercel Preview deployments.
+
+### 1. Database (Neon branch)
+
+1. In the [Neon Console](https://console.neon.tech), open your project.
+2. Create a new branch from the production branch (e.g. `staging`).
+3. Copy the connection string for the new branch.
+4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` scoped to **Preview** with the branch connection string.
+
+### 2. WorkOS (staging environment)
+
+1. In [WorkOS Dashboard](https://dashboard.workos.com) → Environments, create or select a "Staging" environment.
+2. Add a redirect URI matching Vercel preview URLs: `https://*-effect-talk-website.vercel.app/auth/callback`.
+3. Copy the Staging environment's **API Key** and **Client ID**.
+4. In Vercel Preview env vars, set:
+   - `WORKOS_API_KEY` — staging API key
+   - `WORKOS_CLIENT_ID` — staging client ID
+   - `WORKOS_REDIRECT_URI` — the redirect URI from step 2
+   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` — same value
+   - `WORKOS_COOKIE_PASSWORD` — a separate 32+ char secret (`openssl rand -base64 24`)
+
+### 3. PostHog (staging project)
+
+1. Create a separate PostHog project for staging (or use an existing non-production project).
+2. In Vercel Preview env vars, set:
+   - `NEXT_PUBLIC_POSTHOG_KEY` — staging project API key
+   - `NEXT_PUBLIC_POSTHOG_HOST` — `https://us.i.posthog.com`
+
+### 4. Honeycomb (staging API key)
+
+1. In the [Honeycomb UI](https://ui.honeycomb.io), create a staging dataset (or use a separate environment).
+2. Generate an API key scoped to the staging dataset.
+3. In Vercel Preview env vars, set:
+   - `OTEL_EXPORTER_OTLP_HEADERS` — `x-honeycomb-team=<staging-api-key>`
+   - `OTEL_EXPORTER_OTLP_ENDPOINT` — `https://api.honeycomb.io`
+   - `OTEL_SERVICE_NAME` — `effect-talk-website`
+
+### 5. App environment
+
+Set `APP_ENV=staging` in Vercel Preview env vars. This is also derived automatically from `VERCEL_ENV=preview`, but an explicit value is recommended.
+
+### Verification
+
+After deploying a preview build, run:
+
+```bash
+curl https://<preview-url>/api/health-check | jq .
+```
+
+Expected: `environment: "staging"`, `database.connected: true`, and `configured: true` for each service that has been set up.
+
 ## Optional
 
 - **PostHog** (analytics): For PostHog to receive events, set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` (e.g. `https://us.i.posthog.com`). Add them to the **Build** environment as well as Production/Preview — Next.js inlines `NEXT_PUBLIC_*` at build time, so if they are missing at build, the client and server treat PostHog as disabled and no events are sent. Omit for no-op.

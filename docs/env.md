@@ -36,3 +36,26 @@ How they work and how to manage them.
 5. Do not commit `.env.local`.
 
 After that, use the rules above when you add or change variables.
+
+## Staging environment (Vercel Preview)
+
+Staging uses Vercel **Preview** deployments. Each external service needs its own staging credentials so preview builds don't pollute production data. Set these in **Vercel → Project → Settings → Environment Variables** scoped to **Preview**.
+
+| Variable | Staging value | Notes |
+|----------|--------------|-------|
+| `APP_ENV` | `staging` | Tells the app to use Neon serverless driver and tags telemetry spans |
+| `DATABASE_URL` | Neon branch connection string | Create a branch from your production Neon database (see docs/deployment.md) |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Staging project key | Create a separate PostHog project for staging |
+| `NEXT_PUBLIC_POSTHOG_HOST` | `https://us.i.posthog.com` | Same host, different project key |
+| `OTEL_SERVICE_NAME` | `effect-talk-website` | Same service name; spans are distinguished by `deployment.environment` resource attribute |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `https://api.honeycomb.io` | Same endpoint; use a staging API key for dataset isolation |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `x-honeycomb-team=<staging-api-key>` | Staging Honeycomb API key |
+| `WORKOS_API_KEY` | Staging environment key | From WorkOS Dashboard → Staging environment |
+| `WORKOS_CLIENT_ID` | Staging client ID | From WorkOS Dashboard → Staging environment |
+| `WORKOS_REDIRECT_URI` | `https://*-effect-talk-website.vercel.app/auth/callback` | Must match WorkOS redirect config |
+| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Same as `WORKOS_REDIRECT_URI` | Public for client redirect |
+| `WORKOS_COOKIE_PASSWORD` | Separate 32+ char secret | Generate: `openssl rand -base64 24` |
+
+The `getAppEnv()` utility in `src/lib/env.ts` automatically derives `"staging"` from `VERCEL_ENV=preview` when `APP_ENV` is not set, but explicitly setting `APP_ENV=staging` is recommended.
+
+After deploying a preview build, verify the configuration at `https://<preview-url>/api/health-check`.

@@ -16,8 +16,19 @@ export async function register() {
     const { OTLPTraceExporter } = await import(
       "@opentelemetry/exporter-trace-otlp-http"
     )
+    const { resourceFromAttributes } = await import("@opentelemetry/resources")
+    const { ATTR_SERVICE_NAME, SEMRESATTRS_DEPLOYMENT_ENVIRONMENT } = await import(
+      "@opentelemetry/semantic-conventions"
+    )
+    const { getAppEnv } = await import("@/lib/env")
+
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? "effect-talk-website",
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: getAppEnv(),
+    })
 
     const sdk = new NodeSDK({
+      resource,
       traceExporter: new OTLPTraceExporter(),
       instrumentations: [
         getNodeAutoInstrumentations({
