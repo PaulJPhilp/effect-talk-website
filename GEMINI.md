@@ -1,0 +1,1 @@
+.ai/gemini/GEMINI.md
