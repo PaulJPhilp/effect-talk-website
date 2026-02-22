@@ -1,113 +1,82 @@
 /**
- * BackendApi service -- provides patterns, rules, and search.
+ * BackendApi service API.
  *
- * Data is stored in PostgreSQL and queried via the Db service.
- * This module maps DbPattern/DbRule to the public Pattern/Rule types
- * consumed by pages and components.
+ * Public-facing data access for Effect patterns and rules. Transforms
+ * internal {@link DbPattern}/{@link DbRule} rows into public
+ * {@link Pattern}/{@link Rule} types, stripping internal fields.
+ *
+ * Used by Next.js pages, ISR `generateStaticParams`, and the search bar.
+ *
+ * @module BackendApi/api
  */
 
 import { Effect } from "effect"
-import { BackendApiError } from "@/services/BackendApi/errors"
+import type { BackendApiError } from "@/services/BackendApi/errors"
 import type { Pattern, Rule, SearchResult } from "@/services/BackendApi/types"
-import {
-  getAllPatterns,
-  getPatternById,
-  getAllRules,
-  getRuleById,
-  searchPatternsAndRules,
-} from "@/services/Db/api"
-import type { DbError } from "@/services/Db/errors"
-import type { DbPattern, DbRule } from "@/services/Db/types"
+import { BackendApi } from "@/services/BackendApi/service"
 
-function formatDbErrorMessage(e: DbError): string {
-  const base = e.message
-  if (e.cause instanceof Error && e.cause.message && e.cause.message !== base) {
-    return `${base} ${e.cause.message}`
-  }
-  return base
+/** Service interface for public pattern and rule data access. */
+export interface BackendApiService {
+  /** Fetch all patterns (ordered by title). */
+  readonly fetchPatterns: () => Effect.Effect<readonly Pattern[], BackendApiError>
+  /** Fetch a single pattern by ID. */
+  readonly fetchPattern: (id: string) => Effect.Effect<Pattern | null, BackendApiError>
+  /** Fetch all rules (ordered by title). */
+  readonly fetchRules: () => Effect.Effect<readonly Rule[], BackendApiError>
+  /** Fetch a single rule by ID. */
+  readonly fetchRule: (id: string) => Effect.Effect<Rule | null, BackendApiError>
+  /** Full-text-ish search across patterns and rules. */
+  readonly searchBackend: (q: string) => Effect.Effect<SearchResult, BackendApiError>
+  /** Fetch all pattern IDs (for `generateStaticParams` in ISR). */
+  readonly fetchPatternIds: () => Effect.Effect<readonly string[], BackendApiError>
+  /** Fetch all rule IDs (for `generateStaticParams` in ISR). */
+  readonly fetchRuleIds: () => Effect.Effect<readonly string[], BackendApiError>
 }
 
-// ---------------------------------------------------------------------------
-// Mappers (Db types -> public API types)
-// ---------------------------------------------------------------------------
+export const fetchPatterns = () =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchPatterns()
+  }).pipe(Effect.provide(BackendApi.Default))
 
-function toPattern(db: DbPattern): Pattern {
-  return {
-    id: db.id,
-    title: db.title,
-    description: db.description,
-    content: db.content,
-    category: db.category ?? undefined,
-    difficulty: db.difficulty ?? undefined,
-    tags: db.tags ?? undefined,
-    new: db.new,
-  }
-}
+export const fetchPattern = (id: string) =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchPattern(id)
+  }).pipe(Effect.provide(BackendApi.Default))
 
-function toRule(db: DbRule): Rule {
-  return {
-    id: db.id,
-    title: db.title,
-    description: db.description,
-    content: db.content,
-    category: db.category ?? undefined,
-    severity: db.severity ?? undefined,
-    tags: db.tags ?? undefined,
-  }
-}
+export const fetchRules = () =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchRules()
+  }).pipe(Effect.provide(BackendApi.Default))
 
-// ---------------------------------------------------------------------------
-// Public API (Effect wrappers)
-// ---------------------------------------------------------------------------
+export const fetchRule = (id: string) =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchRule(id)
+  }).pipe(Effect.provide(BackendApi.Default))
 
-export function fetchPatterns(): Effect.Effect<readonly Pattern[], BackendApiError> {
-  return getAllPatterns().pipe(
-    Effect.map((rows) => rows.map(toPattern)),
-    Effect.mapError((e) => new BackendApiError({ message: formatDbErrorMessage(e) })),
-  )
-}
-
-export function fetchPattern(id: string): Effect.Effect<Pattern | null, BackendApiError> {
-  return getPatternById(id).pipe(
-    Effect.map((row) => (row ? toPattern(row) : null)),
-    Effect.mapError((e) => new BackendApiError({ message: formatDbErrorMessage(e) })),
-  )
-}
-
-export function fetchRules(): Effect.Effect<readonly Rule[], BackendApiError> {
-  return getAllRules().pipe(
-    Effect.map((rows) => rows.map(toRule)),
-    Effect.mapError((e) => new BackendApiError({ message: e.message })),
-  )
-}
-
-export function fetchRule(id: string): Effect.Effect<Rule | null, BackendApiError> {
-  return getRuleById(id).pipe(
-    Effect.map((row) => (row ? toRule(row) : null)),
-    Effect.mapError((e) => new BackendApiError({ message: e.message })),
-  )
-}
-
-export function searchBackend(q: string): Effect.Effect<SearchResult, BackendApiError> {
-  return searchPatternsAndRules(q).pipe(
-    Effect.map((result) => ({
-      patterns: result.patterns.map(toPattern),
-      rules: result.rules.map(toRule),
-    })),
-    Effect.mapError((e) => new BackendApiError({ message: e.message })),
-  )
-}
+export const searchBackend = (q: string) =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.searchBackend(q)
+  }).pipe(Effect.provide(BackendApi.Default))
 
 /**
  * Fetch all pattern IDs (for generateStaticParams in ISR).
  */
-export function fetchPatternIds(): Effect.Effect<readonly string[], BackendApiError> {
-  return fetchPatterns().pipe(Effect.map((ps) => ps.map((p) => p.id)))
-}
+export const fetchPatternIds = () =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchPatternIds()
+  }).pipe(Effect.provide(BackendApi.Default))
 
 /**
  * Fetch all rule IDs (for generateStaticParams in ISR).
  */
-export function fetchRuleIds(): Effect.Effect<readonly string[], BackendApiError> {
-  return fetchRules().pipe(Effect.map((rs) => rs.map((r) => r.id)))
-}
+export const fetchRuleIds = () =>
+  Effect.gen(function* () {
+    const svc = yield* BackendApi
+    return yield* svc.fetchRuleIds()
+  }).pipe(Effect.provide(BackendApi.Default))

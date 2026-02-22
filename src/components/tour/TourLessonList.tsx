@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { useAllTourProgress } from "@/hooks/useAllTourProgress"
+import { getLastStepForLesson } from "@/lib/tourPosition"
 import type { TourLessonListItem } from "@/services/TourProgress/types"
 
 const GROUP_ORDER = [
@@ -69,11 +70,13 @@ export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
             {items.map(({ lesson, displayIndex }) => {
               const done = isLessonComplete(lesson)
               const stepCount = lesson.step_count
+              const lastStep = getLastStepForLesson(lesson.slug)
+              const href = lastStep != null ? `/tour/${lesson.slug}?step=${lastStep}` : `/tour/${lesson.slug}`
 
               return (
                 <li key={lesson.id}>
                   <Link
-                    href={`/tour/${lesson.slug}`}
+                    href={href}
                     className="group block rounded-lg border p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">

@@ -1,85 +1,57 @@
 /**
- * PostHog analytics Effect.Service.
- * Server-side capture and identify via posthog-node; NoOp for tests or when env is unset.
+ * PostHog analytics service API.
+ *
+ * Server-side event capture and user identification via `posthog-node`.
+ * Errors in capture/identify/flush are swallowed so analytics never
+ * blocks the caller. Falls back to a no-op when env vars are unset.
+ *
+ * @module PostHog/api
  */
 
-import { Effect, Layer } from "effect"
-import { PostHogError } from "@/services/PostHog/types"
+import { Effect } from "effect"
+import type { PostHogError } from "@/services/PostHog/types"
+import { PostHogAnalytics } from "@/services/PostHog/service"
 
-const SERVER_DISTINCT_ID = "server"
-
+/** Service interface for server-side PostHog analytics. */
 export interface PostHogAnalyticsService {
+  /** Capture a named event with optional properties. */
   readonly capture: (
     event: string,
     properties?: Record<string, unknown>,
     distinctId?: string
   ) => Effect.Effect<void, PostHogError>
+  /** Identify a user with optional traits. */
   readonly identify: (
     distinctId: string,
     traits?: Record<string, unknown>
   ) => Effect.Effect<void, PostHogError>
+  /** Flush queued events to PostHog. */
   readonly flush: () => Effect.Effect<void, PostHogError>
 }
 
-const noOpImpl: PostHogAnalyticsService = {
-  capture: () => Effect.void,
-  identify: () => Effect.void,
-  flush: () => Effect.void,
-}
+/**
+ * Capture a PostHog event.
+ */
+export const capture = (event: string, properties?: Record<string, unknown>, distinctId?: string) =>
+  Effect.gen(function* () {
+    const svc = yield* PostHogAnalytics
+    return yield* svc.capture(event, properties, distinctId)
+  }).pipe(Effect.provide(PostHogAnalytics.Default))
 
-export class PostHogAnalytics extends Effect.Service<PostHogAnalyticsService>()(
-  "PostHogAnalytics",
-  {
-    effect: Effect.gen(function* () {
-      const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-      const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
-      if (!key || !host) {
-        return noOpImpl
-      }
-      const { PostHog } = yield* Effect.tryPromise({
-        try: () => import("posthog-node"),
-        catch: (e) => new PostHogError({ message: String(e), cause: e }),
-      })
-      const client = new PostHog(key, {
-        host,
-        flushAt: 1,
-        flushInterval: 0,
-      })
-      return {
-        capture: (event: string, properties?: Record<string, unknown>, distinctId?: string) =>
-          Effect.tryPromise({
-            try: () =>
-              Promise.resolve(
-                client.capture({
-                  distinctId: distinctId ?? SERVER_DISTINCT_ID,
-                  event,
-                  properties: properties ?? {},
-                })
-              ),
-            catch: (e) => new PostHogError({ message: String(e), cause: e }),
-          }).pipe(Effect.catchAll(() => Effect.void)),
+/**
+ * Identify a user in PostHog.
+ */
+export const identify = (distinctId: string, traits?: Record<string, unknown>) =>
+  Effect.gen(function* () {
+    const svc = yield* PostHogAnalytics
+    return yield* svc.identify(distinctId, traits)
+  }).pipe(Effect.provide(PostHogAnalytics.Default))
 
-        identify: (distinctId: string, traits?: Record<string, unknown>) =>
-          Effect.tryPromise({
-            try: () =>
-              Promise.resolve(
-                client.identify({
-                  distinctId,
-                  properties: traits ?? {},
-                })
-              ),
-            catch: (e) => new PostHogError({ message: String(e), cause: e }),
-          }).pipe(Effect.catchAll(() => Effect.void)),
-
-        flush: () =>
-          Effect.tryPromise({
-            try: () => client.flush(),
-            catch: (e) => new PostHogError({ message: String(e), cause: e }),
-          }).pipe(Effect.catchAll(() => Effect.void)),
-      } satisfies PostHogAnalyticsService
-    }),
-  }
-) {}
-
-/** No-op implementation for tests. */
-export const PostHogAnalyticsNoOp = Layer.succeed(PostHogAnalytics, noOpImpl)
+/**
+ * Flush PostHog events.
+ */
+export const flush = () =>
+  Effect.gen(function* () {
+    const svc = yield* PostHogAnalytics
+    return yield* svc.flush()
+  }).pipe(Effect.provide(PostHogAnalytics.Default))

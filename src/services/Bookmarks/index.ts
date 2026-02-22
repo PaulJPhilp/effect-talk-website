@@ -3,3 +3,4 @@
  */
 
 export * from "@/services/Bookmarks/api"
+export * from "@/services/Bookmarks/service"

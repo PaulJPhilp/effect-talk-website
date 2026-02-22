@@ -4,18 +4,15 @@ import { Button } from "@/components/ui/button"
 import { AvatarMenu } from "@/components/AvatarMenu"
 import { PostHogIdentify } from "@/components/PostHogIdentify"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import { TourProgressSyncer } from "@/components/tour/TourProgressSyncer"
 import { getCurrentUser } from "@/services/Auth"
 import { EFFECT_PATTERNS_GITHUB_URL } from "@/types/constants"
 
 export async function Header() {
   const user = await getCurrentUser()
-  const isLoggedIn = Boolean(user)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <PostHogIdentify userId={user?.id ?? null} />
-      <TourProgressSyncer isLoggedIn={isLoggedIn} />
       <div className="container flex h-14 items-center gap-4 px-4 md:px-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">

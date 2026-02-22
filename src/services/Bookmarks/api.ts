@@ -1,88 +1,61 @@
 /**
  * Pattern Bookmarks service API.
- * Uses Drizzle ORM for type-safe queries, wrapped in Effect for typed error handling.
+ *
+ * Manages user bookmarks for Effect patterns. Bookmarks are stored in the
+ * `pattern_bookmarks` table and synced between localStorage (guest) and
+ * the database (authenticated users).
+ *
+ * @module Bookmarks/api
  */
 
 import { Effect } from "effect"
-import { eq, and, sql } from "drizzle-orm"
-import { db } from "@/db/client"
-import { patternBookmarks } from "@/db/schema"
 import type { DbError } from "@/services/Db/errors"
-import { toDbError } from "@/services/Db/helpers"
+import { Bookmarks } from "@/services/Bookmarks/service"
+
+/** Service interface for pattern bookmark operations. */
+export interface BookmarksService {
+  /** Retrieve all bookmarked pattern IDs for a user. */
+  readonly getUserBookmarks: (userId: string) => Effect.Effect<string[], DbError>
+  /** Add a bookmark for a pattern (idempotent — duplicates are ignored). */
+  readonly addBookmark: (userId: string, patternId: string) => Effect.Effect<void, DbError>
+  /** Remove a bookmark for a pattern. */
+  readonly removeBookmark: (userId: string, patternId: string) => Effect.Effect<void, DbError>
+  /** Bulk-upsert bookmarks from localStorage sync (idempotent). */
+  readonly bulkUpsertBookmarks: (userId: string, patternIds: readonly string[]) => Effect.Effect<void, DbError>
+}
 
 /**
  * Get all bookmarked pattern IDs for a user.
  */
-export function getUserBookmarks(userId: string): Effect.Effect<string[], DbError> {
-  return Effect.tryPromise({
-    try: async () => {
-      const rows = await db
-        .select({ patternId: patternBookmarks.patternId })
-        .from(patternBookmarks)
-        .where(eq(patternBookmarks.userId, userId))
-      return rows.map((r) => r.patternId)
-    },
-    catch: toDbError,
-  })
-}
+export const getUserBookmarks = (userId: string) =>
+  Effect.gen(function* () {
+    const svc = yield* Bookmarks
+    return yield* svc.getUserBookmarks(userId)
+  }).pipe(Effect.provide(Bookmarks.Default))
 
 /**
  * Add a bookmark for a pattern. Uses onConflictDoNothing to prevent duplicates.
  */
-export function addBookmark(userId: string, patternId: string): Effect.Effect<void, DbError> {
-  return Effect.tryPromise({
-    try: async () => {
-      await db
-        .insert(patternBookmarks)
-        .values({ userId, patternId })
-        .onConflictDoNothing({
-          target: [patternBookmarks.userId, patternBookmarks.patternId],
-        })
-    },
-    catch: toDbError,
-  })
-}
+export const addBookmark = (userId: string, patternId: string) =>
+  Effect.gen(function* () {
+    const svc = yield* Bookmarks
+    return yield* svc.addBookmark(userId, patternId)
+  }).pipe(Effect.provide(Bookmarks.Default))
 
 /**
  * Remove a bookmark for a pattern.
  */
-export function removeBookmark(userId: string, patternId: string): Effect.Effect<void, DbError> {
-  return Effect.tryPromise({
-    try: async () => {
-      await db
-        .delete(patternBookmarks)
-        .where(
-          and(
-            eq(patternBookmarks.userId, userId),
-            eq(patternBookmarks.patternId, patternId),
-          )
-        )
-    },
-    catch: toDbError,
-  })
-}
+export const removeBookmark = (userId: string, patternId: string) =>
+  Effect.gen(function* () {
+    const svc = yield* Bookmarks
+    return yield* svc.removeBookmark(userId, patternId)
+  }).pipe(Effect.provide(Bookmarks.Default))
 
 /**
  * Bulk upsert bookmarks from localStorage sync. Uses onConflictDoNothing for idempotency.
  */
-export function bulkUpsertBookmarks(
-  userId: string,
-  patternIds: readonly string[],
-): Effect.Effect<void, DbError> {
-  return Effect.tryPromise({
-    try: async () => {
-      if (patternIds.length === 0) return
-
-      const dedupedIds = [...new Set(patternIds)]
-      const values = dedupedIds.map((patternId) => ({ userId, patternId }))
-
-      await db
-        .insert(patternBookmarks)
-        .values(values)
-        .onConflictDoNothing({
-          target: [patternBookmarks.userId, patternBookmarks.patternId],
-        })
-    },
-    catch: toDbError,
-  })
-}
+export const bulkUpsertBookmarks = (userId: string, patternIds: readonly string[]) =>
+  Effect.gen(function* () {
+    const svc = yield* Bookmarks
+    return yield* svc.bulkUpsertBookmarks(userId, patternIds)
+  }).pipe(Effect.provide(Bookmarks.Default))
