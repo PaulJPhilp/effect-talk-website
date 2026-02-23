@@ -24,8 +24,10 @@ import type { BackendApiService } from "@/services/BackendApi/api"
 
 function formatDbErrorMessage(e: DbError): string {
   const base = e.message
-  if (e.cause instanceof Error && e.cause.message && e.cause.message !== base) {
-    return `${base} ${e.cause.message}`
+  const causeMsg =
+    e.cause instanceof Error ? e.cause.message : typeof e.cause === "string" ? e.cause : null
+  if (causeMsg && causeMsg !== base) {
+    return `${base} → ${causeMsg}`
   }
   return base
 }

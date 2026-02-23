@@ -11,10 +11,9 @@ export async function Header() {
   const user = await getCurrentUser()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header data-v="2" className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <PostHogIdentify userId={user?.id ?? null} />
-      <div className="w-full flex h-14 items-center gap-4 px-4 md:px-6 lg:px-8">
-        {/* Brand */}
+      <nav className="w-full flex h-14 items-center px-4 md:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-mono">
             Effect
@@ -22,7 +21,6 @@ export async function Header() {
           <span>Talk</span>
         </Link>
 
-        {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
             <a
@@ -44,7 +42,7 @@ export async function Header() {
           </Button>
           <AvatarMenu user={user} />
         </div>
-      </div>
+      </nav>
     </header>
   )
 }

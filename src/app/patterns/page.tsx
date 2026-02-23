@@ -19,6 +19,8 @@ const DB_DOCS_HINT =
 const DB_CHECK_CMD = "bun run db:check"
 const DEPLOY_HINT =
   "On Vercel (or other host), set DATABASE_URL in Project Settings → Environment Variables for the environment (Production/Preview) you're viewing."
+const NEON_HINT =
+  "If using Neon: use the pooler (serverless) connection string, not the direct connection. Redeploy after changing env vars."
 
 export default async function PatternsPage() {
   const [result, currentUser] = await Promise.all([
@@ -53,6 +55,7 @@ export default async function PatternsPage() {
             <code className="rounded bg-muted px-1">{DB_CHECK_CMD}</code> to verify.
           </p>
           <p className="mt-1 text-muted-foreground">{DEPLOY_HINT}</p>
+          <p className="mt-1 text-muted-foreground">{NEON_HINT}</p>
           <p className="mt-2 text-muted-foreground font-mono text-xs break-all">
             Error: {loadError}
           </p>
