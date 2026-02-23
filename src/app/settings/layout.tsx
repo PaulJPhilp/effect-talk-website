@@ -10,7 +10,7 @@ export default async function SettingsLayout({
   await requireAuth()
 
   return (
-    <div className="container px-4 md:px-6 py-10">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-1">

@@ -62,7 +62,7 @@ export function TourStep({
       <div className="p-5 md:p-8 md:border-r">
         <h2 className="text-2xl font-bold tracking-tight mb-4">{step.title}</h2>
 
-        <div className="text-lg leading-relaxed space-y-3">
+        <div className="text-xl leading-relaxed space-y-3">
           {instructionParagraphs.map((paragraph) => (
             <p key={paragraph.slice(0, 40)}>{paragraph}</p>
           ))}
@@ -71,7 +71,7 @@ export function TourStep({
         {/* Hints */}
         {step.hints && step.hints.length > 0 && (
           <div className="mt-5">
-            <ul className="text-base text-muted-foreground list-disc pl-5 space-y-1">
+            <ul className="text-lg text-muted-foreground list-disc pl-5 space-y-1">
               {step.hints.map((hint) => (
                 <li key={hint}>{hint}</li>
               ))}
