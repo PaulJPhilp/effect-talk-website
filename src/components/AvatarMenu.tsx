@@ -15,10 +15,12 @@ interface AvatarMenuProps {
   readonly user: DbUser | null
 }
 
+const authSlotClass = "flex items-center sm:min-w-[12rem]"
+
 export function AvatarMenu({ user }: AvatarMenuProps) {
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <div className={`${authSlotClass} gap-2`}>
         <Button variant="ghost" size="sm" asChild>
           <Link href="/auth/sign-in">
             <LogIn className="mr-1.5 h-4 w-4" />
@@ -42,22 +44,16 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
     : user.email[0].toUpperCase()
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-        <Link href="/auth/sign-out">
-          <LogOut className="mr-1.5 h-4 w-4" />
-          Sign out
-        </Link>
-      </Button>
+    <div className={`${authSlotClass} justify-end`}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
@@ -92,7 +88,7 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
     </div>
   )
 }
