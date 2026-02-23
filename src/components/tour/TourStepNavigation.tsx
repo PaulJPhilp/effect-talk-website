@@ -34,7 +34,7 @@ export function TourStepNavigation({
       return {
         step,
         className: [
-          "inline-flex h-4 w-4 items-center justify-center rounded-full border text-[0.55rem] transition-colors",
+          "inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs transition-colors",
           isCurrent
             ? "border-foreground bg-foreground text-background"
             : isCompleted
@@ -47,7 +47,7 @@ export function TourStepNavigation({
   }, [steps, currentStepIndex, completedStepIds])
 
   return (
-    <nav className="flex items-center justify-center gap-3 text-[0.65rem]">
+    <nav className="flex items-center justify-center gap-3 text-sm">
       {hasPrevious && previousStep ? (
         <Link
           href={`/tour/${lessonSlug}?step=${previousStep.order_index}`}

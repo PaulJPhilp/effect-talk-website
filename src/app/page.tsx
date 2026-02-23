@@ -12,29 +12,31 @@ export const metadata = buildMetadata({
 export default function HomePage() {
   return (
     <div className="flex flex-col w-full">
-      {/* Hero — full viewport width with padding */}
-      <section className="w-full px-4 md:px-6 lg:px-8 py-16 md:py-24 flex flex-col items-center text-center">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-3xl">
-          Master Effect.ts with
-          <span className="text-primary"> production-ready patterns</span>
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-          Browse 300+ curated patterns and rules. Use the CLI. Connect your AI
-          assistant. Get expert consulting.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3 justify-center">
-          <Button size="lg" asChild>
-            <Link href="/patterns">
-              Browse Patterns
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/tour">
-              Start Tour
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+      {/* Hero — full viewport width with padding, content centered */}
+      <section className="w-full px-4 md:px-6 lg:px-8 py-16 md:py-24 flex flex-col items-center justify-center text-center">
+        <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-center">
+            Master Effect.ts with
+            <span className="text-primary"> production-ready patterns</span>
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl text-center">
+            Browse 300+ curated patterns and rules. Use the CLI. Connect your AI
+            assistant. Get expert consulting.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3 justify-center">
+            <Button size="lg" asChild>
+              <Link href="/patterns">
+                Browse Patterns
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/tour">
+                Start Tour
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
