@@ -42,15 +42,22 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
     : user.email[0].toUpperCase()
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+        <Link href="/auth/sign-out">
+          <LogOut className="mr-1.5 h-4 w-4" />
+          Sign out
+        </Link>
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
@@ -86,5 +93,6 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   )
 }
