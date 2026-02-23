@@ -1,6 +1,6 @@
 # Deployment checklist (beta / production)
 
-Use this checklist before deploying to staging or production (e.g. Vercel + Neon).
+Use this checklist before deploying to staging or production (e.g. Vercel + Neon). For an overview of all three environments (dev, staging, production), see **[environments.md](environments.md)**.
 
 **CLI deploy:** Build runs locally. Run `bun run env:check` to ensure `.env.local` has real values (see docs/env.md). Then run `vercel` or `vercel --prod`.
 
@@ -45,7 +45,7 @@ Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all requir
 
 ## Staging environment setup
 
-Follow these steps to configure a fully isolated staging environment for Vercel Preview deployments.
+Staging uses the stable URL **https://staging-effecttalk.vercel.app** and is deployed with `bun run deploy:staging`. Full details: [environments.md](environments.md#staging).
 
 ### 1. Database (Neon branch)
 
@@ -54,17 +54,13 @@ Follow these steps to configure a fully isolated staging environment for Vercel 
 3. Copy the connection string for the new branch.
 4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` scoped to **Preview** with the branch connection string.
 
-### 2. WorkOS (staging environment)
+### 2. WorkOS (Production environment)
 
-1. In [WorkOS Dashboard](https://dashboard.workos.com) → Environments, create or select a "Staging" environment.
-2. Add a redirect URI matching Vercel preview URLs: `https://*-effect-talk-website.vercel.app/auth/callback`.
-3. Copy the Staging environment's **API Key** and **Client ID**.
-4. In Vercel Preview env vars, set:
-   - `WORKOS_API_KEY` — staging API key
-   - `WORKOS_CLIENT_ID` — staging client ID
-   - `WORKOS_REDIRECT_URI` — the redirect URI from step 2
-   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` — same value
-   - `WORKOS_COOKIE_PASSWORD` — a separate 32+ char secret (`openssl rand -base64 24`)
+Staging uses the same WorkOS **Production** client as effecttalk.dev. In [WorkOS Dashboard](https://dashboard.workos.com) → **Production** → Redirects, add:
+
+- `https://staging-effecttalk.vercel.app/auth/callback`
+
+In Vercel Preview env vars, set `APP_BASE_URL` and `WORKOS_REDIRECT_URI` to that base/callback URL; see [environments.md](environments.md#staging). `NEXT_PUBLIC_WORKOS_REDIRECT_URI` is set at build time by the deploy script.
 
 ### 3. PostHog (staging project)
 
