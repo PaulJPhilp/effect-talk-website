@@ -18,7 +18,7 @@ interface AvatarMenuProps {
 export function AvatarMenu({ user }: AvatarMenuProps) {
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <>
         <Button variant="ghost" size="sm" asChild>
           <Link href="/auth/sign-in">
             <LogIn className="mr-1.5 h-4 w-4" />
@@ -28,7 +28,7 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
         <Button size="sm" asChild>
           <Link href="/auth/sign-in">Sign up</Link>
         </Button>
-      </div>
+      </>
     )
   }
 
