@@ -4,7 +4,18 @@ import { Effect } from "effect"
 import { upsertUser } from "@/services/Db/api"
 import { setSessionCookie } from "@/services/Auth"
 
-const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000"
+const isVercelPreview = process.env.VERCEL_ENV === "preview"
+const vercelUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : undefined
+
+/**
+ * On preview deployments use the Vercel-provided URL so the user stays on
+ * the preview domain after sign-in. On production use APP_BASE_URL.
+ */
+const appBaseUrl = isVercelPreview && vercelUrl
+  ? vercelUrl
+  : (process.env.APP_BASE_URL ?? "http://localhost:3000")
 
 function safeErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message

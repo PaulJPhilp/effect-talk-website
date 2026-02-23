@@ -4,12 +4,23 @@ import type { NextFetchEvent, NextRequest } from "next/server"
 
 const AUTH_CALLBACK_PATH = "/auth/callback"
 
+const isVercelPreview = process.env.VERCEL_ENV === "preview"
+
 /**
- * Build redirect URI for WorkOS. Prefer env-defined base so production/staging
- * always send the exact URL that is allowed in WorkOS (request host can be
- * wrong behind proxies). Fall back to request host for local dev.
+ * Build redirect URI for WorkOS.
+ *
+ * On Vercel preview deployments we always use the request origin so the user
+ * stays on the preview URL after sign-in (requires the preview domain pattern
+ * to be registered in the WorkOS Dashboard redirect allowlist).
+ *
+ * On production we prefer the env-defined APP_BASE_URL so the canonical domain
+ * is always used regardless of proxy headers.
  */
 function getRedirectUri(request: NextRequest): string {
+  if (isVercelPreview) {
+    return `${request.nextUrl.origin}${AUTH_CALLBACK_PATH}`
+  }
+
   const base =
     process.env.APP_BASE_URL ??
     process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ??
@@ -20,8 +31,7 @@ function getRedirectUri(request: NextRequest): string {
     return url.includes(AUTH_CALLBACK_PATH) ? url : `${url}${AUTH_CALLBACK_PATH}`
   }
 
-  const origin = request.nextUrl.origin
-  return `${origin}${AUTH_CALLBACK_PATH}`
+  return `${request.nextUrl.origin}${AUTH_CALLBACK_PATH}`
 }
 
 /**

@@ -26,8 +26,8 @@
     "db:apply-feedback": "bun run scripts/apply-feedback-migration.ts",
     "db:seed-migrations-then-migrate": "bun run scripts/seed-drizzle-migrations-and-migrate-feedback.ts",
     "env:check": "bun run scripts/check-env-for-deploy.ts",
-    "deploy:staging": "rm -rf .next && vercel",
-    "deploy:prod": "rm -rf .next && vercel --prod",
+    "deploy:staging": "rm -rf .next .vercel/output && vercel --force",
+    "deploy:prod": "rm -rf .next .vercel/output && vercel --prod --force",
     "perf:tour": "bun run scripts/tour-performance-baseline.ts",
     "test:policy": "bun run scripts/check-test-policy.ts",
     "test:ci": "vitest run --config vitest.config.mts --coverage && bun run scripts/check-test-policy.ts"
