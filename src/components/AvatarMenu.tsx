@@ -15,12 +15,10 @@ interface AvatarMenuProps {
   readonly user: DbUser | null
 }
 
-const authSlotClass = "flex items-center sm:min-w-[12rem]"
-
 export function AvatarMenu({ user }: AvatarMenuProps) {
   if (!user) {
     return (
-      <div className={`${authSlotClass} gap-2`}>
+      <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/auth/sign-in">
             <LogIn className="mr-1.5 h-4 w-4" />
@@ -44,10 +42,9 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
     : user.email[0].toUpperCase()
 
   return (
-    <div className={`${authSlotClass} justify-end`}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
             <AvatarFallback>{initials}</AvatarFallback>
@@ -88,7 +85,6 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    </DropdownMenu>
   )
 }
