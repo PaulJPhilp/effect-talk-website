@@ -1,4 +1,4 @@
-<!-- AI agents: see also .ai/shared/conventions.md -->
+<!-- AI agents: see also docs/Rules.md -->
 # Testing Strategy
 
 Comprehensive testing process that avoids mocks, leveraging our tech stack (TypeScript, Effect, Next.js, Vercel AI SDK) with real dependencies and state verification.
