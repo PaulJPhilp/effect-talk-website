@@ -34,7 +34,7 @@ function getDb(): DbInstance {
 }
 
 export const db = new Proxy({} as DbInstance, {
-  get(_, prop) {
-    return (getDb() as unknown as Record<string, unknown>)[prop as string]
+  get(_, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver)
   },
 })

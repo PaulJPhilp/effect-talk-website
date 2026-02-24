@@ -20,7 +20,7 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
 
 import { Db, DbNoOp } from "@/services/Db/service"
 import { Auth, AuthNoOp } from "@/services/Auth/service"
-import { ApiKeys, ApiKeysNoOp } from "@/services/ApiKeys/service"
+import { ApiKeys } from "@/services/ApiKeys/service"
 import { Analytics, AnalyticsNoOp } from "@/services/Analytics/service"
 import { Email, EmailNoOp } from "@/services/Email/service"
 import type { DbUser, DbApiKey } from "@/services/Db/types"
@@ -28,9 +28,6 @@ import type { WaitlistSignup, ConsultingInquiry } from "@/services/Db/types"
 import { verifyApiKey, type ApiKeysService } from "@/services/ApiKeys/api"
 import { hashToken } from "@/services/ApiKeys/helpers"
 import type { CreatedApiKey } from "@/services/ApiKeys/types"
-
-/** Compose all NoOp layers for full cross-service tests. */
-const AllNoOp = Layer.mergeAll(DbNoOp, AuthNoOp, ApiKeysNoOp, AnalyticsNoOp, EmailNoOp)
 
 describe("E2E Service Flows", () => {
   beforeEach(() => {

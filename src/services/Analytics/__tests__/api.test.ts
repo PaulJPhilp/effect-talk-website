@@ -7,9 +7,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { Analytics, AnalyticsNoOp } from "@/services/Analytics/service"
-import { trackEvent } from "@/services/Analytics/api"
 
 describe("Analytics api", () => {
   it("trackEvent succeeds for waitlist event", async () => {

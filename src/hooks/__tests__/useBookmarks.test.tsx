@@ -35,7 +35,7 @@ function installFakeFetch() {
   const captured: CapturedRequest[] = []
   const originalFetch = globalThis.fetch
   const routes = new Map<string, () => Response>()
-  let defaultResponse = () =>
+  const defaultResponse = () =>
     new Response(JSON.stringify({ ok: true }), { status: 200 })
   let shouldReject = false
 

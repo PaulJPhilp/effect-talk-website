@@ -37,6 +37,7 @@ interface PatternsVirtualListProps {
 
 function PatternsVirtualList({ patterns, bookmarkedIds, onToggleBookmark }: PatternsVirtualListProps) {
   const parentRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compatible; false positive
   const virtualizer = useVirtualizer({
     count: patterns.length,
     getScrollElement: () => parentRef.current,
