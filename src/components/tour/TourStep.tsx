@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useSyncExternalStore } from "react"
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
@@ -27,6 +27,30 @@ interface TourStepProps {
   readonly currentStepIndex: number
   readonly completedStepIds: ReadonlySet<string>
   readonly onStepCompleted: (stepId: string) => void
+}
+
+function renderTextWithInlineCode(text: string) {
+  const normalizedText = text.replace(/\\`/g, "`")
+  const parts = normalizedText.split(/(`[^`]+`)/g)
+  let cursor = 0
+
+  return parts.map((part) => {
+    const partStart = cursor
+    cursor += part.length
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={`code-${partStart}-${part.slice(1, 12)}`}
+          className="rounded bg-muted px-1 py-0.5 font-mono text-[0.95em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return <Fragment key={`text-${partStart}`}>{part}</Fragment>
+  })
 }
 
 export function TourStep({
@@ -64,7 +88,7 @@ export function TourStep({
 
         <div className="text-xl leading-relaxed space-y-3">
           {instructionParagraphs.map((paragraph) => (
-            <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+            <p key={paragraph.slice(0, 40)}>{renderTextWithInlineCode(paragraph)}</p>
           ))}
         </div>
 
@@ -73,7 +97,7 @@ export function TourStep({
           <div className="mt-5">
             <ul className="text-lg text-muted-foreground list-disc pl-5 space-y-1">
               {step.hints.map((hint) => (
-                <li key={hint}>{hint}</li>
+                <li key={hint}>{renderTextWithInlineCode(hint)}</li>
               ))}
             </ul>
           </div>
