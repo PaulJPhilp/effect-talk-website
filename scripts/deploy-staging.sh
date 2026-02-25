@@ -29,4 +29,7 @@ fi
 echo "Aliasing $PREVIEW_URL -> $STAGING_ALIAS..."
 vercel alias "$PREVIEW_URL" "$STAGING_ALIAS"
 
+echo "Running auth redirect smoke test..."
+bun run smoke:auth:staging
+
 echo "Done. Staging: https://$STAGING_ALIAS"

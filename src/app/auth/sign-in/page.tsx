@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import { getSignInUrl } from "@workos-inc/authkit-nextjs"
 import { getCurrentUser, isWorkOSConfigured } from "@/services/Auth"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,30 @@ interface SignInPageProps {
   searchParams: Promise<{ error?: string; details?: string }>
 }
 
+async function getRedirectUriForRequest(): Promise<string> {
+  const requestHeaders = await headers()
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https"
+
+  if (host) {
+    return `${protocol}://${host}/auth/callback`
+  }
+
+  const baseUrl = process.env.APP_BASE_URL
+  const isLocalDev = process.env.VERCEL_ENV === undefined || process.env.VERCEL_ENV === "development"
+
+  if (!baseUrl && !isLocalDev) {
+    throw new Error("APP_BASE_URL is required in deployed environments.")
+  }
+
+  const resolvedBaseUrl = baseUrl ?? "http://localhost:3000"
+  if (!isLocalDev && resolvedBaseUrl.includes("localhost")) {
+    throw new Error(`Invalid APP_BASE_URL for deployed environment: ${resolvedBaseUrl}`)
+  }
+
+  return `${resolvedBaseUrl.replace(/\/$/, "")}/auth/callback`
+}
+
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   // If already logged in, redirect to settings
   const user = await getCurrentUser()
@@ -28,7 +53,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   const params = await searchParams
   const workOSConfigured = isWorkOSConfigured()
-  const authUrl = workOSConfigured ? await getSignInUrl() : "#"
+  const redirectUri = await getRedirectUriForRequest()
+  const authUrl = workOSConfigured
+    ? await getSignInUrl({ redirectUri })
+    : "#"
 
   return (
     <div className="container px-4 md:px-6 py-20 flex justify-center">
@@ -52,7 +80,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                     )}
                     <span className="text-xs block mt-1">
                       Ensure your Redirect URI is added in the WorkOS Dashboard (Redirects) and matches{" "}
-                      <code className="break-all">{process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? process.env.WORKOS_REDIRECT_URI ?? "NEXT_PUBLIC_WORKOS_REDIRECT_URI"}</code> exactly.
+                      <code className="break-all">{redirectUri}</code> exactly.
                     </span>
                   </>
                 ) : params.error === "auth_failed" ? (
