@@ -1,0 +1,156 @@
+---
+title: "Announcing the EffectPatterns CLI"
+date: 2026-02-26
+excerpt: "The EffectPatterns CLI is now live. Install `ep`, run `ep login`, then search patterns and install AI rules from your terminal."
+---
+
+The EffectPatterns CLI is now live.
+
+If you use Effect in real projects, you should not have to stop what you are doing, open a browser, and hunt for examples every time you need a pattern. The CLI brings the pattern library directly into your terminal so you can search, inspect, and apply patterns where you already work.
+
+## What ships today
+
+The CLI package is published as `@effect-patterns/ep-cli` and exposes a focused command surface:
+
+- `search`
+- `list`
+- `show`
+- `install add`
+- `install list`
+- `skills list`
+- `skills preview`
+- `skills validate`
+- `skills stats`
+- `login`
+
+This is the stable end-user surface for discovering patterns and installing AI tool rules.
+
+## Install in under a minute
+
+```bash
+# Bun (recommended)
+bun add -g @effect-patterns/ep-cli
+
+# npm
+npm install -g @effect-patterns/ep-cli
+
+# verify
+ep --version
+```
+
+Once installed, `ep` is available globally in your shell.
+
+## Core command workflow
+
+```bash
+# 1) list patterns
+ep list
+
+# 2) search by keyword
+ep search "retry"
+
+# 3) inspect one pattern in detail
+ep show retry-with-backoff
+
+# 4) see install targets
+ep install list
+```
+
+This is the fastest path from "I need an Effect pattern" to "I have a concrete example in front of me."
+
+## Getting started
+
+Managing API keys by hand is a chore. `ep login` automates it.
+
+Run this first:
+
+```bash
+ep login
+```
+
+What happens:
+
+1. The CLI opens a browser window for authentication.
+2. It starts a local callback server.
+3. After login, the callback captures your key.
+4. The CLI writes config JSON to `EP_CONFIG_FILE` if set, otherwise `$XDG_CONFIG_HOME/ep-cli/config.json` (fallback `~/.config/ep-cli/config.json`).
+
+If your API is protected, pattern fetching and AI rule installation require authentication. `ep login` is the direct setup path.
+
+## Pattern discovery from the terminal
+
+The discovery flow is intentionally simple:
+
+1. `ep search "<query>"` to narrow by concept.
+2. `ep list` with filters when you want breadth.
+3. `ep show <pattern-id>` when you want full detail.
+
+Examples:
+
+```bash
+ep search "error handling"
+ep list --difficulty beginner --category error-handling
+ep show handle-errors-with-catch
+```
+
+Use this when you are coding and want to stay in-context, not tab-switching between docs pages.
+
+## Install rules into AI coding tools
+
+The CLI also installs EffectPatterns rule bundles for supported tools.
+
+```bash
+# install for Cursor
+ep install add --tool cursor
+
+# install for VS Code with filters
+ep install add --tool vscode --skill-level intermediate --use-case error-handling
+
+# interactive install for Windsurf
+ep install add --tool windsurf -i
+
+# list available install targets
+ep install list
+```
+
+Supported tool targets include `agent` (alias: `agents`), `claude`, `cursor`, `vscode`, and `windsurf`.
+
+## Skills commands for local validation and inspection
+
+If you work with local skills, the CLI includes dedicated commands:
+
+```bash
+ep skills list
+ep skills preview error-management
+ep skills validate
+ep skills stats
+```
+
+This keeps your skill workflows and Effect pattern workflows in one place.
+
+## Why this matters in practice
+
+For most teams, Effect adoption slows down at the same point: people know the primitives, but they need concrete production patterns quickly. The CLI reduces that friction:
+
+- You can discover patterns while coding, without leaving the terminal.
+- You can inspect exact pattern IDs and examples before applying them.
+- You can distribute the same rule sets across editors and agent tools.
+
+It is designed for the moment where you are in a task, blocked on implementation detail, and need an answer now.
+
+## Requirements
+
+- Bun 1.0+ (recommended) or Node.js with npm
+- Internet access to the Effect Patterns API
+
+## Read the full docs
+
+- CLI docs page: [/cli](/cli)
+- Pattern browser: [/patterns](/patterns)
+- API key management: [/settings/api-keys](/settings/api-keys)
+
+## What is next
+
+This release focuses on stable core workflows: discovery, install, and skills support. Next iterations will continue improving command ergonomics and the surrounding toolchain integrations while keeping the command surface explicit and script-friendly.
+
+If you hit edge cases or want new workflows, open an issue on [GitHub](https://github.com/PaulJPhilp/EffectPatterns).
