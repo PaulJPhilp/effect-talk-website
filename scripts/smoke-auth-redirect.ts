@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+export {}
+
 /**
  * Smoke test for sign-in redirect URI.
  *
