@@ -4,7 +4,22 @@ import { Effect } from "effect"
 import { upsertUser } from "@/services/Db/api"
 import { setSessionCookie } from "@/services/Auth"
 
-const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000"
+function getAppBaseUrl(): string {
+  const appBaseUrl = process.env.APP_BASE_URL
+  const isLocalDev = process.env.VERCEL_ENV === undefined || process.env.VERCEL_ENV === "development"
+
+  if (appBaseUrl) {
+    return appBaseUrl
+  }
+
+  if (isLocalDev) {
+    return "http://localhost:3000"
+  }
+
+  throw new Error("APP_BASE_URL is required in deployed environments.")
+}
+
+const appBaseUrl = getAppBaseUrl()
 
 function safeErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message

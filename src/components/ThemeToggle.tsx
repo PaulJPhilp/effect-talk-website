@@ -19,10 +19,12 @@ export function ThemeToggle() {
     () => false
   )
 
+  const iconClass = "h-4 w-4 text-foreground"
+
   if (!isMounted) {
     return (
-      <Button variant="outline" size="sm" className="h-9 w-9 p-0" disabled>
-        <Sun className="h-4 w-4" />
+      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+        <Sun className={iconClass} />
         <span className="sr-only">Theme</span>
       </Button>
     )
@@ -30,17 +32,17 @@ export function ThemeToggle() {
 
   const currentIcon =
     theme === "light" ? (
-      <Sun className="h-4 w-4" />
+      <Sun className={iconClass} />
     ) : theme === "dark" ? (
-      <Moon className="h-4 w-4" />
+      <Moon className={iconClass} />
     ) : (
-      <Monitor className="h-4 w-4" />
+      <Monitor className={iconClass} />
     )
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 w-9 p-0">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
           {currentIcon}
           <span className="sr-only">Toggle theme</span>
         </Button>

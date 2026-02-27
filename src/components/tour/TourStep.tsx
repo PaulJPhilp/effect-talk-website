@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useSyncExternalStore } from "react"
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
@@ -27,6 +27,30 @@ interface TourStepProps {
   readonly currentStepIndex: number
   readonly completedStepIds: ReadonlySet<string>
   readonly onStepCompleted: (stepId: string) => void
+}
+
+function renderTextWithInlineCode(text: string) {
+  const normalizedText = text.replace(/\\`/g, "`")
+  const parts = normalizedText.split(/(`[^`]+`)/g)
+  let cursor = 0
+
+  return parts.map((part) => {
+    const partStart = cursor
+    cursor += part.length
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={`code-${partStart}-${part.slice(1, 12)}`}
+          className="rounded bg-muted px-1 py-0.5 font-mono text-[0.95em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return <Fragment key={`text-${partStart}`}>{part}</Fragment>
+  })
 }
 
 export function TourStep({
@@ -60,20 +84,20 @@ export function TourStep({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
       {/* Left: Explanation */}
       <div className="p-5 md:p-8 md:border-r">
-        <h2 className="text-xl font-bold tracking-tight mb-4">{step.title}</h2>
+        <h2 className="text-2xl font-bold tracking-tight mb-4">{step.title}</h2>
 
-        <div className="text-[0.65rem] leading-relaxed space-y-2">
+        <div className="text-xl leading-relaxed space-y-3">
           {instructionParagraphs.map((paragraph) => (
-            <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+            <p key={paragraph.slice(0, 40)}>{renderTextWithInlineCode(paragraph)}</p>
           ))}
         </div>
 
         {/* Hints */}
         {step.hints && step.hints.length > 0 && (
-          <div className="mt-4">
-            <ul className="text-[0.65rem] text-muted-foreground list-disc pl-5 space-y-0.5">
+          <div className="mt-5">
+            <ul className="text-lg text-muted-foreground list-disc pl-5 space-y-1">
               {step.hints.map((hint) => (
-                <li key={hint}>{hint}</li>
+                <li key={hint}>{renderTextWithInlineCode(hint)}</li>
               ))}
             </ul>
           </div>
@@ -84,14 +108,14 @@ export function TourStep({
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             <Link
               href={`/patterns/${step.pattern_id}?from=${encodeURIComponent(lessonSlug)}&step=${step.order_index}`}
-              className="flex items-center gap-1.5 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <BookOpen className="h-3.5 w-3.5" />
+              <BookOpen className="h-4 w-4" />
               View related pattern
             </Link>
             {step.pattern_new && (
               <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.6rem] font-medium bg-success/10 border border-success/50 text-success"
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/10 border border-success/50 text-success"
                 aria-label="New pattern"
               >
                 New
@@ -131,11 +155,11 @@ export function TourStep({
                   }}
                   className="flex flex-col flex-1 min-h-0"
                 >
-                  <TabsList variant="line" className="h-8 shrink-0 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
-                    <TabsTrigger value="anti-pattern" className="text-[0.65rem] px-3 py-1.5 after:hidden data-[state=active]:font-semibold">
+                  <TabsList variant="line" className="h-9 shrink-0 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
+                    <TabsTrigger value="anti-pattern" className="text-sm px-3 py-2 after:hidden data-[state=active]:font-semibold">
                       Anti-pattern
                     </TabsTrigger>
-                    <TabsTrigger value="solution" className="text-[0.65rem] px-3 py-1.5 after:hidden data-[state=active]:font-semibold">
+                    <TabsTrigger value="solution" className="text-sm px-3 py-2 after:hidden data-[state=active]:font-semibold">
                       Solution
                     </TabsTrigger>
                   </TabsList>
@@ -153,7 +177,7 @@ export function TourStep({
                       )}
                       {step.feedback_on_complete && (
                         <div className="px-3 py-2 border-t bg-muted/30">
-                          <p className="text-[0.65rem] text-muted-foreground italic">
+                          <p className="text-sm text-muted-foreground italic">
                             {step.feedback_on_complete}
                           </p>
                         </div>

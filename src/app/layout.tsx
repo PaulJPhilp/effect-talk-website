@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+/** Force dynamic so layout can use Auth (cookies) without breaking static generation of /_not-found. */
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: {
     default: "EffectTalk",
@@ -39,7 +42,7 @@ export default function RootLayout({
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 w-full min-w-0">{children}</main>
             <Footer />
             <Toaster />
           </ThemeProvider>

@@ -11,6 +11,7 @@ import { neon } from "@neondatabase/serverless"
 import * as schema from "@/db/schema"
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http"
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres"
+import { getAppEnv } from "@/lib/env"
 
 type DbInstance = ReturnType<typeof drizzleNeon> | ReturnType<typeof drizzlePg>
 
@@ -24,7 +25,7 @@ function getDb(): DbInstance {
       "DATABASE_URL is not set. Set it in Vercel (Build + Runtime) or in .env.local. See docs/deployment.md."
     )
   }
-  const appEnv = (process.env.APP_ENV as "local" | "staging" | "production" | undefined) ?? "local"
+  const appEnv = getAppEnv()
   const useNeon = appEnv === "production" || appEnv === "staging"
   _db = useNeon
     ? drizzleNeon(neon(databaseUrl), { schema })
@@ -33,7 +34,7 @@ function getDb(): DbInstance {
 }
 
 export const db = new Proxy({} as DbInstance, {
-  get(_, prop) {
-    return (getDb() as unknown as Record<string, unknown>)[prop as string]
+  get(_, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver)
   },
 })

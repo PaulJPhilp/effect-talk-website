@@ -1,7 +1,8 @@
 "use client"
 
-import { memo, useEffect, useMemo, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { Bookmark, BookmarkCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { getCachedPatternSections } from "@/lib/extractPatternSections"
@@ -12,9 +13,11 @@ import type { Pattern } from "@/services/BackendApi"
 
 interface PatternCardProps {
   readonly pattern: Pattern
+  readonly isBookmarked?: boolean
+  readonly onToggleBookmark?: (patternId: string) => void
 }
 
-function PatternCardInner({ pattern }: PatternCardProps) {
+function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCardProps) {
   const sections = useMemo(
     () =>
       measureSync("cardExtractSectionsMs", () => getCachedPatternSections(pattern.id, pattern.content)),
@@ -33,13 +36,36 @@ function PatternCardInner({ pattern }: PatternCardProps) {
 
   const hasCodePreviews = patternCode || antiPatternCode || fallbackCode
 
+  const handleBookmarkClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onToggleBookmark?.(pattern.id)
+    },
+    [pattern.id, onToggleBookmark],
+  )
+
   return (
     <Link href={`/patterns/${pattern.id}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl">
       <Card className="hover:bg-muted/50 hover:shadow-md transition-all duration-200 group h-full gap-4 py-4">
         {/* Header: category labels on top, then title + description */}
-        <CardHeader className="pb-1 pt-1">
+        <CardHeader className="pb-1 pt-1 relative">
+          {onToggleBookmark && (
+            <button
+              type="button"
+              onClick={handleBookmarkClick}
+              className="absolute top-1 right-2 p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
+              aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+            >
+              {isBookmarked ? (
+                <BookmarkCheck className="h-4 w-4 text-primary" />
+              ) : (
+                <Bookmark className="h-4 w-4" />
+              )}
+            </button>
+          )}
           {(pattern.new || pattern.difficulty || pattern.category) && (
-            <div className="flex flex-wrap gap-1 mb-1">
+            <div className="flex flex-wrap gap-1 mb-1 pr-6">
               {pattern.new && (
                 <Badge variant="outline" className="text-xs bg-success/10 border-success/50 text-success">
                   New

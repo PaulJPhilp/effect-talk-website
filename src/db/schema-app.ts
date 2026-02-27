@@ -211,6 +211,20 @@ export const tourProgress = pgTable("tour_progress", {
 ])
 
 // ---------------------------------------------------------------------------
+// Pattern Bookmarks (user-scoped)
+// ---------------------------------------------------------------------------
+
+export const patternBookmarks = pgTable("pattern_bookmarks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  patternId: uuid("pattern_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("idx_bookmarks_user").on(table.userId),
+  uniqueIndex("idx_bookmarks_user_pattern").on(table.userId, table.patternId),
+])
+
+// ---------------------------------------------------------------------------
 // Content Deployments — audit trail for blue-green swaps
 // ---------------------------------------------------------------------------
 

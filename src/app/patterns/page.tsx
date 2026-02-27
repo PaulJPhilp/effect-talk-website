@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import { PatternsBrowser } from "@/components/PatternsBrowser"
 import { fetchPatterns } from "@/services/BackendApi"
+import { getCurrentUser } from "@/services/Auth"
 import { buildMetadata } from "@/lib/seo"
 
 export const metadata = buildMetadata({
@@ -16,16 +17,23 @@ export const revalidate = 300
 const DB_DOCS_HINT =
   "Check that DATABASE_URL points to the shared database and that the database has the effect_patterns table. See "
 const DB_CHECK_CMD = "bun run db:check"
+const DEPLOY_HINT =
+  "On Vercel (or other host), set DATABASE_URL in Project Settings → Environment Variables for the environment (Production/Preview) you're viewing."
+const NEON_HINT =
+  "If using Neon: use the pooler (serverless) connection string, not the direct connection. Redeploy after changing env vars."
 
 export default async function PatternsPage() {
-  const result = await Effect.runPromise(
-    fetchPatterns().pipe(
-      Effect.match({
-        onFailure: (e) => ({ patterns: [] as const, loadError: e.message }),
-        onSuccess: (patterns) => ({ patterns, loadError: undefined as string | undefined }),
-      })
-    )
-  )
+  const [result, currentUser] = await Promise.all([
+    Effect.runPromise(
+      fetchPatterns().pipe(
+        Effect.match({
+          onFailure: (e) => ({ patterns: [] as const, loadError: e.message }),
+          onSuccess: (patterns) => ({ patterns, loadError: undefined as string | undefined }),
+        })
+      )
+    ),
+    getCurrentUser(),
+  ])
 
   const { patterns, loadError } = result
 
@@ -46,11 +54,16 @@ export default async function PatternsPage() {
             <code className="rounded bg-muted px-1">docs/database.md</code>. You can run{" "}
             <code className="rounded bg-muted px-1">{DB_CHECK_CMD}</code> to verify.
           </p>
-          <p className="mt-2 text-muted-foreground">Error: {loadError}</p>
+          <p className="mt-1 text-muted-foreground">{DEPLOY_HINT}</p>
+          <p className="mt-1 text-muted-foreground">{NEON_HINT}</p>
+          <p className="mt-2 text-muted-foreground font-mono text-xs break-all">
+            Error: {loadError}
+          </p>
         </div>
       ) : (
         <PatternsBrowser
           patterns={patterns}
+          isLoggedIn={Boolean(currentUser)}
           emptyStateHint={
             patterns.length === 0 ? (
               <p className="text-muted-foreground">

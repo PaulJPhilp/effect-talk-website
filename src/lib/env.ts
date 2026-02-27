@@ -3,6 +3,20 @@
  * Client-safe vars must use NEXT_PUBLIC_ prefix.
  */
 
+export type AppEnv = "local" | "staging" | "production"
+
+/** Resolve the current application environment from APP_ENV or VERCEL_ENV. */
+export function getAppEnv(): AppEnv {
+  const explicit = process.env.APP_ENV
+  if (explicit === "staging" || explicit === "production") return explicit
+  if (explicit === "local") return "local"
+  // Derive from Vercel's VERCEL_ENV when APP_ENV isn't set
+  const vercelEnv = process.env.VERCEL_ENV
+  if (vercelEnv === "production") return "production"
+  if (vercelEnv === "preview") return "staging"
+  return "local"
+}
+
 function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback
 }

@@ -5,3 +5,4 @@
 export * from "@/services/PostHog/api"
 export * from "@/services/PostHog/helpers"
 export * from "@/services/PostHog/types"
+export * from "@/services/PostHog/service"

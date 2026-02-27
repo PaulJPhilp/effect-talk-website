@@ -41,7 +41,7 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
     <div
       className="h-full w-full min-h-[500px] flex flex-col rounded border border-border bg-background shadow-sm tour-code-runner"
     >
-      <div className="px-1.5 py-0.5 text-[0.65rem] font-medium border-b bg-muted/50">
+      <div className="px-2 py-1.5 text-sm font-medium border-b bg-muted/50">
         Code
       </div>
       <SandpackProvider
@@ -60,10 +60,10 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
             active: true,
           },
         }}
-        // Light theme with font ~25% smaller than default (13px → 10px).
+        // Readable code font size (14px) with comfortable line height.
         theme={{
           ...githubLight,
-          font: { ...githubLight.font, size: "10px", lineHeight: "16px" },
+          font: { ...githubLight.font, size: "14px", lineHeight: "22px" },
         }}
         options={{
           autorun: true,
@@ -89,7 +89,7 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
               showReadOnly={false}
             />
           </div>
-          <div className="px-1.5 py-0.5 text-[0.65rem] font-medium border-y bg-muted/50 dark:text-white">
+          <div className="px-2 py-1.5 text-sm font-medium border-y bg-muted/50 dark:text-white">
             Console
           </div>
           <div className="h-[140px] max-h-[140px] overflow-auto">

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { User, Settings, LogOut, LogIn } from "lucide-react"
+import { User, Settings, LogOut, LogIn, Bookmark } from "lucide-react"
 import type { DbUser } from "@/services/Db"
 
 interface AvatarMenuProps {
@@ -18,7 +18,7 @@ interface AvatarMenuProps {
 export function AvatarMenu({ user }: AvatarMenuProps) {
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <>
         <Button variant="ghost" size="sm" asChild>
           <Link href="/auth/sign-in">
             <LogIn className="mr-1.5 h-4 w-4" />
@@ -28,7 +28,7 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
         <Button size="sm" asChild>
           <Link href="/auth/sign-in">Sign up</Link>
         </Button>
-      </div>
+      </>
     )
   }
 
@@ -44,7 +44,7 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.avatar_url ?? undefined} alt={user.name ?? user.email} />
             <AvatarFallback>{initials}</AvatarFallback>
@@ -63,6 +63,12 @@ export function AvatarMenu({ user }: AvatarMenuProps) {
           <Link href="/settings">
             <User className="mr-2 h-4 w-4" />
             Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/patterns?bookmarked=1">
+            <Bookmark className="mr-2 h-4 w-4" />
+            My Bookmarks
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

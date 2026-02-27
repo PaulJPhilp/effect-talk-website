@@ -1,6 +1,6 @@
 # Deployment checklist (beta / production)
 
-Use this checklist before deploying to staging or production (e.g. Vercel + Neon).
+Use this checklist before deploying to staging or production (e.g. Vercel + Neon). For an overview of all three environments (dev, staging, production), see **[environments.md](environments.md)**.
 
 **CLI deploy:** Build runs locally. Run `bun run env:check` to ensure `.env.local` has real values (see docs/env.md). Then run `vercel` or `vercel --prod`.
 
@@ -43,7 +43,57 @@ Run it with `DATABASE_URL` pointing at the target DB (e.g. production Neon URL).
 
 Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all required tables, including `feedback`, are present.
 
+## Staging environment setup
+
+Staging uses the stable URL **https://staging-effecttalk.vercel.app** and is deployed with `bun run deploy:staging`. Full details: [environments.md](environments.md#staging).
+
+### 1. Database (Neon branch)
+
+1. In the [Neon Console](https://console.neon.tech), open your project.
+2. Create a new branch from the production branch (e.g. `staging`).
+3. Copy the connection string for the new branch.
+4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` scoped to **Preview** with the branch connection string.
+
+### 2. WorkOS (Production environment)
+
+Staging uses the same WorkOS **Production** client as effecttalk.dev. In [WorkOS Dashboard](https://dashboard.workos.com) → **Production** → Redirects, add:
+
+- `https://staging-effecttalk.vercel.app/auth/callback`
+
+In Vercel Preview env vars, set `APP_BASE_URL` and `WORKOS_REDIRECT_URI` to that base/callback URL; see [environments.md](environments.md#staging). `NEXT_PUBLIC_WORKOS_REDIRECT_URI` is set at build time by the deploy script.
+
+### 3. PostHog (staging project)
+
+1. Create a separate PostHog project for staging (or use an existing non-production project).
+2. In Vercel Preview env vars, set:
+   - `NEXT_PUBLIC_POSTHOG_KEY` — staging project API key
+   - `NEXT_PUBLIC_POSTHOG_HOST` — `https://us.i.posthog.com`
+
+### 4. Honeycomb (staging API key)
+
+1. In the [Honeycomb UI](https://ui.honeycomb.io), create a staging dataset (or use a separate environment).
+2. Generate an API key scoped to the staging dataset.
+3. In Vercel Preview env vars, set:
+   - `OTEL_EXPORTER_OTLP_HEADERS` — `x-honeycomb-team=<staging-api-key>`
+   - `OTEL_EXPORTER_OTLP_ENDPOINT` — `https://api.honeycomb.io`
+   - `OTEL_SERVICE_NAME` — `effect-talk-website`
+
+### 5. App environment
+
+Set `APP_ENV=staging` in Vercel Preview env vars. This is also derived automatically from `VERCEL_ENV=preview`, but an explicit value is recommended.
+
+### Verification
+
+After deploying a preview build, run:
+
+```bash
+curl https://<preview-url>/api/health-check | jq .
+```
+
+Expected: `environment: "staging"`, `database.connected: true`, and `configured: true` for each service that has been set up.
+
 ## Optional
 
-- **PostHog**: Set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` for analytics; omit for no-op.
+- **PostHog** (analytics): For PostHog to receive events, set `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` (e.g. `https://us.i.posthog.com`). Add them to the **Build** environment as well as Production/Preview — Next.js inlines `NEXT_PUBLIC_*` at build time, so if they are missing at build, the client and server treat PostHog as disabled and no events are sent. Omit for no-op.
+- **Honeycomb** (tracing): For traces to appear in Honeycomb, set in the **runtime** environment (e.g. Vercel Production/Preview): `OTEL_SERVICE_NAME` (e.g. `effect-talk-website`), `OTEL_EXPORTER_OTLP_ENDPOINT` (e.g. `https://api.honeycomb.io`), `OTEL_EXPORTER_OTLP_HEADERS` (e.g. `x-honeycomb-team=<your-api-key>`), and optionally `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. If these are unset or use the placeholder key from `.env.example`, no traces will appear in Honeycomb.
 - **BACKEND_API_BASE_URL**: Only needed if you use an external backend API; pattern/rule data comes from the database.

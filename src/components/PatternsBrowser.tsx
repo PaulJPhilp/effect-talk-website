@@ -19,6 +19,7 @@ import {
   recordPaintFromInput,
 } from "@/lib/pattern-browser-perf"
 import { computeBrowserFacets } from "@/lib/pattern-browser-facets"
+import { useBookmarks } from "@/hooks/useBookmarks"
 
 const VIRTUALIZE_THRESHOLD = 60
 /** Card height estimate + gap-3 (12px) for accurate scroll height */
@@ -30,10 +31,13 @@ type SortOrder = typeof SORT_BEGINNER_FIRST | typeof SORT_SENIOR_FIRST
 
 interface PatternsVirtualListProps {
   readonly patterns: readonly Pattern[]
+  readonly bookmarkedIds: ReadonlySet<string>
+  readonly onToggleBookmark: (patternId: string) => void
 }
 
-function PatternsVirtualList({ patterns }: PatternsVirtualListProps) {
+function PatternsVirtualList({ patterns, bookmarkedIds, onToggleBookmark }: PatternsVirtualListProps) {
   const parentRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compatible; false positive
   const virtualizer = useVirtualizer({
     count: patterns.length,
     getScrollElement: () => parentRef.current,
@@ -72,7 +76,11 @@ function PatternsVirtualList({ patterns }: PatternsVirtualListProps) {
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
             >
-              <PatternCard pattern={pattern} />
+              <PatternCard
+                pattern={pattern}
+                isBookmarked={bookmarkedIds.has(pattern.id)}
+                onToggleBookmark={onToggleBookmark}
+              />
             </div>
           )
         })}
@@ -85,6 +93,7 @@ interface PatternsBrowserProps {
   readonly patterns: readonly Pattern[]
   /** Optional hint when patterns.length === 0 (e.g. DATABASE_URL / docs link). */
   readonly emptyStateHint?: React.ReactNode
+  readonly isLoggedIn?: boolean
 }
 
 /**
@@ -92,9 +101,10 @@ interface PatternsBrowserProps {
  * All patterns are passed from server, then filtered client-side for instant UX.
  * Filter state is synced with URL search params for deep linking.
  */
-export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserProps) {
+export function PatternsBrowser({ patterns, emptyStateHint, isLoggedIn = false }: PatternsBrowserProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { bookmarkedIds, toggleBookmark } = useBookmarks(isLoggedIn)
 
   // Read filter state from URL params
   const query = searchParams.get("q")?.toLowerCase().trim() ?? ""
@@ -102,6 +112,7 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
   const activeDifficulty = searchParams.get("difficulty")?.toLowerCase() ?? null
   const activeTags = searchParams.getAll("tag")
   const activeNewOnly = searchParams.get("new") === "1"
+  const activeBookmarkedOnly = searchParams.get("bookmarked") === "1"
   const sortOrder: SortOrder =
     searchParams.get("sort") === SORT_SENIOR_FIRST ? SORT_SENIOR_FIRST : SORT_BEGINNER_FIRST
 
@@ -171,6 +182,16 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     )
   }, [facetData.filteredEntries])
 
+  // Bookmark filter — applied after facet computation so facet counts stay accurate
+  const bookmarkFilteredPatterns = useMemo(() => {
+    if (!activeBookmarkedOnly) return filteredPatterns
+    return filteredPatterns.filter((p) => bookmarkedIds.has(p.id))
+  }, [filteredPatterns, activeBookmarkedOnly, bookmarkedIds])
+
+  const bookmarkedCount = useMemo(() => {
+    return filteredPatterns.filter((p) => bookmarkedIds.has(p.id)).length
+  }, [filteredPatterns, bookmarkedIds])
+
   // Sort filtered patterns by difficulty (beginner → senior or senior → beginner)
   const difficultyOrderMap = useMemo(() => {
     const m = new Map<string, number>()
@@ -183,7 +204,7 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     return measureSync("sortMs", () => {
       const getOrder = (p: Pattern): number =>
         difficultyOrderMap.get(p.difficulty?.toLowerCase() ?? "") ?? -1
-      return [...filteredPatterns].sort((a, b) => {
+      return [...bookmarkFilteredPatterns].sort((a, b) => {
         const ia = getOrder(a)
         const ib = getOrder(b)
         if (ia === -1 && ib === -1) return 0
@@ -192,7 +213,7 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
         return sortOrder === SORT_SENIOR_FIRST ? ib - ia : ia - ib
       })
     })
-  }, [filteredPatterns, sortOrder, difficultyOrderMap])
+  }, [bookmarkFilteredPatterns, sortOrder, difficultyOrderMap])
 
   // Record paint-after-input for baseline (dev perf)
   useLayoutEffect(() => {
@@ -209,6 +230,7 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
     tag?: string | null | string[]
     new?: boolean | null
     sort?: SortOrder | null
+    bookmarked?: boolean | null
   }) => {
     const params = new URLSearchParams(searchParams.toString())
 
@@ -247,6 +269,14 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
       }
     }
 
+    if (updates.bookmarked !== undefined) {
+      if (updates.bookmarked) {
+        params.set("bookmarked", "1")
+      } else {
+        params.delete("bookmarked")
+      }
+    }
+
     if (updates.sort !== undefined) {
       if (updates.sort != null) {
         params.set("sort", updates.sort)
@@ -268,6 +298,10 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
 
   const handleNewFilterChange = (newOnly: boolean) => {
     updateSearchParams({ new: newOnly || null })
+  }
+
+  const handleBookmarkedFilterChange = (bookmarkedOnly: boolean) => {
+    updateSearchParams({ bookmarked: bookmarkedOnly || null })
   }
 
   const handleClearAll = () => {
@@ -328,11 +362,11 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
         {patterns.length > 0 && (
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
-              {filteredPatterns.length === patterns.length ? (
+              {bookmarkFilteredPatterns.length === patterns.length ? (
                 <>Showing all {patterns.length} patterns</>
               ) : (
                 <>
-                  Showing {filteredPatterns.length} of {patterns.length} patterns
+                  Showing {bookmarkFilteredPatterns.length} of {patterns.length} patterns
                 </>
               )}
             </p>
@@ -380,7 +414,45 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
           </div>
         )}
 
-        {/* Difficulty filter - below New */}
+        {/* Bookmarks filter - between New and Difficulty */}
+        {patterns.length > 0 && bookmarkedIds.size > 0 && (
+          <div className="mb-3">
+            <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              Bookmarks
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleBookmarkedFilterChange(false)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                  !activeBookmarkedOnly
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground"
+                )}
+              >
+                <span>All</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBookmarkedFilterChange(true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                  activeBookmarkedOnly
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground"
+                )}
+              >
+                <span>Bookmarked only</span>
+                <Badge variant="secondary" className="text-xs">
+                  {bookmarkedCount}
+                </Badge>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Difficulty filter - below Bookmarks */}
         {patterns.length > 0 && difficulties.length > 0 && (
           <div className="mb-4">
             <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
@@ -431,10 +503,10 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
           <div className="text-center py-12">
             {emptyStateHint ?? <p className="text-muted-foreground">No patterns available.</p>}
           </div>
-        ) : filteredPatterns.length === 0 ? (
+        ) : bookmarkFilteredPatterns.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No patterns found matching your filters.</p>
-            {(query || activeCategory || activeDifficulty || activeTags.length > 0 || activeNewOnly) && (
+            {(query || activeCategory || activeDifficulty || activeTags.length > 0 || activeNewOnly || activeBookmarkedOnly) && (
               <button
                 type="button"
                 onClick={handleClearAll}
@@ -447,11 +519,20 @@ export function PatternsBrowser({ patterns, emptyStateHint }: PatternsBrowserPro
         ) : sortedPatterns.length <= VIRTUALIZE_THRESHOLD ? (
           <div className="grid gap-3">
             {sortedPatterns.map((pattern) => (
-              <PatternCard key={pattern.id} pattern={pattern} />
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                isBookmarked={bookmarkedIds.has(pattern.id)}
+                onToggleBookmark={toggleBookmark}
+              />
             ))}
           </div>
         ) : (
-          <PatternsVirtualList patterns={sortedPatterns} />
+          <PatternsVirtualList
+            patterns={sortedPatterns}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={toggleBookmark}
+          />
         )}
       </div>
     </div>
