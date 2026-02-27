@@ -17,7 +17,7 @@ export const sitePages: readonly SitePage[] = [
   {
     title: "EffectPatterns CLI",
     href: "/cli",
-    description: "Install and use the EffectPatterns CLI to scaffold Effect.ts projects.",
+    description: "Install and use the EffectPatterns CLI to search, browse, and install Effect.ts patterns from your terminal.",
   },
   {
     title: "EffectPatterns MCP Server",

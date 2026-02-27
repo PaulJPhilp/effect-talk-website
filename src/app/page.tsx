@@ -55,20 +55,17 @@ export default function HomePage() {
             </Card>
           </Link>
 
-          <div className="relative h-full pointer-events-none">
-            <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              Coming soon
-            </span>
-            <Card className="h-full cursor-not-allowed opacity-60 grayscale">
+          <Link href="/cli">
+            <Card className="h-full hover:bg-muted/50 transition-colors">
               <CardHeader>
-                <Terminal className="h-8 w-8 mb-2 text-muted-foreground" />
-                <CardTitle className="text-muted-foreground">CLI Tool</CardTitle>
+                <Terminal className="h-8 w-8 mb-2 text-primary" />
+                <CardTitle>CLI Tool</CardTitle>
                 <CardDescription>
                   Install EffectPatterns locally. Search, browse, and apply patterns from your terminal.
                 </CardDescription>
               </CardHeader>
             </Card>
-          </div>
+          </Link>
 
           <div className="relative h-full pointer-events-none">
             <span className="absolute top-3 right-3 z-10 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
