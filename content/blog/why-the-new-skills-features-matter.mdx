@@ -1,0 +1,157 @@
+---
+title: "Why the New Skills Features Matter"
+date: 2026-02-26
+excerpt: "The EffectPatterns CLI now includes dedicated Skills commands for discovery, preview, validation, and stats. Here is what they do and why they matter for teams shipping agent workflows."
+---
+
+The EffectPatterns CLI includes a dedicated Skills command group (introduced in `v0.3.0`):
+
+- `ep skills list`
+- `ep skills preview <category>`
+- `ep skills validate`
+- `ep skills stats`
+
+At a glance, that looks like a simple convenience feature. In practice, it solves a real operational problem for teams using local skills with coding agents: quality drift, hidden breakage, and unclear coverage.
+
+This post explains what the new Skills features do and why they matter.
+
+## The problem: Skills are code assets, but often unmanaged
+
+Once a team starts using skills heavily, the number of skill files grows fast. People copy, tweak, and version them. Over time:
+
+- naming becomes inconsistent
+- required sections go missing
+- skill levels are incomplete
+- nobody has visibility into coverage by domain
+
+You end up with prompts that still run, but are harder to trust. That creates silent failure modes: the agent follows weak or partial instructions and output quality regresses.
+
+The new Skills commands treat skills like first-class assets, not loose markdown files.
+
+## `ep skills list`: discover what actually exists
+
+`ep skills list` gives you a concrete inventory of discovered skills. Human output shows category and skill levels; JSON output includes full metadata (including file path).
+
+```bash
+ep skills list
+ep skills list --json
+```
+
+Why it matters:
+
+- You get a shared source of truth across contributors.
+- New team members can see the actual catalog immediately.
+- `--json` output makes it scriptable for internal dashboards or checks.
+
+## `ep skills preview <category>`: inspect one skill end-to-end
+
+`ep skills preview` loads the full `SKILL.md` content for a category.
+
+```bash
+ep skills preview testing
+ep skills preview testing --json
+```
+
+Why it matters:
+
+- You can review exactly what the agent will read before running a workflow.
+- Debugging becomes faster: no guessing which file/version is being applied.
+- In JSON mode, you can automate audits or diff snapshots.
+
+## `ep skills validate`: enforce structure before quality degrades
+
+`ep skills validate` checks all discovered skills for required structure and content expectations.
+
+Current checks include:
+
+- main heading exists (`# `)
+- at least one pattern heading (`###`)
+- at least one level mention (`beginner|intermediate|advanced`)
+- required sections exist:
+  - `Good Example`
+  - `Anti-Pattern`
+  - `Rationale`
+
+```bash
+ep skills validate
+ep skills validate --json
+```
+
+Behavior that matters for automation:
+
+- exits non-zero when validation errors exist
+
+That single behavior is what turns validation into a CI gate. You can prevent malformed skills from landing in main.
+
+## `ep skills stats`: measure coverage instead of guessing
+
+`ep skills stats` reports aggregate metrics such as:
+
+- total skills
+- total patterns referenced
+- distribution by skill level
+- category coverage
+
+```bash
+ep skills stats
+ep skills stats --json
+```
+
+Why it matters:
+
+- You can spot imbalance (for example, too many beginner skills, weak advanced coverage).
+- You can track growth over time with real numbers.
+- You can prioritize authoring where gaps are obvious.
+
+## Local-first by design
+
+Skills commands operate on local filesystem content, not remote API lookups.
+
+That is important because skills are typically workspace-scoped operational artifacts. The CLI resolves the skills directory with predictable order:
+
+1. `EP_SKILLS_DIR` (absolute path, or relative to current working directory)
+2. auto-discovery from cwd upward for `.claude-plugin/plugins/effect-patterns/skills`
+3. fallback to cwd + default path (fails with actionable guidance if missing)
+
+This keeps behavior deterministic in local dev, CI, and multi-repo environments.
+
+## Why this is a real workflow improvement
+
+The new Skills commands close a loop that most teams previously handled manually:
+
+1. Discover skills
+2. Inspect content
+3. Validate quality rules
+4. Measure coverage
+
+Now all four steps are first-class CLI workflows with machine-readable output. That makes skills governance repeatable instead of ad hoc.
+
+For teams running coding agents in production workflows, this is the difference between "we have some prompts" and "we have an enforceable skills system."
+
+## A practical baseline workflow
+
+If you are adopting these commands now, start with this baseline:
+
+```bash
+# discover inventory
+ep skills list --json
+
+# validate every change
+ep skills validate
+
+# review one category deeply
+ep skills preview testing
+
+# track coverage over time
+ep skills stats --json
+```
+
+Then wire `ep skills validate` into CI so broken skills fail fast.
+
+## Where to start
+
+- CLI docs: [/cli](/cli)
+- Main CLI announcement: [/blog/announcing-the-effect-patterns-cli](/blog/announcing-the-effect-patterns-cli)
+- Pattern library: [/patterns](/patterns)
+
+If you want additional validation rules or richer skills analytics, open an issue on [GitHub](https://github.com/PaulJPhilp/EffectPatterns).
