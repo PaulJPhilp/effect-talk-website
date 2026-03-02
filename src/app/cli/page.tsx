@@ -109,20 +109,54 @@ export default function CliPage() {
                 <Badge variant="outline">ep install</Badge>
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Supported tools: <code className="bg-muted px-1 rounded">agent</code>{" "}
-                (also accepts <code className="bg-muted px-1 rounded">agents</code>),{" "}
-                <code className="bg-muted px-1 rounded">claude</code>,{" "}
-                <code className="bg-muted px-1 rounded">cursor</code>,{" "}
-                <code className="bg-muted px-1 rounded">vscode</code>,{" "}
-                <code className="bg-muted px-1 rounded">windsurf</code>
+                Each tool gets its native format. Rules are split into category files
+                (up to 16) so your editor only loads relevant patterns.
               </p>
               <div className="bg-muted rounded-lg p-4 font-mono text-sm">
-                <p>ep install add --tool agent</p>
-                <p>ep install add --tool claude</p>
+                <p className="text-muted-foreground mb-1"># Cursor — .mdc files with YAML frontmatter</p>
                 <p>ep install add --tool cursor</p>
+                <p className="text-muted-foreground text-xs mb-2">→ .cursor/rules/effect-*.mdc</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Windsurf — same .mdc format</p>
+                <p>ep install add --tool windsurf</p>
+                <p className="text-muted-foreground text-xs mb-2">→ .windsurf/rules/effect-*.mdc</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># VS Code / Copilot — single aggregated markdown</p>
+                <p>ep install add --tool vscode</p>
+                <p className="text-muted-foreground text-xs mb-2">→ .github/copilot-instructions.md</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Claude Code — .md skill files</p>
+                <p>ep install add --tool claude</p>
+                <p className="text-muted-foreground text-xs mb-2">→ .claude/skills/effect-*.md</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Agent — managed section in AGENTS.md</p>
+                <p>ep install add --tool agent</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Filter by skill level or use case</p>
                 <p>ep install add --tool cursor --skill-level intermediate --use-case error-handling</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Interactive selection</p>
                 <p>ep install add --tool windsurf -i</p>
+                <br />
                 <p>ep install list</p>
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                <p>
+                  <strong>Cursor / Windsurf:</strong> Each <code className="bg-muted px-1 rounded">.mdc</code> file
+                  includes YAML frontmatter (<code className="bg-muted px-1 rounded">description</code>,{" "}
+                  <code className="bg-muted px-1 rounded">globs</code>,{" "}
+                  <code className="bg-muted px-1 rounded">alwaysApply</code>) so your editor
+                  can conditionally activate rules.
+                </p>
+                <p>
+                  <strong>VS Code / Copilot:</strong> All categories are combined into a single{" "}
+                  <code className="bg-muted px-1 rounded">.github/copilot-instructions.md</code> file
+                  (the Copilot convention).
+                </p>
+                <p>
+                  <strong>Claude Code:</strong> Plain <code className="bg-muted px-1 rounded">.md</code> skill
+                  files, one per category.
+                </p>
               </div>
             </div>
 
