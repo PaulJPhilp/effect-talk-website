@@ -97,23 +97,35 @@ Use this when you are coding and want to stay in-context, not tab-switching betw
 
 ## Install rules into AI coding tools
 
-The CLI also installs EffectPatterns rule bundles for supported tools.
+The CLI installs EffectPatterns rule bundles for supported tools. Each tool gets its native format, with rules split into category files so your editor only loads relevant patterns.
 
 ```bash
-# install for Cursor
+# Cursor — .mdc files with YAML frontmatter in .cursor/rules/
 ep install add --tool cursor
 
-# install for VS Code with filters
-ep install add --tool vscode --skill-level intermediate --use-case error-handling
+# Windsurf — same .mdc format in .windsurf/rules/
+ep install add --tool windsurf
 
-# interactive install for Windsurf
+# VS Code / Copilot — single .github/copilot-instructions.md
+ep install add --tool vscode
+
+# Claude Code — .md skill files in .claude/skills/
+ep install add --tool claude
+
+# Agent — managed section in AGENTS.md
+ep install add --tool agent
+
+# filter by skill level or use case
+ep install add --tool cursor --skill-level intermediate --use-case error-handling
+
+# interactive selection
 ep install add --tool windsurf -i
 
 # list available install targets
 ep install list
 ```
 
-Supported tool targets include `agent` (alias: `agents`), `claude`, `cursor`, `vscode`, and `windsurf`.
+Cursor and Windsurf files include YAML frontmatter (`description`, `globs`, `alwaysApply`) so your editor can conditionally activate rules. VS Code uses a single aggregated markdown following the Copilot instructions convention. Claude gets plain `.md` skill files, one per category.
 
 ## Skills commands for local validation and inspection
 
