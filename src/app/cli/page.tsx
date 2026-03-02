@@ -194,10 +194,9 @@ export default function CliPage() {
                 </p>
                 <p>
                   Each category becomes a separate file when you run{" "}
-                  <code className="bg-muted px-1 rounded">ep install add</code> — an{" "}
-                  <code className="bg-muted px-1 rounded">.mdc</code> for Cursor/Windsurf, an{" "}
-                  <code className="bg-muted px-1 rounded">.md</code> for Claude, or a section in the
-                  aggregated VS Code/Copilot file.
+                  <code className="bg-muted px-1 rounded">ep install add</code> for any of the
+                  supported tools above (Cursor, Windsurf, VS Code, Claude, Agent).
+                  See <em>Install rules into AI tools</em> for the output format per tool.
                 </p>
                 <p>
                   Rules within each category are tagged by skill level (beginner, intermediate,
