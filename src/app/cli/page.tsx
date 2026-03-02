@@ -166,14 +166,45 @@ export default function CliPage() {
                 <Badge variant="outline">ep skills</Badge>
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Inspect and validate local skills from your workspace.
+                Inspect and validate local skill files from your workspace. Skills are
+                organized into 16 categories that map directly to the files created by{" "}
+                <code className="bg-muted px-1 rounded">ep install add</code>.
               </p>
               <div className="bg-muted rounded-lg p-4 font-mono text-sm">
+                <p className="text-muted-foreground mb-1"># List all skill categories and metadata</p>
                 <p>ep skills list</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Preview the full content of a category</p>
                 <p>ep skills preview error-management</p>
+                <p>ep skills preview concurrency</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Validate structure of all skill files</p>
                 <p>ep skills validate</p>
+                <br />
+                <p className="text-muted-foreground mb-1"># Aggregate stats across all skills</p>
                 <p>ep skills stats</p>
                 <p>ep skills stats --json</p>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <p>
+                  <strong>16 categories:</strong> Building APIs, Concurrency, Core Concepts,
+                  Data Pipelines, Domain Modeling, Error Management, Getting Started,
+                  HTTP Requests, Observability, Platform, Resource Management, Schema,
+                  Scheduling, Streams, Testing, Tooling &amp; Debugging.
+                </p>
+                <p>
+                  Each category becomes a separate file when you run{" "}
+                  <code className="bg-muted px-1 rounded">ep install add</code> — an{" "}
+                  <code className="bg-muted px-1 rounded">.mdc</code> for Cursor/Windsurf, an{" "}
+                  <code className="bg-muted px-1 rounded">.md</code> for Claude, or a section in the
+                  aggregated VS Code/Copilot file.
+                </p>
+                <p>
+                  Rules within each category are tagged by skill level (beginner, intermediate,
+                  advanced) and use case, so you can filter with{" "}
+                  <code className="bg-muted px-1 rounded">--skill-level</code> and{" "}
+                  <code className="bg-muted px-1 rounded">--use-case</code> during install.
+                </p>
               </div>
             </div>
           </div>
