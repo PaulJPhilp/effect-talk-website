@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
+import { buildTourHref, type TourMode } from "@/lib/tourMode"
 import type { TourStep } from "@/services/TourProgress/types"
 
 interface TourStepNavigationProps {
@@ -11,6 +12,7 @@ interface TourStepNavigationProps {
   readonly currentStepId: string
   readonly completedStepIds: ReadonlySet<string>
   readonly onMarkCurrentStepComplete: (stepId: string) => void
+  readonly mode: TourMode
 }
 
 export function TourStepNavigation({
@@ -20,6 +22,7 @@ export function TourStepNavigation({
   currentStepId,
   completedStepIds,
   onMarkCurrentStepComplete,
+  mode,
 }: TourStepNavigationProps) {
   const hasPrevious = currentStepIndex > 0
   const hasNext = currentStepIndex < steps.length - 1
@@ -50,14 +53,14 @@ export function TourStepNavigation({
     <nav className="flex items-center justify-center gap-3 text-sm">
       {hasPrevious && previousStep ? (
         <Link
-          href={`/tour/${lessonSlug}?step=${previousStep.order_index}`}
+          href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: previousStep.order_index })}
           className="font-medium hover:underline"
         >
           Back
         </Link>
       ) : (
         <Link
-          href="/tour"
+          href={buildTourHref("/tour", undefined, { mode, step: null })}
           className="font-medium hover:underline"
         >
           Back
@@ -65,7 +68,7 @@ export function TourStepNavigation({
       )}
       <span className="text-muted-foreground">—</span>
       <Link
-        href="/tour"
+        href={buildTourHref("/tour", undefined, { mode, step: null })}
         className="font-medium hover:underline"
       >
         Lessons
@@ -75,7 +78,7 @@ export function TourStepNavigation({
           return (
             <Link
               key={step.id}
-              href={`/tour/${lessonSlug}?step=${step.order_index}`}
+              href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: step.order_index })}
               className={className}
               aria-label={`Go to step ${step.order_index}: ${step.title}`}
               title={step.title}
@@ -88,7 +91,7 @@ export function TourStepNavigation({
       <span className="text-muted-foreground">—</span>
       {hasNext && nextStep ? (
         <Link
-          href={`/tour/${lessonSlug}?step=${nextStep.order_index}`}
+          href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: nextStep.order_index })}
           className="font-medium hover:underline"
           onClick={() => {
             onMarkCurrentStepComplete(currentStepId)
@@ -98,7 +101,7 @@ export function TourStepNavigation({
         </Link>
       ) : (
         <Link
-          href="/tour"
+          href={buildTourHref("/tour", undefined, { mode, step: null })}
           className="font-medium text-muted-foreground"
           onClick={() => {
             onMarkCurrentStepComplete(currentStepId)

@@ -2,8 +2,11 @@
 
 import { useMemo, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { TourModeSwitcher } from "@/components/tour/TourModeSwitcher"
 import { TourStep } from "@/components/tour/TourStep"
 import { useTourProgress } from "@/hooks/useTourProgress"
+import { getTemporaryTourCompareView } from "@/lib/tourCompare"
+import { buildTourHref, getAccessibleTourMode } from "@/lib/tourMode"
 import { getLastStepForLesson, setLastStepForLesson } from "@/lib/tourPosition"
 import { trackEventClient } from "@/lib/analytics-client"
 import type { TourLessonWithSteps } from "@/services/TourProgress/types"
@@ -17,6 +20,7 @@ export function TourLessonView({ lesson, isLoggedIn }: TourLessonViewProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const stepParam = searchParams.get("step")
+  const mode = getAccessibleTourMode(searchParams.get("mode"), isLoggedIn)
 
   const currentStepIndex = useMemo(() => {
     if (stepParam) {
@@ -38,8 +42,14 @@ export function TourLessonView({ lesson, isLoggedIn }: TourLessonViewProps) {
   useEffect(() => {
     if (stepParam != null) return
     if (!currentStep) return
-    router.replace(`/tour/${lesson.slug}?step=${currentStep.order_index}`, { scroll: false })
-  }, [lesson.slug, currentStep, stepParam, router])
+    router.replace(
+      buildTourHref(`/tour/${lesson.slug}`, searchParams, {
+        mode,
+        step: currentStep.order_index,
+      }),
+      { scroll: false }
+    )
+  }, [lesson.slug, currentStep, stepParam, router, searchParams, mode])
 
   // Persist current step so returning to this lesson restores position
   useEffect(() => {
@@ -60,15 +70,24 @@ export function TourLessonView({ lesson, isLoggedIn }: TourLessonViewProps) {
     return <div className="p-10 text-center text-muted-foreground">Step not found</div>
   }
 
+  const compareView = getTemporaryTourCompareView(currentStep)
+
   return (
-    <TourStep
-      key={currentStep.id}
-      step={currentStep}
-      lessonSlug={lesson.slug}
-      steps={lesson.steps}
-      currentStepIndex={currentStepIndex}
-      completedStepIds={completedStepIds}
-      onStepCompleted={markStepCompleted}
-    />
+    <div className="space-y-4">
+      <div className="px-5 pt-5 md:px-8 md:pt-6">
+        <TourModeSwitcher isLoggedIn={isLoggedIn} />
+      </div>
+      <TourStep
+        key={`${currentStep.id}-${mode}`}
+        step={currentStep}
+        lessonSlug={lesson.slug}
+        steps={lesson.steps}
+        currentStepIndex={currentStepIndex}
+        completedStepIds={completedStepIds}
+        onStepCompleted={markStepCompleted}
+        mode={mode}
+        compareView={compareView}
+      />
+    </div>
   )
 }

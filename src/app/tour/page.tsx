@@ -2,6 +2,7 @@ import { Effect } from "effect"
 import { getAllLessonsForList } from "@/services/TourProgress"
 import { getCurrentUser } from "@/services/Auth"
 import { TourLessonList } from "@/components/tour/TourLessonList"
+import { TourModeSwitcher } from "@/components/tour/TourModeSwitcher"
 import { TourStartedTracker } from "@/components/tour/TourStartedTracker"
 import { buildMetadata } from "@/lib/seo"
 
@@ -28,6 +29,7 @@ export default async function TourPage() {
           Learn Effect.ts step by step. Each lesson covers a core concept with
           code examples you can try in the browser.
         </p>
+        <TourModeSwitcher className="mb-8" isLoggedIn={Boolean(currentUser)} />
 
         {lessons.length === 0 ? (
           <p className="text-muted-foreground">No lessons available yet. Check back soon!</p>
