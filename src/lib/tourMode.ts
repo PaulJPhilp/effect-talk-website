@@ -28,6 +28,10 @@ export function isTourModeAvailable(mode: TourMode, isLoggedIn: boolean): boolea
   return isLoggedIn || mode === "v3"
 }
 
+export function isProtectedTourMode(mode: TourMode): boolean {
+  return mode === "v4" || mode === "compare"
+}
+
 export function getAccessibleTourMode(value: string | null | undefined, isLoggedIn: boolean): TourMode {
   const parsed = parseTourMode(value)
   return isTourModeAvailable(parsed, isLoggedIn) ? parsed : "v3"

@@ -29,6 +29,8 @@ function safeErrorMessage(error: unknown): string {
 /**
  * WorkOS AuthKit callback: SDK exchanges the code and sets its session.
  * We upsert the user into our DB and set our session cookie so getCurrentUser() and API routes keep working.
+ * The callback defaults to `/settings`, but WorkOS state can override this with
+ * a safe in-app return path such as a protected tour mode URL.
  */
 export const GET = handleAuth({
   returnPathname: "/settings",

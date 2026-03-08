@@ -1,10 +1,13 @@
 import { Effect } from "effect"
+import { redirect } from "next/navigation"
 import { getAllLessonsForList } from "@/services/TourProgress"
 import { getCurrentUser } from "@/services/Auth"
 import { TourLessonList } from "@/components/tour/TourLessonList"
 import { TourModeSwitcher } from "@/components/tour/TourModeSwitcher"
 import { TourStartedTracker } from "@/components/tour/TourStartedTracker"
+import { buildPathWithSearchParams } from "@/lib/authRedirect"
 import { buildMetadata } from "@/lib/seo"
+import { isProtectedTourMode, parseTourMode } from "@/lib/tourMode"
 
 export const metadata = buildMetadata({
   title: "Effect.ts Tour",
@@ -13,12 +16,26 @@ export const metadata = buildMetadata({
 
 export const revalidate = 300
 
-export default async function TourPage() {
-  const lessons = await Effect.runPromise(
-    getAllLessonsForList().pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+interface TourPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function TourPage({ searchParams }: TourPageProps) {
+  const resolvedSearchParams = await searchParams
+  const requestedMode = parseTourMode(
+    typeof resolvedSearchParams.mode === "string" ? resolvedSearchParams.mode : null
   )
 
   const currentUser = await getCurrentUser()
+
+  if (!currentUser && isProtectedTourMode(requestedMode)) {
+    const returnTo = buildPathWithSearchParams("/tour", resolvedSearchParams)
+    redirect(`/auth/sign-in?returnTo=${encodeURIComponent(returnTo)}`)
+  }
+
+  const lessons = await Effect.runPromise(
+    getAllLessonsForList().pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+  )
 
   return (
     <>

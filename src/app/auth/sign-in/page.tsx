@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { encodeAuthReturnState, getSafeReturnPath, sanitizeReturnToPath } from "@/lib/authRedirect"
 import { buildMetadata } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
@@ -17,7 +18,7 @@ export const metadata = buildMetadata({
 })
 
 interface SignInPageProps {
-  searchParams: Promise<{ error?: string; details?: string }>
+  searchParams: Promise<{ error?: string; details?: string; returnTo?: string }>
 }
 
 async function getRedirectUriForRequest(): Promise<string> {
@@ -45,17 +46,22 @@ async function getRedirectUriForRequest(): Promise<string> {
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams
+  const safeReturnTo = sanitizeReturnToPath(params.returnTo)
+
   // If already logged in, redirect to settings
   const user = await getCurrentUser()
   if (user) {
-    redirect("/settings")
+    redirect(getSafeReturnPath(safeReturnTo, "/settings"))
   }
 
-  const params = await searchParams
   const workOSConfigured = isWorkOSConfigured()
   const redirectUri = await getRedirectUriForRequest()
   const authUrl = workOSConfigured
-    ? await getSignInUrl({ redirectUri })
+    ? await getSignInUrl({
+        redirectUri,
+        state: safeReturnTo ? encodeAuthReturnState(safeReturnTo) : undefined,
+      })
     : "#"
 
   return (
