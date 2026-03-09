@@ -10,7 +10,10 @@ describe("table-swap helpers", () => {
 
     expect(execute).toHaveBeenCalledTimes(4)
 
-    const statements = execute.mock.calls.map(([query]) => query.queryChunks[0]?.value[0] as string)
+    const statements = execute.mock.calls.map((args: unknown[]) => {
+      const query = args[0] as { queryChunks: { value: string[] }[] }
+      return query.queryChunks[0]?.value[0] as string
+    })
 
     expect(statements).toEqual([
       'DROP TABLE IF EXISTS "tour_lessons_staging" CASCADE',
