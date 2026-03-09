@@ -1,0 +1,30 @@
+---
+title: "Metric.timer for measuring duration"
+lessonSlug: "metrics"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We want to measure DB query latency
+// Manually timing is error-prone...
+```
+
+```ts title="solution"
+import { Effect, Metric } from "effect"
+
+const dbLatency = Metric.timer("db_query_duration", "Database query duration")
+
+const query = Effect.sleep("50 millis").pipe(
+  Effect.as("result")
+)
+
+const program = query.pipe(
+  Metric.trackDuration(dbLatency),
+  Effect.tap((r) => Effect.sync(() => console.log("Result:", r)))
+)
+
+Effect.runPromise(program)
+```

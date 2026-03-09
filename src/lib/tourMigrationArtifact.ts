@@ -1,5 +1,9 @@
-export const SUPPORTED_TOUR_ARTIFACT_VERSION = 2
+import { countTourManifestSnippets, countTourManifestSteps, indexTourManifest, type TourManifest } from "@/lib/tourManifest"
+
+export const SUPPORTED_TOUR_ARTIFACT_VERSION = 3
 export const SUPPORTED_TOUR_METADATA_VERSION = 1
+export const REQUIRED_TOUR_TRANSFORM_PROFILE = "pilot-structural"
+export type TourMigrationStatus = "unchanged" | "auto-certified" | "review-needed"
 
 export interface TourMigrationContractMetadata {
   readonly metadataVersion: number
@@ -16,6 +20,7 @@ export interface TourMigrationContractMetadata {
 export interface TourMigrationArtifactStep {
   readonly orderIndex: number
   readonly title?: string
+  readonly instruction?: string
   readonly conceptCode?: string
   readonly solutionCode?: string
   readonly conceptCodeLanguage?: string
@@ -25,6 +30,27 @@ export interface TourMigrationArtifactStep {
   readonly solutionChanged?: boolean
   readonly conceptHasManualReview?: boolean
   readonly solutionHasManualReview?: boolean
+  readonly migrationStatus: TourMigrationStatus
+  readonly expectedMigrationPolicy?: string
+  readonly v4ValidationPath?: string
+  readonly conceptProvenance: {
+    readonly docsRef: string
+    readonly filePath: string
+    readonly selector: {
+      readonly type: string
+      readonly value: string
+    }
+    readonly contentHash: string
+  }
+  readonly solutionProvenance: {
+    readonly docsRef: string
+    readonly filePath: string
+    readonly selector: {
+      readonly type: string
+      readonly value: string
+    }
+    readonly contentHash: string
+  }
   readonly conceptDiagnostics?: readonly unknown[]
   readonly solutionDiagnostics?: readonly unknown[]
 }
@@ -44,17 +70,14 @@ export interface TourMigrationArtifact {
   readonly version: number
   readonly metadata: TourMigrationContractMetadata
   readonly sourceSeedPath?: string
+  readonly sourceManifestPath?: string
+  readonly sourceDocsRoot?: string
   readonly transformProfile?: string
   readonly lessonCount: number
   readonly stepCount: number
   readonly snippetCount: number
   readonly generatedAt?: string
   readonly lessons: readonly TourMigrationArtifactLesson[]
-}
-
-type ArtifactLessonLike = {
-  readonly slug: string
-  readonly steps: readonly { readonly orderIndex: number }[]
 }
 
 export function buildTourArtifactStepKey(lessonSlug: string, orderIndex: number): string {
@@ -81,7 +104,7 @@ export function indexTourMigrationArtifact(
 
 export function validateTourMigrationArtifact(
   artifact: TourMigrationArtifact,
-  lessons: readonly ArtifactLessonLike[]
+  manifest: TourManifest
 ): ReadonlyMap<string, TourMigrationArtifactStep> {
   if (!artifact || typeof artifact !== "object") {
     throw new Error("Tour v4 artifact is missing or invalid")
@@ -104,13 +127,23 @@ export function validateTourMigrationArtifact(
       `Tour v4 artifact metadata version mismatch: artifact=${artifact.version}, metadata=${artifact.metadata.artifactVersion}`
     )
   }
-
-  const stepCount = lessons.reduce((total, lesson) => total + lesson.steps.length, 0)
-  const snippetCount = stepCount * 2
-
-  if (artifact.lessonCount !== lessons.length) {
+  if (artifact.metadata.transformProfile !== REQUIRED_TOUR_TRANSFORM_PROFILE) {
     throw new Error(
-      `Tour v4 artifact lesson count mismatch: expected ${lessons.length}, received ${artifact.lessonCount}`
+      `Unsupported tour v4 transform profile: expected ${REQUIRED_TOUR_TRANSFORM_PROFILE}, received ${artifact.metadata.transformProfile}`
+    )
+  }
+  if (artifact.transformProfile && artifact.transformProfile !== REQUIRED_TOUR_TRANSFORM_PROFILE) {
+    throw new Error(
+      `Tour v4 artifact transform profile mismatch: expected ${REQUIRED_TOUR_TRANSFORM_PROFILE}, received ${artifact.transformProfile}`
+    )
+  }
+
+  const stepCount = countTourManifestSteps(manifest)
+  const snippetCount = countTourManifestSnippets(manifest)
+
+  if (artifact.lessonCount !== manifest.lessons.length) {
+    throw new Error(
+      `Tour v4 artifact lesson count mismatch: expected ${manifest.lessons.length}, received ${artifact.lessonCount}`
     )
   }
 
@@ -125,9 +158,29 @@ export function validateTourMigrationArtifact(
   }
 
   const stepMap = indexTourMigrationArtifact(artifact)
-  for (const lesson of lessons) {
+  const manifestStepMap = indexTourManifest(manifest)
+  for (const [key, entry] of manifestStepMap) {
+    const step = stepMap.get(key)
+    if (!step) {
+      throw new Error(`Tour v4 artifact is missing ${entry.lesson.slug} step ${entry.step.orderIndex}`)
+    }
+    if (step.migrationStatus !== "unchanged" && step.migrationStatus !== "auto-certified" && step.migrationStatus !== "review-needed") {
+      throw new Error(`Tour v4 artifact has invalid migration status for ${key}: ${String(step.migrationStatus)}`)
+    }
+    if (!step.conceptProvenance?.docsRef || !step.conceptProvenance?.filePath || !step.conceptProvenance?.contentHash) {
+      throw new Error(`Tour v4 artifact is missing concept provenance for ${key}`)
+    }
+    if (!step.solutionProvenance?.docsRef || !step.solutionProvenance?.filePath || !step.solutionProvenance?.contentHash) {
+      throw new Error(`Tour v4 artifact is missing solution provenance for ${key}`)
+    }
+  }
+
+  for (const lesson of artifact.lessons) {
     for (const step of lesson.steps) {
       const key = buildTourArtifactStepKey(lesson.slug, step.orderIndex)
+      if (!manifestStepMap.has(key)) {
+        throw new Error(`Tour v4 artifact contains an unexpected step entry for ${lesson.slug} step ${step.orderIndex}`)
+      }
       if (!stepMap.has(key)) {
         throw new Error(`Tour v4 artifact is missing ${lesson.slug} step ${step.orderIndex}`)
       }

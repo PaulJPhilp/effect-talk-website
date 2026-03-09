@@ -1,0 +1,40 @@
+---
+title: "Schema.decodeEither for sync validation"
+lessonSlug: "schema"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schema } from "effect"
+
+const UserSchema = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number,
+})
+
+// Sometimes we need sync: decodeEither
+// Sometimes we're in Effect: decode
+```
+
+```ts title="solution"
+import { Effect, Schema, Either } from "effect"
+
+const NameSchema = Schema.String
+
+const combineNames = (first: string, last: string) => `${first} ${last}`
+
+const first = Schema.decodeUnknownEither(NameSchema)("Alice")
+const last = Schema.decodeUnknownEither(NameSchema)("Smith")
+const result = Either.zipWith(first, last, combineNames)
+
+if (Either.isRight(result)) {
+  console.log("Valid:", result.right)
+} else {
+  console.log("Invalid:", result.left)
+}
+
+// Or in Effect pipeline: use decode
+const program = Schema.decodeUnknown(NameSchema)("Alice")
+Effect.runPromise(program).then(console.log)
+```

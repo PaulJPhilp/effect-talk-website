@@ -1,0 +1,35 @@
+---
+title: "Effect.gen for sequential code"
+lessonSlug: "async-effects"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Nested callbacks / callbacks hell
+const fetchAndProcess = Effect.succeed(1).pipe(
+  Effect.flatMap((a) =>
+    Effect.succeed(2).pipe(
+      Effect.flatMap((b) => Effect.succeed(a + b))
+    )
+  )
+)
+// Hard to read! Effect.gen is cleaner.
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+// Effect way: Effect.gen for sequential, readable code
+const program = Effect.gen(function* () {
+  const a = yield* Effect.succeed(1)
+  const b = yield* Effect.succeed(2)
+  const sum = a + b
+  yield* Effect.log(`Sum: ${sum}`)
+  return sum
+})
+
+Effect.runPromise(program).then(console.log) // 3
+```

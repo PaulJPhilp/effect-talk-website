@@ -1,0 +1,36 @@
+---
+title: "Effect.forEach with concurrency"
+lessonSlug: "parallel"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We have 10 items to process
+const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// Anti-pattern: Run all at once - could overwhelm
+const processItem = (id: number) =>
+  Effect.sleep("50 millis").pipe(
+    Effect.flatMap(() => Effect.sync(() => console.log("Processed", id)))
+  )
+// How do we limit concurrency?
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const ids = [1, 2, 3, 4, 5]
+
+const processItem = (id: number) =>
+  Effect.sleep("50 millis").pipe(
+    Effect.flatMap(() => Effect.sync(() => console.log("Processed", id))),
+    Effect.as(id)
+  )
+
+const program = Effect.forEach(ids, processItem, { concurrency: 2 })
+
+Effect.runPromise(program).then(console.log)
+```

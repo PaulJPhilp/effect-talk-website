@@ -1,0 +1,31 @@
+---
+title: "Schema.Class for class-based schemas"
+lessonSlug: "effect-schema"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schema } from "effect"
+
+// We want a User class with name (required) and optional nickname
+// Schema.Class gives us a typed decode + a class we can use
+```
+
+```ts title="solution"
+import { Effect, Schema } from "effect"
+
+class User extends Schema.Class<User>("User")({
+  name: Schema.String,
+  nickname: Schema.optional(Schema.String),
+}) {}
+
+const program = Schema.decodeUnknown(User)({
+  name: "Alice",
+  nickname: "Al",
+}).pipe(
+  Effect.tap((user) => Effect.sync(() => console.log(user.name, user.nickname)))
+)
+
+Effect.runPromise(program)
+```

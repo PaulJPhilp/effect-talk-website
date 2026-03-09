@@ -6,7 +6,8 @@ import path from "node:path"
 import { runTourV4Qa } from "@/lib/tourV4Qa"
 
 interface ParsedArgs {
-  readonly seedPath: string
+  readonly manifestPath: string
+  readonly v3DocsRoot: string
   readonly artifactPath?: string
   readonly metadataPath?: string
   readonly toolRoot: string
@@ -14,7 +15,8 @@ interface ParsedArgs {
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
-  let seedPath = path.resolve(process.cwd(), "scripts/seed-tour.ts")
+  let manifestPath = path.resolve(process.cwd(), "content", "tour", "tour-manifest.json")
+  let v3DocsRoot = path.resolve(process.cwd(), "content", "tour-docs", "v3")
   let artifactPath: string | undefined
   let metadataPath: string | undefined
   let toolRoot = path.resolve(process.cwd(), "..", "effect-refactoring-tool")
@@ -23,8 +25,12 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     switch (arg) {
-      case "--seed":
-        seedPath = path.resolve(argv[index + 1] ?? seedPath)
+      case "--manifest":
+        manifestPath = path.resolve(argv[index + 1] ?? manifestPath)
+        index += 1
+        break
+      case "--v3-docs-root":
+        v3DocsRoot = path.resolve(argv[index + 1] ?? v3DocsRoot)
         index += 1
         break
       case "--artifact":
@@ -47,7 +53,9 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         console.log(`tour v4 QA
 
 Usage:
-  bun run scripts/qa-tour-v4.ts [--seed /abs/path/to/scripts/seed-tour.ts] [--artifact /abs/path/to/tour-v4-snippets.json]
+  bun run scripts/qa-tour-v4.ts [--manifest /abs/path/to/content/tour/tour-manifest.json]
+                                [--v3-docs-root /abs/path/to/content/tour-docs/v3]
+                                [--artifact /abs/path/to/tour-v4-snippets.json]
                                 [--metadata /abs/path/to/tour-v4-metadata.json]
                                 [--tool-root /abs/path/to/effect-refactoring-tool] [--report /abs/path/to/report.json]
 
@@ -63,7 +71,8 @@ Behavior:
   }
 
   return {
-    seedPath,
+    manifestPath,
+    v3DocsRoot,
     artifactPath,
     metadataPath,
     toolRoot,
@@ -97,7 +106,8 @@ async function generateArtifactIfNeeded(
   artifactPath: string | undefined,
   metadataPath: string | undefined,
   migrationPackageRoot: string,
-  seedPath: string
+  manifestPath: string,
+  v3DocsRoot: string
 ): Promise<{ artifactPath: string; metadataPath?: string; temporary: boolean }> {
   if (artifactPath) {
     return { artifactPath, metadataPath, temporary: false }
@@ -111,10 +121,14 @@ async function generateArtifactIfNeeded(
       "run",
       "migrate-tour",
       "--",
-      "--seed",
-      seedPath,
+      "--manifest",
+      manifestPath,
+      "--v3-docs-root",
+      v3DocsRoot,
       "--output",
       generatedArtifactPath,
+      "--transform-profile",
+      "pilot-structural",
       "--metadata-out",
       generatedMetadataPath,
     ],
@@ -133,12 +147,18 @@ async function generateArtifactIfNeeded(
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
   const { migrationPackageRoot } = ensureToolPaths(args.toolRoot)
-  const generated = await generateArtifactIfNeeded(args.artifactPath, args.metadataPath, migrationPackageRoot, args.seedPath)
+  const generated = await generateArtifactIfNeeded(
+    args.artifactPath,
+    args.metadataPath,
+    migrationPackageRoot,
+    args.manifestPath,
+    args.v3DocsRoot
+  )
 
   try {
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
-      seedPath: args.seedPath,
+      manifestPath: args.manifestPath,
       artifactPath: generated.artifactPath,
       metadataPath: generated.metadataPath,
     })
@@ -150,6 +170,9 @@ async function main(): Promise<void> {
 
     console.log(
       `Tour v4 QA: ${report.summary.passed}/${report.summary.stepCount} steps passed, ${report.summary.failed} failed`
+    )
+    console.log(
+      `Trust states: unchanged=${report.summary.unchangedCount} auto-certified=${report.summary.autoCertifiedCount} review-needed=${report.summary.reviewNeededCount}`
     )
 
     const failures = report.results.filter((result) => result.failures.length > 0)

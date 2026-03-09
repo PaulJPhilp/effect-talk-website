@@ -1,0 +1,46 @@
+---
+title: "Effect.scoped for bracket-style cleanup"
+lessonSlug: "resource-management"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+const acquire = Effect.sync(() => {
+  console.log("Connection acquired")
+  return { query: (sql: string) => Effect.succeed("result") }
+})
+const release = () => Effect.sync(() => console.log("Connection released"))
+
+const scopedConn = Effect.acquireRelease(acquire, release)
+
+const program = Effect.gen(function* () {
+  const conn = yield* scopedConn
+  return yield* conn.query("SELECT 1")
+})
+
+// ❌ Effect.runPromise(program) - Type error! Missing Scope
+// We need Effect.scoped...
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const acquire = Effect.sync(() => {
+  console.log("Connection acquired")
+  return { query: (sql: string) => Effect.succeed("result") }
+})
+const release = () => Effect.sync(() => console.log("Connection released"))
+
+const scopedConn = Effect.acquireRelease(acquire, release)
+
+const program = Effect.gen(function* () {
+  const conn = yield* scopedConn
+  return yield* conn.query("SELECT 1")
+})
+
+// Scoped resources require Effect.scoped
+Effect.runPromise(Effect.scoped(program)).then(console.log)
+```

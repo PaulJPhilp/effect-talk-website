@@ -1,0 +1,36 @@
+---
+title: "Effect.catchAll for global error handling"
+lessonSlug: "cause-defects"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We want a top-level handler that catches everything
+// Failures and defects alike...
+```
+
+```ts title="solution"
+import { Effect, Cause } from "effect"
+
+const flakyOp = Effect.try({
+  try: () => {
+    if (Math.random() > 0.5) throw new Error("oops")
+    return "ok"
+  },
+  catch: (e) => e as Error,
+})
+
+const program = flakyOp.pipe(
+  Effect.catchAllCause((cause) =>
+    Effect.sync(() => {
+      console.log("Caught:", Cause.pretty(cause))
+      return "fallback"
+    })
+  )
+)
+
+Effect.runPromise(program).then(console.log)
+```

@@ -1,0 +1,47 @@
+---
+title: "Effect.acquireRelease for manual resources"
+lessonSlug: "resource-management"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Manual try/finally - easy to forget release
+const useFile = () => {
+  const file = openFile("data.txt")
+  try {
+    return file.read()
+  } finally {
+    file.close() // What if openFile throws? What if we forget?
+  }
+}
+
+// Effect way: acquireRelease guarantees cleanup...
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const acquireFile = Effect.sync(() => {
+  console.log("File opened")
+  return {
+    read: () => Effect.succeed("file contents"),
+    write: (data: string) => Effect.sync(() => console.log("Wrote:", data)),
+  }
+})
+
+const releaseFile = () => Effect.sync(() => console.log("File closed"))
+
+const scopedFile = Effect.acquireRelease(acquireFile, releaseFile)
+
+const program = Effect.gen(function* () {
+  const file = yield* Effect.scoped(scopedFile)
+  const data = yield* file.read()
+  yield* file.write(data)
+  return data
+})
+
+Effect.runPromise(program)
+```

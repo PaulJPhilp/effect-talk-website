@@ -1,0 +1,27 @@
+---
+title: "Ref.modify for read-and-update"
+lessonSlug: "refs"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Ref } from "effect"
+
+// We want: read current, increment, return old value
+// Ref.update doesn't return the previous value...
+```
+
+```ts title="solution"
+import { Effect, Ref } from "effect"
+
+const program = Effect.gen(function* () {
+  const ref = yield* Ref.make(0)
+  const prev = yield* Ref.modify(ref, (n) => [n + 1, n])
+  const curr = yield* Ref.get(ref)
+  console.log("prev:", prev, "curr:", curr) // prev: 0, curr: 1
+  return prev
+})
+
+Effect.runPromise(program)
+```

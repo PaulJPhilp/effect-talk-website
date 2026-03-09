@@ -1,0 +1,34 @@
+---
+title: "ManagedRuntime.make for reusable execution"
+lessonSlug: "runtimes"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We have a service layer - we want to run many effects with it
+// Effect.provide(effect, layer) every time is tedious...
+```
+
+```ts title="solution"
+import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
+
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const logger = yield* Logger
+  yield* logger.log("Hello from runtime!")
+})
+
+async function main() {
+  const runtime = ManagedRuntime.make(Logger.Default)
+  await runtime.runPromise(program)
+  await runtime.dispose()
+}
+
+main()
+```

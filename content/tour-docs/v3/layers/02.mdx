@@ -1,0 +1,40 @@
+---
+title: "Effect.provide to provide dependencies"
+lessonSlug: "layers"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+class Config extends Effect.Service<Config>()("Config", {
+  sync: () => ({ host: "localhost", port: 3000 }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const config = yield* Config
+  return `http://${config.host}:${config.port}`
+})
+
+// program has type Effect<string, never, Config>
+// We must provide Config to run it!
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Config extends Effect.Service<Config>()("Config", {
+  sync: () => ({ host: "localhost", port: 3000 }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const config = yield* Config
+  return `http://${config.host}:${config.port}`
+})
+
+// Provide the default Config layer
+const runnable = Effect.provide(program, Config.Default)
+const url = await Effect.runPromise(runnable)
+console.log(url) // "http://localhost:3000"
+```

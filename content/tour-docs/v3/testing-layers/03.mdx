@@ -1,0 +1,47 @@
+---
+title: "Composing test layers"
+lessonSlug: "testing-layers"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (m: string) => Effect.sync(() => console.log(m)) }),
+}) {}
+
+class Db extends Effect.Service<Db>()("Db", {
+  sync: () => ({ query: () => Effect.succeed([]) }),
+}) {}
+
+// Program needs both - how do we test?
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (m: string) => Effect.sync(() => console.log(m)) }),
+}) {}
+
+class Db extends Effect.Service<Db>()("Db", {
+  sync: () => ({ query: () => Effect.succeed([{ id: 1, name: "Test" }]) }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const logger = yield* Logger
+  const db = yield* Db
+  const rows = yield* db.query()
+  yield* logger.log(`Got ${rows.length} rows`)
+  return rows
+})
+
+const testLayer = Layer.merge(
+  Logger.Default,
+  Layer.succeed(Db, Db.make({ query: () => Effect.succeed([{ id: 1, name: "Test" }]) }))
+)
+
+Effect.runPromise(Effect.provide(program, testLayer)).then(console.log)
+```

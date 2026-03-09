@@ -1,0 +1,33 @@
+---
+title: "Fork a consumer with Queue.take"
+lessonSlug: "queues-pubsub"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Producer offers items; consumer takes in a loop
+// Consumer should run in background, not block producer...
+```
+
+```ts title="solution"
+import { Effect, Queue } from "effect"
+
+const consumer = (queue: Queue.Queue<number>) =>
+  Effect.gen(function* () {
+    const value = yield* Queue.take(queue)
+    yield* Effect.sync(() => console.log("Consumed:", value))
+  }).pipe(Effect.forever)
+
+const program = Effect.gen(function* () {
+  const queue = yield* Queue.bounded<number>(10)
+  yield* Effect.fork(consumer(queue))
+  yield* Queue.offer(queue, 1)
+  yield* Queue.offer(queue, 2)
+  yield* Effect.sleep("100 millis")
+})
+
+Effect.runPromise(program)
+```

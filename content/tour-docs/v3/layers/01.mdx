@@ -1,0 +1,46 @@
+---
+title: "Layer.merge to compose services"
+lessonSlug: "layers"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+// We have two services - how do we provide both?
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
+}) {}
+
+class Database extends Effect.Service<Database>()("Database", {
+  sync: () => ({ query: (sql: string) => Effect.succeed("data") }),
+}) {}
+
+// We need to merge their layers...
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
+}) {}
+
+class Database extends Effect.Service<Database>()("Database", {
+  sync: () => ({ query: (sql: string) => Effect.succeed("data") }),
+}) {}
+
+// Merge layers: one layer providing both services
+const AppLayer = Layer.merge(Logger.Default, Database.Default)
+
+const program = Effect.gen(function* () {
+  const logger = yield* Logger
+  const db = yield* Database
+  yield* logger.log("Fetching...")
+  const data = yield* db.query("SELECT 1")
+  yield* logger.log("Got: " + data)
+})
+
+Effect.runPromise(Effect.provide(program, AppLayer))
+```

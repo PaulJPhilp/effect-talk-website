@@ -1,19 +1,95 @@
 import { describe, expect, it } from "vitest"
-import { buildTourArtifactStepKey, indexTourMigrationArtifact, validateTourMigrationArtifact, type TourMigrationArtifact } from "@/lib/tourMigrationArtifact"
+import {
+  REQUIRED_TOUR_TRANSFORM_PROFILE,
+  buildTourArtifactStepKey,
+  indexTourMigrationArtifact,
+  validateTourMigrationArtifact,
+  type TourMigrationArtifact,
+} from "@/lib/tourMigrationArtifact"
+import type { TourManifest } from "@/lib/tourManifest"
+
+const manifest: TourManifest = {
+  version: 1,
+  title: "Effect Tour",
+  lessons: [
+    {
+      slug: "effects-are-lazy",
+      title: "Effects Are Lazy Blueprints",
+      description: "desc",
+      orderIndex: 1,
+      group: "Fundamentals",
+      difficulty: "beginner",
+      estimatedMinutes: 10,
+      steps: [
+        {
+          orderIndex: 1,
+          title: "Step 1",
+          instruction: "Instruction",
+          conceptCodeLanguage: "typescript",
+          patternTitle: null,
+          playgroundUrl: null,
+          hints: [],
+          feedbackOnComplete: null,
+          sources: {
+            concept: {
+              docsRef: "bootstrap-seed-snapshot",
+              filePath: "effects-are-lazy/01.mdx",
+              selector: { type: "fence-title", value: "concept" },
+            },
+            solution: {
+              docsRef: "bootstrap-seed-snapshot",
+              filePath: "effects-are-lazy/01.mdx",
+              selector: { type: "fence-title", value: "solution" },
+            },
+          },
+          expectedMigrationPolicy: "review-needed",
+          v4ValidationPath: "runtime-approved-rule",
+        },
+        {
+          orderIndex: 2,
+          title: "Step 2",
+          instruction: "Instruction",
+          conceptCodeLanguage: "typescript",
+          patternTitle: null,
+          playgroundUrl: null,
+          hints: [],
+          feedbackOnComplete: null,
+          sources: {
+            concept: {
+              docsRef: "bootstrap-seed-snapshot",
+              filePath: "effects-are-lazy/02.mdx",
+              selector: { type: "fence-title", value: "concept" },
+            },
+            solution: {
+              docsRef: "bootstrap-seed-snapshot",
+              filePath: "effects-are-lazy/02.mdx",
+              selector: { type: "fence-title", value: "solution" },
+            },
+          },
+          expectedMigrationPolicy: "review-needed",
+          v4ValidationPath: "runtime-approved-rule",
+        },
+      ],
+    },
+  ],
+}
 
 const artifact: TourMigrationArtifact = {
-  version: 2,
+  version: 3,
   metadata: {
     metadataVersion: 1,
-    artifactVersion: 2,
+    artifactVersion: 3,
     generatorVersion: "0.1.0",
     mappingVersion: "abc123",
     generatedAt: "2026-03-09T00:00:00.000Z",
-    transformProfile: "safe",
+    transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
     reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
     blockedV3Apis: ["Effect.zipPar"],
     blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
   },
+  sourceManifestPath: "/tmp/tour-manifest.json",
+  sourceDocsRoot: "/tmp/content/tour-docs/v3",
+  transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
   lessonCount: 1,
   stepCount: 2,
   snippetCount: 4,
@@ -23,13 +99,43 @@ const artifact: TourMigrationArtifact = {
       steps: [
         {
           orderIndex: 1,
+          conceptCode: "v3 concept 1",
+          solutionCode: "v3 solution 1",
           migratedConceptCode: "v4 concept 1",
           migratedSolutionCode: "v4 solution 1",
+          migrationStatus: "review-needed",
+          conceptProvenance: {
+            docsRef: "bootstrap-seed-snapshot",
+            filePath: "effects-are-lazy/01.mdx",
+            selector: { type: "fence-title", value: "concept" },
+            contentHash: "hash-1",
+          },
+          solutionProvenance: {
+            docsRef: "bootstrap-seed-snapshot",
+            filePath: "effects-are-lazy/01.mdx",
+            selector: { type: "fence-title", value: "solution" },
+            contentHash: "hash-2",
+          },
         },
         {
           orderIndex: 2,
+          conceptCode: "v3 concept 2",
+          solutionCode: "v3 solution 2",
           migratedConceptCode: "v4 concept 2",
           migratedSolutionCode: "v4 solution 2",
+          migrationStatus: "review-needed",
+          conceptProvenance: {
+            docsRef: "bootstrap-seed-snapshot",
+            filePath: "effects-are-lazy/02.mdx",
+            selector: { type: "fence-title", value: "concept" },
+            contentHash: "hash-3",
+          },
+          solutionProvenance: {
+            docsRef: "bootstrap-seed-snapshot",
+            filePath: "effects-are-lazy/02.mdx",
+            selector: { type: "fence-title", value: "solution" },
+            contentHash: "hash-4",
+          },
         },
       ],
     },
@@ -55,16 +161,47 @@ describe("tourMigrationArtifact", () => {
           stepCount: 3,
           snippetCount: 6,
         },
-        [
         {
-          slug: "effects-are-lazy",
-          steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
-        },
-        {
-          slug: "async-effects",
-          steps: [{ orderIndex: 3 }],
-        },
-      ]
+          ...manifest,
+          lessons: [
+            ...manifest.lessons,
+            {
+              slug: "async-effects",
+              title: "Async Effects",
+              description: "desc",
+              orderIndex: 2,
+              group: "Fundamentals",
+              difficulty: "beginner",
+              estimatedMinutes: 10,
+              steps: [
+                {
+                  orderIndex: 3,
+                  title: "Step 3",
+                  instruction: "Instruction",
+                  conceptCodeLanguage: "typescript",
+                  patternTitle: null,
+                  playgroundUrl: null,
+                  hints: [],
+                  feedbackOnComplete: null,
+                  sources: {
+                    concept: {
+                      docsRef: "bootstrap-seed-snapshot",
+                      filePath: "async-effects/03.mdx",
+                      selector: { type: "fence-title", value: "concept" },
+                    },
+                    solution: {
+                      docsRef: "bootstrap-seed-snapshot",
+                      filePath: "async-effects/03.mdx",
+                      selector: { type: "fence-title", value: "solution" },
+                    },
+                  },
+                  expectedMigrationPolicy: "review-needed",
+                  v4ValidationPath: "runtime-approved-rule",
+                },
+              ],
+            },
+          ],
+        }
       )
     ).toThrow(/missing async-effects step 3/i)
   })
@@ -77,8 +214,22 @@ describe("tourMigrationArtifact", () => {
           {
             slug: "effects-are-lazy",
             steps: [
-              { orderIndex: 1, migratedConceptCode: "a", migratedSolutionCode: "b" },
-              { orderIndex: 1, migratedConceptCode: "c", migratedSolutionCode: "d" },
+              {
+                orderIndex: 1,
+                migratedConceptCode: "a",
+                migratedSolutionCode: "b",
+                migrationStatus: "review-needed",
+                conceptProvenance: artifact.lessons[0]!.steps[0]!.conceptProvenance,
+                solutionProvenance: artifact.lessons[0]!.steps[0]!.solutionProvenance,
+              },
+              {
+                orderIndex: 1,
+                migratedConceptCode: "c",
+                migratedSolutionCode: "d",
+                migrationStatus: "review-needed",
+                conceptProvenance: artifact.lessons[0]!.steps[1]!.conceptProvenance,
+                solutionProvenance: artifact.lessons[0]!.steps[1]!.solutionProvenance,
+              },
             ],
           },
         ],
@@ -93,12 +244,7 @@ describe("tourMigrationArtifact", () => {
           ...artifact,
           snippetCount: 999,
         },
-        [
-          {
-            slug: "effects-are-lazy",
-            steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
-          },
-        ]
+        manifest
       )
     ).toThrow(/snippet count mismatch/i)
   })
@@ -114,12 +260,7 @@ describe("tourMigrationArtifact", () => {
             artifactVersion: 999,
           },
         },
-        [
-          {
-            slug: "effects-are-lazy",
-            steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
-          },
-        ]
+        manifest
       )
     ).toThrow(/unsupported tour v4 artifact version/i)
   })
@@ -131,13 +272,24 @@ describe("tourMigrationArtifact", () => {
           ...(artifact as unknown as Record<string, unknown>),
           metadata: undefined,
         } as unknown as TourMigrationArtifact,
-        [
-          {
-            slug: "effects-are-lazy",
-            steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
-          },
-        ]
+        manifest
       )
     ).toThrow(/missing contract metadata/i)
+  })
+
+  it("fails on unsupported transform profiles", () => {
+    expect(() =>
+      validateTourMigrationArtifact(
+        {
+          ...artifact,
+          metadata: {
+            ...artifact.metadata,
+            transformProfile: "safe",
+          },
+          transformProfile: "safe",
+        },
+        manifest
+      )
+    ).toThrow(/unsupported tour v4 transform profile/i)
   })
 })

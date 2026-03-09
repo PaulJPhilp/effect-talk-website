@@ -51,15 +51,19 @@ Key route groups in the app today:
 | `bun run env:check` | Validate deploy-critical env vars |
 | `bun run db:check` | Verify DB connectivity and required tables |
 | `bun run perf:tour` | Run the tour baseline script |
-| `bun run qa:tour:v4` | Generate the v4 artifact plus metadata and QA all tour compare snippets |
-| `bun run qa:tour:v4:release` | Generate a release artifact plus metadata, run QA, and emit stable artifact/report paths |
+| `bun run qa:tour:v4` | Generate the v4 artifact plus metadata in `pilot-structural` mode and QA all tour compare snippets |
+| `bun run qa:tour:v4:release` | Generate a release artifact plus metadata in `pilot-structural` mode, run QA, and emit stable artifact/report paths |
 | `bun run tour:prepare:staging` | Prepare a staging tour release artifact and QA report without mutating the DB |
 | `bun run tour:prepare:staging:apply` | Prepare, QA, seed, promote, and verify staging tour content |
 
 Tour v4 content workflow:
-- Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --seed /abs/path/to/effect-talk-website/scripts/seed-tour.ts --output /abs/path/to/tour-v4-snippets.json --metadata-out /abs/path/to/tour-v4-metadata.json`
+- Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --manifest /abs/path/to/effect-talk-website/content/tour/tour-manifest.json --v3-docs-root /abs/path/to/effect-talk-website/content/tour-docs/v3 --output /abs/path/to/tour-v4-snippets.json --transform-profile pilot-structural --metadata-out /abs/path/to/tour-v4-metadata.json`
+- `content/tour/tour-manifest.json` is the authored curriculum. `scripts/seed-tour.ts` is only the DB seeding adapter that consumes the manifest plus the migrated artifact.
+- `content/tour-docs/v3/` is the pinned v3 snippet provenance layer for compare mode.
 - The migration tool is the contract owner: it emits both the snippet artifact and companion metadata JSON, and the website QA consumes that contract rather than reading the tool’s internal CSV mappings
-- `bun run qa:tour:v4` validates either the emitted artifact+metadata pair or the embedded metadata contract in the artifact
+- `bun run qa:tour:v4` requires artifact metadata `transformProfile: "pilot-structural"` and validates the emitted artifact+metadata pair or the embedded metadata contract in the artifact
+- Historical `v3` snippets are treated as source material. QA fully validates generated `v4` snippets, but it does not fail a changed step just because a removed v3 API no longer compiles against the current installed `effect` version
+- QA and the UI both distinguish `unchanged`, `auto-certified`, and `review-needed` steps. The current bootstrapped corpus is intentionally `review-needed` until each manifest entry is audited against the real historical docs source.
 - Seed the website staging tables with `TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run db:seed:tour`
 - Promote with `bun run db:promote tour`
 - CI gate: `.github/workflows/tour-v4-audit.yml` runs typecheck, tests, artifact generation, and `bun run qa:tour:v4` for tour-related changes only

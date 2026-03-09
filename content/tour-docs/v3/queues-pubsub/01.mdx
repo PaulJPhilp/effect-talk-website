@@ -1,0 +1,26 @@
+---
+title: "Queue.bounded for producer-consumer"
+lessonSlug: "queues-pubsub"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Producer and consumer need to communicate without blocking
+// How do we pass work from one fiber to another?
+```
+
+```ts title="solution"
+import { Effect, Queue } from "effect"
+
+const program = Effect.gen(function* () {
+  const queue = yield* Queue.bounded<number>(10)
+  yield* Queue.offer(queue, 42)
+  const value = yield* Queue.take(queue)
+  return value
+})
+
+Effect.runPromise(program).then(console.log) // 42
+```

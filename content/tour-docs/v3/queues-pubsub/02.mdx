@@ -1,0 +1,31 @@
+---
+title: "PubSub.bounded for broadcasting"
+lessonSlug: "queues-pubsub"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Queue: one consumer per message
+// PubSub: all subscribers receive every message
+// Events, notifications, broadcast...
+```
+
+```ts title="solution"
+import { Effect, PubSub, Queue } from "effect"
+
+const program = Effect.scoped(
+  Effect.gen(function* () {
+    const pubsub = yield* PubSub.bounded<string>(2)
+    const dequeue1 = yield* PubSub.subscribe(pubsub)
+    const dequeue2 = yield* PubSub.subscribe(pubsub)
+    yield* PubSub.publish(pubsub, "Hello!")
+    console.log(yield* Queue.take(dequeue1))
+    console.log(yield* Queue.take(dequeue2))
+  })
+)
+
+Effect.runPromise(program)
+```

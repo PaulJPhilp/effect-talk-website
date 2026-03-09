@@ -1,0 +1,30 @@
+---
+title: "Effect.runPromise for async Effects"
+lessonSlug: "async-effects"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: runSync on an Effect with async work
+const asyncEffect = Effect.succeed(42).pipe(Effect.delay("100 millis"))
+
+// Effect.runSync(asyncEffect) // ❌ Fails - delay is async!
+// We need Effect.runPromise for Effects with async work
+console.log("Use Effect.runPromise for async Effects")
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+// Effect way: Use runPromise for async Effects
+const asyncEffect = Effect.succeed(42).pipe(
+  Effect.delay("100 millis")
+)
+
+Effect.runPromise(asyncEffect).then((n) => {
+  console.log("Result:", n) // Result: 42
+})
+```

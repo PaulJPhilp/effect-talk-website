@@ -1,0 +1,48 @@
+---
+title: "Provide test implementations"
+lessonSlug: "testing-layers"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+class Api extends Effect.Service<Api>()("Api", {
+  sync: () => ({
+    fetchUser: (id: number) =>
+      Effect.succeed({ id, name: "Real User" }),
+  }),
+}) {}
+
+// How do we test code that uses Api?
+// We can't hit the real API in tests!
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Api extends Effect.Service<Api>()("Api", {
+  sync: () => ({
+    fetchUser: (id: number) =>
+      Effect.succeed({ id, name: "Real User" }),
+  }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const api = yield* Api
+  const user = yield* api.fetchUser(1)
+  return user.name
+})
+
+// Production: use real layer
+const prod = Effect.provide(program, Api.Default)
+
+// Test: use mock layer
+const testLayer = Layer.succeed(Api, Api.make({
+  fetchUser: () => Effect.succeed({ id: 1, name: "Test User" }),
+}))
+const test = Effect.provide(program, testLayer)
+
+Effect.runPromise(test).then(console.log)
+```

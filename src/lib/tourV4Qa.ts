@@ -2,7 +2,20 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import ts from "typescript"
+import {
+  Clock,
+  Either as EitherModule,
+  Effect as EffectModule,
+  FiberRef,
+  Logger,
+  Request,
+  RequestResolver,
+  Schema as SchemaModule,
+  Stream as StreamModule,
+  Tracer,
+} from "effect"
 import { EMPTY_COMPARE_CODE, getTourCompareView } from "@/lib/tourCompare"
+import { buildTourManifestStepKey, indexTourManifest, loadTourManifest, type TourManifest } from "@/lib/tourManifest"
 import {
   buildTourArtifactStepKey,
   type TourMigrationContractMetadata,
@@ -10,25 +23,6 @@ import {
   validateTourMigrationArtifact,
 } from "@/lib/tourMigrationArtifact"
 import type { TourStep } from "@/services/TourProgress/types"
-
-const COMPARE_SUMMARY_IDENTICAL = "No API-level migration changes were needed for this step."
-const COMPARE_SUMMARY_CHANGED = "This step is showing the generated v4 lesson variant alongside the current v3 version."
-
-export interface TourQaStep {
-  readonly slug: string
-  readonly lessonTitle: string
-  readonly orderIndex: number
-  readonly title: string
-  readonly conceptCode: string | null
-  readonly solutionCode: string | null
-  readonly conceptCodeLanguage: string | null
-}
-
-export interface TourQaLesson {
-  readonly slug: string
-  readonly title: string
-  readonly steps: readonly TourQaStep[]
-}
 
 export interface SnippetExecutionResult {
   readonly exitCode: number | null
@@ -49,6 +43,8 @@ export interface TourStepQaResult {
   readonly orderIndex: number
   readonly title: string
   readonly identical: boolean
+  readonly comparisonMode: "identical" | "validated" | "historical-v3-skipped"
+  readonly migrationStatus: "unchanged" | "auto-certified" | "review-needed"
   readonly failures: readonly string[]
   readonly v3: SnippetQaResult
   readonly v4: SnippetQaResult
@@ -58,11 +54,17 @@ export interface TourQaSummary {
   readonly stepCount: number
   readonly passed: number
   readonly failed: number
+  readonly identicalCount: number
+  readonly validatedCount: number
+  readonly historicalV3SkippedCount: number
+  readonly unchangedCount: number
+  readonly autoCertifiedCount: number
+  readonly reviewNeededCount: number
 }
 
 export interface TourQaReport {
   readonly artifactPath: string
-  readonly seedPath: string
+  readonly manifestPath: string
   readonly generatedAt: string
   readonly summary: TourQaSummary
   readonly results: readonly TourStepQaResult[]
@@ -75,144 +77,20 @@ const EMPTY_EXECUTION_RESULT: SnippetExecutionResult = {
   timedOut: false,
 }
 
+const EFFECT_MODULES: Readonly<Record<string, object>> = {
+  Clock,
+  Either: EitherModule,
+  Effect: EffectModule,
+  FiberRef,
+  Logger,
+  Request,
+  RequestResolver,
+  Schema: SchemaModule,
+  Stream: StreamModule,
+  Tracer,
+}
+
 const normalizeText = (value: string): string => value.replace(/\r\n/g, "\n").trim()
-
-const getObjectLiteralProperty = (
-  objectLiteral: ts.ObjectLiteralExpression,
-  name: string
-): ts.PropertyAssignment | undefined =>
-  objectLiteral.properties.find(
-    (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) &&
-      ((ts.isIdentifier(property.name) && property.name.text === name) ||
-        (ts.isStringLiteral(property.name) && property.name.text === name))
-  )
-
-const expectStringLiteral = (
-  objectLiteral: ts.ObjectLiteralExpression,
-  name: string,
-  sourceFile: ts.SourceFile
-): string => {
-  const property = getObjectLiteralProperty(objectLiteral, name)
-  if (!property) {
-    throw new Error(`Missing required string property "${name}" in ${sourceFile.fileName}`)
-  }
-  if (!ts.isStringLiteralLike(property.initializer) && !ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
-    throw new Error(`Property "${name}" must be a string literal in ${sourceFile.fileName}`)
-  }
-  return property.initializer.text
-}
-
-const expectNumberLiteral = (
-  objectLiteral: ts.ObjectLiteralExpression,
-  name: string,
-  sourceFile: ts.SourceFile
-): number => {
-  const property = getObjectLiteralProperty(objectLiteral, name)
-  if (!property || !ts.isNumericLiteral(property.initializer)) {
-    throw new Error(`Property "${name}" must be a numeric literal in ${sourceFile.fileName}`)
-  }
-  return Number(property.initializer.text)
-}
-
-const optionalStringLiteral = (
-  objectLiteral: ts.ObjectLiteralExpression,
-  name: string,
-  sourceFile: ts.SourceFile
-): string | null => {
-  const property = getObjectLiteralProperty(objectLiteral, name)
-  if (!property) {
-    return null
-  }
-  if (property.initializer.kind === ts.SyntaxKind.NullKeyword) {
-    return null
-  }
-  if (!ts.isStringLiteralLike(property.initializer) && !ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
-    throw new Error(`Property "${name}" must be a string literal or null in ${sourceFile.fileName}`)
-  }
-  return property.initializer.text
-}
-
-const expectIdentifierReference = (
-  objectLiteral: ts.ObjectLiteralExpression,
-  name: string,
-  sourceFile: ts.SourceFile
-): string => {
-  const property = getObjectLiteralProperty(objectLiteral, name)
-  if (!property || !ts.isIdentifier(property.initializer)) {
-    throw new Error(`Property "${name}" must be an identifier reference in ${sourceFile.fileName}`)
-  }
-  return property.initializer.text
-}
-
-function collectVariableArrayInitializers(sourceFile: ts.SourceFile): ReadonlyMap<string, ts.ArrayLiteralExpression> {
-  const arrays = new Map<string, ts.ArrayLiteralExpression>()
-
-  for (const statement of sourceFile.statements) {
-    if (!ts.isVariableStatement(statement)) {
-      continue
-    }
-
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || !declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) {
-        continue
-      }
-      arrays.set(declaration.name.text, declaration.initializer)
-    }
-  }
-
-  return arrays
-}
-
-export function extractTourLessonsFromSeedSource(sourceText: string, filePath: string): readonly TourQaLesson[] {
-  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-  const arrays = collectVariableArrayInitializers(sourceFile)
-  const allLessons = arrays.get("allLessons")
-
-  if (!allLessons) {
-    throw new Error(`Unable to find allLessons array in ${filePath}`)
-  }
-
-  return allLessons.elements.map((lessonNode) => {
-    if (!ts.isObjectLiteralExpression(lessonNode)) {
-      throw new Error(`Lesson entry must be an object literal in ${filePath}`)
-    }
-
-    const slug = expectStringLiteral(lessonNode, "slug", sourceFile)
-    const title = expectStringLiteral(lessonNode, "title", sourceFile)
-    const stepArrayName = expectIdentifierReference(lessonNode, "steps", sourceFile)
-    const stepArray = arrays.get(stepArrayName)
-    if (!stepArray) {
-      throw new Error(`Unable to resolve steps array "${stepArrayName}" for lesson ${slug}`)
-    }
-
-    const steps = stepArray.elements.map((stepNode) => {
-      if (!ts.isObjectLiteralExpression(stepNode)) {
-        throw new Error(`Step entry for lesson ${slug} must be an object literal in ${filePath}`)
-      }
-
-      return {
-        slug,
-        lessonTitle: title,
-        orderIndex: expectNumberLiteral(stepNode, "orderIndex", sourceFile),
-        title: expectStringLiteral(stepNode, "title", sourceFile),
-        conceptCode: optionalStringLiteral(stepNode, "conceptCode", sourceFile),
-        solutionCode: optionalStringLiteral(stepNode, "solutionCode", sourceFile),
-        conceptCodeLanguage: optionalStringLiteral(stepNode, "conceptCodeLanguage", sourceFile),
-      } satisfies TourQaStep
-    })
-
-    return {
-      slug,
-      title,
-      steps,
-    } satisfies TourQaLesson
-  })
-}
-
-export function extractTourLessonsFromSeedFile(seedPath: string): readonly TourQaLesson[] {
-  return extractTourLessonsFromSeedSource(readFileSync(seedPath, "utf8"), seedPath)
-}
 
 export function loadTourMigrationArtifact(filePath: string): TourMigrationArtifact {
   return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationArtifact
@@ -222,22 +100,29 @@ export function loadTourMigrationMetadata(filePath: string): TourMigrationContra
   return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationContractMetadata
 }
 
-function buildTourStep(step: TourQaStep, artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number]): TourStep {
+function buildTourStep(
+  lesson: TourManifest["lessons"][number],
+  step: TourManifest["lessons"][number]["steps"][number],
+  artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number]
+): TourStep {
   return {
-    id: `${step.slug}:${step.orderIndex}`,
-    lesson_id: step.slug,
+    id: `${lesson.slug}:${step.orderIndex}`,
+    lesson_id: lesson.slug,
     order_index: step.orderIndex,
     title: step.title,
-    instruction: "",
-    concept_code: step.conceptCode,
+    instruction: step.instruction,
+    concept_code: artifactStep.conceptCode ?? null,
     concept_code_v4: artifactStep.migratedConceptCode,
     concept_code_language: step.conceptCodeLanguage,
-    solution_code: step.solutionCode,
+    solution_code: artifactStep.solutionCode ?? null,
     solution_code_v4: artifactStep.migratedSolutionCode,
-    playground_url: null,
-    hints: null,
-    feedback_on_complete: null,
+    playground_url: step.playgroundUrl,
+    hints: step.hints,
+    feedback_on_complete: step.feedbackOnComplete,
     pattern_id: null,
+    migration_status: artifactStep.migrationStatus,
+    v3_source_ref: artifactStep.conceptProvenance.docsRef,
+    v3_source_path: artifactStep.conceptProvenance.filePath,
     created_at: "1970-01-01T00:00:00.000Z",
   }
 }
@@ -386,12 +271,11 @@ function collectOptimalityFailures(
 ): readonly string[] {
   const failures: string[] = []
 
-  if (artifactStep.conceptHasManualReview || artifactStep.solutionHasManualReview) {
-    failures.push("artifact step is flagged for manual review")
+  if (artifactStep.migrationStatus === "auto-certified" && (artifactStep.conceptHasManualReview || artifactStep.solutionHasManualReview)) {
+    failures.push("auto-certified step still contains manual-review markers")
   }
 
   const usages = collectQualifiedUsages(code)
-
   for (const blockedApi of metadata.blockedV3Apis) {
     if (usages.has(blockedApi)) {
       failures.push(`still references non-v4 API ${blockedApi}`)
@@ -399,6 +283,26 @@ function collectOptimalityFailures(
   }
 
   return failures
+}
+
+function collectBlockedV3ApiUsages(code: string, metadata: TourMigrationContractMetadata): readonly string[] {
+  const usages = collectQualifiedUsages(code)
+  return metadata.blockedV3Apis.filter((blockedApi) => usages.has(blockedApi))
+}
+
+function isHistoricalApiAvailableInCurrentEffect(api: string): boolean {
+  const parts = api.split(".")
+  if (parts.length !== 2) {
+    return false
+  }
+
+  const [namespace, member] = parts
+  const moduleValue = EFFECT_MODULES[namespace]
+  if (!moduleValue) {
+    return false
+  }
+
+  return member in moduleValue
 }
 
 function compareExecutions(v3: SnippetExecutionResult, v4: SnippetExecutionResult): readonly string[] {
@@ -426,18 +330,25 @@ function compareExecutions(v3: SnippetExecutionResult, v4: SnippetExecutionResul
   return failures
 }
 
-function compareViewFailures(compareStep: TourStep, compareCodeV3: string, compareCodeV4: string): readonly string[] {
+function compareViewFailures(
+  compareStep: TourStep,
+  expected: {
+    readonly conceptIdentical: boolean
+    readonly solutionIdentical: boolean
+    readonly identical: boolean
+  }
+): readonly string[] {
   const failures: string[] = []
   const view = getTourCompareView(compareStep)
 
-  if (view.v3Code !== compareCodeV3 || view.v4Code !== compareCodeV4) {
-    failures.push("compare view does not match the selected code pair")
+  if (view.conceptIdentical !== expected.conceptIdentical) {
+    failures.push("compare view concept diff state is inconsistent")
   }
-  if (view.identical && view.changeSummary !== COMPARE_SUMMARY_IDENTICAL) {
-    failures.push("identical compare summary text is inconsistent")
+  if (view.solutionIdentical !== expected.solutionIdentical) {
+    failures.push("compare view solution diff state is inconsistent")
   }
-  if (!view.identical && view.changeSummary !== COMPARE_SUMMARY_CHANGED) {
-    failures.push("changed compare summary text is inconsistent")
+  if (view.identical !== expected.identical) {
+    failures.push("compare view identical state is inconsistent")
   }
   if (view.v4Code === EMPTY_COMPARE_CODE) {
     failures.push("compare view is missing v4 code")
@@ -448,18 +359,15 @@ function compareViewFailures(compareStep: TourStep, compareCodeV3: string, compa
 
 export async function runTourV4Qa(options: {
   readonly projectRoot: string
-  readonly seedPath: string
+  readonly manifestPath: string
   readonly artifactPath: string
   readonly metadataPath?: string
 }): Promise<TourQaReport> {
-  const lessons = extractTourLessonsFromSeedFile(options.seedPath)
+  const manifest = loadTourManifest(options.manifestPath)
   const artifact = loadTourMigrationArtifact(options.artifactPath)
   const metadata = options.metadataPath ? loadTourMigrationMetadata(options.metadataPath) : artifact.metadata
-  const lessonShapes = lessons.map((lesson) => ({
-    slug: lesson.slug,
-    steps: lesson.steps.map((step) => ({ orderIndex: step.orderIndex })),
-  }))
-  const stepMap = validateTourMigrationArtifact(artifact, lessonShapes)
+  const stepMap = validateTourMigrationArtifact(artifact, manifest)
+
   if (metadata.artifactVersion !== artifact.version) {
     throw new Error(
       `Tour v4 metadata mismatch: metadata artifact version ${metadata.artifactVersion} does not match artifact version ${artifact.version}`
@@ -468,70 +376,94 @@ export async function runTourV4Qa(options: {
   if (metadata.generatedAt !== artifact.metadata.generatedAt || metadata.mappingVersion !== artifact.metadata.mappingVersion) {
     throw new Error("Tour v4 metadata does not match the embedded artifact metadata")
   }
+
+  const manifestStepMap = indexTourManifest(manifest)
   const tempDir = mkdtempSync(path.join(options.projectRoot, ".tmp-tour-v4-qa-"))
 
   try {
     const results: TourStepQaResult[] = []
 
-    for (const lesson of lessons) {
-      for (const step of lesson.steps) {
-        const artifactStep = stepMap.get(buildTourArtifactStepKey(step.slug, step.orderIndex))
-        if (!artifactStep) {
-          throw new Error(`Missing artifact step for ${step.slug}:${step.orderIndex}`)
-        }
-
-        const compareStep = buildTourStep(step, artifactStep)
-        const compareView = getTourCompareView(compareStep)
-        const typecheckBase = `${step.slug}-${step.orderIndex}`
-        const v4TypecheckErrors = typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v4`, compareView.v4Code)
-        const v3TypecheckErrors = compareView.identical
-          ? []
-          : typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v3`, compareView.v3Code)
-        const [v3Execution, v4Execution] = compareView.identical
-          ? [EMPTY_EXECUTION_RESULT, EMPTY_EXECUTION_RESULT]
-          : await Promise.all([
-              executeSnippet(tempDir, `${typecheckBase}.v3`, compareView.v3Code),
-              executeSnippet(tempDir, `${typecheckBase}.v4`, compareView.v4Code),
-            ])
-
-        const failures = [
-          ...compareViewFailures(compareStep, compareView.v3Code, compareView.v4Code),
-          ...v3TypecheckErrors.map((error) => `v3 typecheck: ${error}`),
-          ...v4TypecheckErrors.map((error) => `v4 typecheck: ${error}`),
-          ...(compareView.identical ? [] : compareExecutions(v3Execution, v4Execution)),
-          ...collectOptimalityFailures(compareView.v4Code, metadata, artifactStep),
-        ]
-
-        results.push({
-          stepKey: `${step.slug}:${step.orderIndex}`,
-          slug: lesson.slug,
-          lessonTitle: lesson.title,
-          orderIndex: step.orderIndex,
-          title: step.title,
-          identical: compareView.identical,
-          failures,
-          v3: {
-            typecheckErrors: v3TypecheckErrors,
-            execution: v3Execution,
-          },
-          v4: {
-            typecheckErrors: v4TypecheckErrors,
-            execution: v4Execution,
-          },
-        })
+    for (const [stepKey, entry] of manifestStepMap) {
+      const artifactStep = stepMap.get(stepKey)
+      if (!artifactStep) {
+        throw new Error(`Missing artifact step for ${stepKey}`)
       }
+
+      const compareStep = buildTourStep(entry.lesson, entry.step, artifactStep)
+      const compareView = getTourCompareView(compareStep)
+      const typecheckBase = `${entry.lesson.slug}-${entry.step.orderIndex}`
+      const v4TypecheckErrors = typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v4`, compareView.v4Code)
+      const blockedV3Usages = compareView.identical ? [] : collectBlockedV3ApiUsages(compareView.v3Code, metadata)
+      const blockedUnsupportedV3Usages = blockedV3Usages.filter((usage) => !isHistoricalApiAvailableInCurrentEffect(usage))
+      const attemptedV3TypecheckErrors = compareView.identical
+        ? []
+        : typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v3`, compareView.v3Code)
+      const skipHistoricalV3Validation = blockedUnsupportedV3Usages.length > 0 && attemptedV3TypecheckErrors.length > 0
+      const comparisonMode = compareView.identical
+        ? "identical"
+        : skipHistoricalV3Validation
+          ? "historical-v3-skipped"
+          : "validated"
+      const v3TypecheckErrors = skipHistoricalV3Validation ? [] : attemptedV3TypecheckErrors
+      const [v3Execution, v4Execution] = compareView.identical || skipHistoricalV3Validation
+        ? [EMPTY_EXECUTION_RESULT, EMPTY_EXECUTION_RESULT]
+        : await Promise.all([
+            executeSnippet(tempDir, `${typecheckBase}.v3`, compareView.v3Code),
+            executeSnippet(tempDir, `${typecheckBase}.v4`, compareView.v4Code),
+          ])
+
+      const conceptIdentical = (artifactStep.conceptCode ?? EMPTY_COMPARE_CODE) === artifactStep.migratedConceptCode
+      const solutionIdentical = (artifactStep.solutionCode ?? EMPTY_COMPARE_CODE) === artifactStep.migratedSolutionCode
+      const identical = conceptIdentical && solutionIdentical
+
+      const failures = [
+        ...compareViewFailures(compareStep, { conceptIdentical, solutionIdentical, identical }),
+        ...(artifactStep.migrationStatus === "auto-certified" && artifactStep.expectedMigrationPolicy === "review-needed"
+          ? ["auto-certified step contradicts manifest review-needed policy"]
+          : []),
+        ...v3TypecheckErrors.map((error) => `v3 typecheck: ${error}`),
+        ...v4TypecheckErrors.map((error) => `v4 typecheck: ${error}`),
+        ...(compareView.identical || skipHistoricalV3Validation ? [] : compareExecutions(v3Execution, v4Execution)),
+        ...collectOptimalityFailures(compareView.v4Code, metadata, artifactStep),
+      ]
+
+      results.push({
+        stepKey,
+        slug: entry.lesson.slug,
+        lessonTitle: entry.lesson.title,
+        orderIndex: entry.step.orderIndex,
+        title: entry.step.title,
+        identical: compareView.identical,
+        comparisonMode,
+        migrationStatus: artifactStep.migrationStatus,
+        failures,
+        v3: {
+          typecheckErrors: v3TypecheckErrors,
+          execution: v3Execution,
+        },
+        v4: {
+          typecheckErrors: v4TypecheckErrors,
+          execution: v4Execution,
+        },
+      })
     }
 
     const failed = results.filter((result) => result.failures.length > 0).length
 
     return {
       artifactPath: options.artifactPath,
-      seedPath: options.seedPath,
+      manifestPath: options.manifestPath,
       generatedAt: new Date().toISOString(),
       summary: {
         stepCount: results.length,
         passed: results.length - failed,
         failed,
+        identicalCount: results.filter((result) => result.comparisonMode === "identical").length,
+        validatedCount: results.filter((result) => result.comparisonMode === "validated").length,
+        historicalV3SkippedCount: results.filter((result) => result.comparisonMode === "historical-v3-skipped").length,
+        unchangedCount: results.filter((result) => result.migrationStatus === "unchanged").length,
+        autoCertifiedCount: results.filter((result) => result.migrationStatus === "auto-certified").length,
+        reviewNeededCount: results.filter((result) => result.migrationStatus === "review-needed").length,
       },
       results,
     }

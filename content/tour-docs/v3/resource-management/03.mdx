@@ -1,0 +1,50 @@
+---
+title: "Release runs even on failure"
+lessonSlug: "resource-management"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We want: acquire, use (might fail), release ALWAYS runs
+const acquire = Effect.sync(() => {
+  console.log("Acquired")
+  return {}
+})
+const release = () => Effect.sync(() => console.log("Released"))
+
+const scoped = Effect.acquireRelease(acquire, release)
+
+const program = Effect.gen(function* () {
+  const resource = yield* Effect.scoped(scoped)
+  yield* Effect.fail(new Error("Oops!")) // Fails here
+  return "never reached"
+})
+
+// Run it - does "Released" still get logged?
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const acquire = Effect.sync(() => {
+  console.log("Acquired")
+  return {}
+})
+const release = () => Effect.sync(() => console.log("Released"))
+
+const scoped = Effect.acquireRelease(acquire, release)
+
+const program = Effect.gen(function* () {
+  const resource = yield* Effect.scoped(scoped)
+  yield* Effect.fail(new Error("Oops!"))
+  return "never reached"
+})
+
+Effect.runPromise(Effect.scoped(program)).catch(() => {
+  console.log("Program failed, but release still ran!")
+})
+// Output: Acquired, Released, Program failed...
+```

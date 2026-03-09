@@ -1,0 +1,37 @@
+---
+title: "Schema with refinements"
+lessonSlug: "schema"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schema } from "effect"
+
+// We need: non-empty string, valid email format
+// Schema lets us compose these...
+```
+
+```ts title="solution"
+import { Effect, Schema } from "effect"
+
+const EmailSchema = Schema.String.pipe(
+  Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {
+    message: () => "Invalid email format",
+  })
+)
+
+const CreateUserSchema = Schema.Struct({
+  name: Schema.String.pipe(Schema.minLength(1)),
+  email: EmailSchema,
+})
+
+const program = Schema.decodeUnknown(CreateUserSchema)({
+  name: "Alice",
+  email: "alice@example.com",
+}).pipe(
+  Effect.tap((user) => Effect.sync(() => console.log(user)))
+)
+
+Effect.runPromise(program)
+```

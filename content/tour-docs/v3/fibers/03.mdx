@@ -1,0 +1,34 @@
+---
+title: "Fiber.interrupt to cancel"
+lessonSlug: "fibers"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// A long-running task - what if we need to cancel?
+const longTask = Effect.sleep("10 seconds").pipe(
+  Effect.flatMap(() => Effect.sync(() => console.log("Finished")))
+)
+
+// We might want to cancel it after 1 second...
+```
+
+```ts title="solution"
+import { Effect, Fiber } from "effect"
+
+const longTask = Effect.sleep("5 seconds").pipe(
+  Effect.flatMap(() => Effect.sync(() => console.log("Finished")))
+)
+
+const program = Effect.gen(function* () {
+  const fiber = yield* Effect.fork(longTask)
+  yield* Effect.sleep("100 millis")
+  yield* Fiber.interrupt(fiber)
+  console.log("Cancelled!")
+})
+
+Effect.runPromise(program)
+```

@@ -1,0 +1,28 @@
+---
+title: "Stream.fromIterable and runCollect"
+lessonSlug: "streams"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Load everything into memory
+const items = [1, 2, 3, 4, 5]
+const doubled = items.map((n) => n * 2)
+// What if we have millions? Memory explodes!
+```
+
+```ts title="solution"
+import { Effect, Stream, Chunk } from "effect"
+
+const program = Stream.fromIterable([1, 2, 3, 4, 5]).pipe(
+  Stream.map((n) => n * 2),
+  Stream.runCollect
+)
+
+Effect.runPromise(program).then((chunk) => {
+  console.log(Chunk.toArray(chunk)) // [2, 4, 6, 8, 10]
+})
+```

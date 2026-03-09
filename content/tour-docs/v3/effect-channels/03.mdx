@@ -1,0 +1,63 @@
+---
+title: "Handling Errors with catchTag"
+lessonSlug: "effect-channels"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Data } from "effect"
+
+interface UserNotFoundError {
+  readonly _tag: "UserNotFoundError"
+  readonly userId: number
+}
+const UserNotFoundError = Data.tagged<UserNotFoundError>("UserNotFoundError")
+
+interface User {
+  readonly name: string
+}
+
+const getUser = (id: number): Effect.Effect<User, UserNotFoundError> => {
+  if (id === 1) {
+    return Effect.succeed({ name: "Alice" })
+  }
+  return Effect.fail(UserNotFoundError({ userId: id }))
+}
+
+// Anti-pattern: Ignoring the error type
+// This will throw if the user doesn't exist!
+const user = getUser(999)
+const result = Effect.runSync(user) // 💥 Crashes!
+```
+
+```ts title="solution"
+import { Effect, Data } from "effect"
+
+interface UserNotFoundError {
+  readonly _tag: "UserNotFoundError"
+  readonly userId: number
+}
+const UserNotFoundError = Data.tagged<UserNotFoundError>("UserNotFoundError")
+
+interface User {
+  readonly name: string
+}
+
+const getUser = (id: number): Effect.Effect<User, UserNotFoundError> => {
+  if (id === 1) {
+    return Effect.succeed({ name: "Alice" })
+  }
+  return Effect.fail(UserNotFoundError({ userId: id }))
+}
+
+// Effect way: Handle the error explicitly
+const user = getUser(999).pipe(
+  Effect.catchTag("UserNotFoundError", (error) =>
+    Effect.succeed({ name: "Guest" })
+  )
+)
+
+const result = Effect.runSync(user)
+console.log(result) // { name: "Guest" }
+```

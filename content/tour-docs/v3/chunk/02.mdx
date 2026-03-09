@@ -1,0 +1,24 @@
+---
+title: "Chunk.append, prepend, and take"
+lessonSlug: "chunk"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Chunk } from "effect"
+
+// We have a Chunk - add to front, add to back, take first 3
+let numbers = Chunk.fromIterable([2, 3, 4])
+// Append 5, prepend 1, take first 3...
+```
+
+```ts title="solution"
+import { Chunk } from "effect"
+
+let numbers = Chunk.fromIterable([2, 3, 4])
+numbers = Chunk.append(numbers, 5)
+numbers = Chunk.prepend(numbers, 1)
+const firstThree = Chunk.take(numbers, 3)
+console.log(Chunk.toArray(firstThree)) // [1, 2, 3]
+```

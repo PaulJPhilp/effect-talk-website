@@ -1,0 +1,32 @@
+---
+title: "Composing metrics in pipelines"
+lessonSlug: "metrics"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Our service does: fetch user, process, save
+// We want to count successes and measure each step...
+```
+
+```ts title="solution"
+import { Effect, Metric } from "effect"
+
+const successCounter = Metric.counter("operations_success_total")
+const stepTimer = Metric.timer("step_duration")
+
+const fetchUser = Effect.succeed({ id: 1, name: "Alice" }).pipe(
+  Effect.delay("20 millis"),
+  Metric.trackDuration(stepTimer)
+)
+
+const program = fetchUser.pipe(
+  Effect.tap(() => Metric.increment(successCounter)),
+  Effect.tap((user) => Effect.sync(() => console.log(user)))
+)
+
+Effect.runPromise(program)
+```

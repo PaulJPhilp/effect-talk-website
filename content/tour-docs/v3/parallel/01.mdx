@@ -1,0 +1,33 @@
+---
+title: "Effect.zipPar for parallel execution"
+lessonSlug: "parallel"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Sequential - slow!
+const fetchA = Effect.succeed("A").pipe(Effect.delay("100 millis"))
+const fetchB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
+
+const program = Effect.gen(function* () {
+  const a = yield* fetchA  // wait 100ms
+  const b = yield* fetchB  // wait 100ms
+  return [a, b]  // total 200ms
+})
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const fetchA = Effect.succeed("A").pipe(Effect.delay("100 millis"))
+const fetchB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
+
+const program = Effect.zipPar(fetchA, fetchB).pipe(
+  Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b)))
+)
+
+Effect.runPromise(program)
+```

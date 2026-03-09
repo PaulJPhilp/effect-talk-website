@@ -162,7 +162,7 @@ export function TourStep({
       >
         <div className="w-full flex-1 flex flex-col min-h-[500px]" style={{ minHeight: "600px" }}>
           {isCompareMode ? (
-            <CompareModePanel compareView={compareView} />
+            <CompareModePanel step={step} compareView={compareView} />
           ) : (
             <TabbedLessonPanel
               step={step}
@@ -287,10 +287,11 @@ function TabbedLessonPanel({
 }
 
 interface CompareModePanelProps {
+  readonly step: TourStepType
   readonly compareView: TourCompareView
 }
 
-function CompareModePanel({ compareView }: CompareModePanelProps) {
+function CompareModePanel({ step, compareView }: CompareModePanelProps) {
   const bothEmpty =
     compareView.identical &&
     compareView.v3Code === EMPTY_COMPARE_CODE
@@ -310,35 +311,53 @@ function CompareModePanel({ compareView }: CompareModePanelProps) {
   return (
     <div className="grid h-full min-h-[500px] grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem_minmax(0,1fr)]">
       <div className="min-h-[500px]">
-        <TourCodeRunner code={compareView.v3Code} readOnly={true} panelTitle="v3 solution" />
+        <TourCodeRunner
+          code={compareView.v3Code}
+          readOnly={true}
+          panelTitle={compareView.selectedSnippet === "solution" ? "v3 solution" : "v3 anti-pattern"}
+        />
       </div>
       <div className="flex items-stretch">
-        <CompareSummaryCard compareView={compareView} />
+        <CompareSummaryCard step={step} compareView={compareView} />
       </div>
       <div className="min-h-[500px]">
-        <TourCodeRunner code={compareView.v4Code} readOnly={true} panelTitle="v4 solution" />
+        <TourCodeRunner
+          code={compareView.v4Code}
+          readOnly={true}
+          panelTitle={compareView.selectedSnippet === "solution" ? "v4 solution" : "v4 anti-pattern"}
+        />
       </div>
     </div>
   )
 }
 
 interface CompareSummaryCardProps {
+  readonly step: TourStepType
   readonly compareView: TourCompareView
 }
 
-function CompareSummaryCard({ compareView }: CompareSummaryCardProps) {
-  const identicalBadge = (
-    <span className="inline-flex items-center rounded-full border border-amber-300/70 bg-amber-100/80 px-2 py-0.5 text-xs font-medium text-amber-900">
-      No v4 changes
-    </span>
-  )
+function CompareSummaryCard({ step, compareView }: CompareSummaryCardProps) {
+  const badge =
+    step.migration_status === "review-needed" ? (
+      <span className="inline-flex items-center rounded-full border border-rose-300/70 bg-rose-100/80 px-2 py-0.5 text-xs font-medium text-rose-900">
+        Review required
+      </span>
+    ) : compareView.identical ? (
+      <span className="inline-flex items-center rounded-full border border-amber-300/70 bg-amber-100/80 px-2 py-0.5 text-xs font-medium text-amber-900">
+        Unchanged from v3
+      </span>
+    ) : (
+      <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100/80 px-2 py-0.5 text-xs font-medium text-sky-900">
+        Auto-certified v4 migration
+      </span>
+    )
 
   if (compareView.identical) {
     return (
       <div className="h-full w-full rounded border border-border bg-background/90 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-foreground">Change summary</p>
-          {identicalBadge}
+          {badge}
         </div>
         <details className="group" aria-label="Identical lesson note">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
@@ -348,6 +367,11 @@ function CompareSummaryCard({ compareView }: CompareSummaryCardProps) {
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {compareView.changeSummary}
           </p>
+          {(step.v3_source_ref || step.v3_source_path) && (
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              Source: {step.v3_source_ref ?? "pinned v3 docs"} {step.v3_source_path ? `· ${step.v3_source_path}` : ""}
+            </p>
+          )}
         </details>
       </div>
     )
@@ -357,13 +381,20 @@ function CompareSummaryCard({ compareView }: CompareSummaryCardProps) {
     <div className="h-full w-full rounded border border-border bg-background/90 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-foreground">Change summary</p>
-        <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100/80 px-2 py-0.5 text-xs font-medium text-sky-900">
-          Generated v4
-        </span>
+        {badge}
       </div>
       <p className="text-sm leading-6 text-muted-foreground">
         {compareView.changeSummary}
       </p>
+      <div className="mt-3 space-y-1 text-xs leading-5 text-muted-foreground">
+        <p>Anti-pattern: {compareView.conceptIdentical ? "unchanged" : "changed"}</p>
+        <p>Solution: {compareView.solutionIdentical ? "unchanged" : "changed"}</p>
+        {(step.v3_source_ref || step.v3_source_path) && (
+          <p>
+            Source: {step.v3_source_ref ?? "pinned v3 docs"} {step.v3_source_path ? `· ${step.v3_source_path}` : ""}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,0 +1,42 @@
+---
+title: "Effect.tryPromise for async operations"
+lessonSlug: "async-effects"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Raw Promise, untyped errors
+const fetchUser = (id: number) =>
+  fetch(`/api/users/${id}`).then((r) => r.json())
+// What if it fails? Errors are unknown!
+```
+
+```ts title="solution"
+import { Effect, Data } from "effect"
+
+interface FetchError {
+  readonly _tag: "FetchError"
+  readonly message: string
+}
+const FetchError = Data.tagged<FetchError>("FetchError")
+
+// Effect way: Wrap async code with tryPromise
+const fetchUser = (id: number) =>
+  Effect.tryPromise({
+    try: () =>
+      Promise.resolve({ id, name: "Alice" }), // Simulated fetch
+    catch: (e) => FetchError({ message: String(e) }),
+  })
+
+const program = fetchUser(1).pipe(
+  Effect.map((user) => {
+    console.log("User:", user)
+    return user
+  })
+)
+
+Effect.runPromise(program)
+```

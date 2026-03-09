@@ -1,0 +1,33 @@
+---
+title: "Inspecting Cause for defects"
+lessonSlug: "cause-defects"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We caught an error - is it a defect we should log?
+// Cause.defects and Cause.failures let us inspect...
+```
+
+```ts title="solution"
+import { Effect, Cause } from "effect"
+
+const program = Effect.die("unexpected bug").pipe(
+  Effect.catchAllCause((cause) =>
+    Effect.gen(function* () {
+      const defects = Cause.defects(cause)
+      const failures = Cause.failures(cause)
+      yield* Effect.sync(() => {
+        console.log("Defects:", defects)
+        console.log("Failures:", failures)
+      })
+      return "recovered"
+    })
+  )
+)
+
+Effect.runPromise(program)
+```

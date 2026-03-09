@@ -250,6 +250,7 @@ export class TourProgress extends Effect.Service<TourProgressService>()("TourPro
                   feedbackOnComplete: row.stepFeedbackOnComplete,
                   patternId: row.stepPatternId,
                   createdAt: row.stepCreatedAt,
+                  lessonSlug: row.lessonSlug,
                   patternReleaseVersion: row.patternReleaseVersion,
                 })
               ),

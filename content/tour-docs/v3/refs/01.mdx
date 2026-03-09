@@ -1,0 +1,27 @@
+---
+title: "Ref.make, Ref.get, Ref.update"
+lessonSlug: "refs"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We need shared state - mutable variables are unsafe with fibers
+// Ref gives us atomic, effectful updates...
+```
+
+```ts title="solution"
+import { Effect, Ref } from "effect"
+
+const program = Effect.gen(function* () {
+  const ref = yield* Ref.make(0)
+  yield* Ref.update(ref, (n) => n + 1)
+  yield* Ref.update(ref, (n) => n + 1)
+  const value = yield* Ref.get(ref)
+  return value
+})
+
+Effect.runPromise(program).then(console.log) // 2
+```

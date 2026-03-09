@@ -1,0 +1,40 @@
+---
+title: "Effect.sync: when does the code run?"
+lessonSlug: "effects-are-lazy"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Expecting immediate execution
+console.log("1. Before creating Effect")
+
+const effect = Effect.sync(() => {
+  console.log("2. Inside Effect") // ❌ This never runs!
+  return "done"
+})
+
+console.log("3. After creating Effect")
+
+// If we expected immediate execution, we'd see all three logs
+// But we only see 1 and 3 - the Effect is just a description!
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+// Effect way: Understanding that Effects are descriptions
+console.log("1. Before creating Effect")
+
+const effect = Effect.sync(() => {
+  console.log("2. Inside Effect")
+  return "done"
+})
+
+console.log("3. After creating Effect (but before running)")
+
+// Only logs 1 and 3 appear! The Effect hasn't run yet.
+// To see log 2, you'd need to run: Effect.runSync(effect)
+```

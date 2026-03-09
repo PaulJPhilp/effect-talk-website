@@ -1,0 +1,39 @@
+---
+title: "When to use Runtime vs Effect.provide"
+lessonSlug: "runtimes"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// One-off script: fetch data, process, exit
+// vs
+// HTTP server: handle many requests, same DB connection
+// When do we use which?
+```
+
+```ts title="solution"
+import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
+
+class Db extends Effect.Service<Db>()("Db", {
+  sync: () => ({ query: () => Effect.succeed("data") }),
+}) {}
+
+// One-off: provide at the edge
+const oneOff = Effect.gen(function* () {
+  const db = yield* Db
+  return yield* db.query()
+})
+Effect.runPromise(Effect.provide(oneOff, Db.Default))
+
+// Many runs: create runtime once
+const runtime = ManagedRuntime.make(Db.Default)
+const effect = Effect.gen(function* () {
+  const db = yield* Db
+  return yield* db.query()
+})
+runtime.runPromise(effect).then(console.log)
+runtime.dispose()
+```
