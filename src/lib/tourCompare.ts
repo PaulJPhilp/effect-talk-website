@@ -7,32 +7,37 @@ export interface TourCompareView {
   readonly identical: boolean
 }
 
-const EMPTY_COMPARE_CODE = [
-  "// Comparison preview is not available for this step yet.",
-  "// v4beta lesson content will be wired in a later pass.",
-].join("\n")
+export const EMPTY_COMPARE_CODE = "// Comparison preview is not available for this step yet."
 
-function getBaseCode(step: TourStep): string {
-  return step.solution_code ?? step.concept_code ?? EMPTY_COMPARE_CODE
+export function getTourConceptCode(step: TourStep, mode: "v3" | "v4"): string | null {
+  if (mode === "v4") {
+    return step.concept_code_v4 ?? step.concept_code
+  }
+  return step.concept_code
 }
 
-export function getTemporaryTourCompareView(step: TourStep): TourCompareView {
-  const v3Code = getBaseCode(step)
-  const identical = step.order_index % 2 === 1
-
-  if (identical) {
-    return {
-      v3Code,
-      v4Code: v3Code,
-      changeSummary: "No v4beta changes are staged for this step yet. The v3 and v4 lesson variants currently match.",
-      identical: true,
-    }
+export function getTourSolutionCode(step: TourStep, mode: "v3" | "v4"): string | null {
+  if (mode === "v4") {
+    return step.solution_code_v4 ?? step.solution_code
   }
+  return step.solution_code
+}
+
+function getBaseCompareCode(step: TourStep, mode: "v3" | "v4"): string {
+  return getTourSolutionCode(step, mode) ?? getTourConceptCode(step, mode) ?? EMPTY_COMPARE_CODE
+}
+
+export function getTourCompareView(step: TourStep): TourCompareView {
+  const v3Code = getBaseCompareCode(step, "v3")
+  const v4Code = getBaseCompareCode(step, "v4")
+  const identical = v3Code === v4Code
 
   return {
     v3Code,
-    v4Code: `${v3Code}\n\n// v4beta placeholder: this pane will render the refactored v4 lesson code.`,
-    changeSummary: "Temporary comparison copy: the future v4beta lesson will highlight the refactored API shape, naming changes, and simplified composition flow here.",
-    identical: false,
+    v4Code,
+    changeSummary: identical
+      ? "No API-level migration changes were needed for this step."
+      : "This step is showing the generated v4 lesson variant alongside the current v3 version.",
+    identical,
   }
 }

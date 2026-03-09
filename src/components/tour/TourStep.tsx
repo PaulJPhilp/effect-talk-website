@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState, useSyncExternalStore } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { BookOpen, ChevronDown } from "lucide-react"
-import { type TourCompareView } from "@/lib/tourCompare"
+import { EMPTY_COMPARE_CODE, getTourConceptCode, getTourSolutionCode, type TourCompareView } from "@/lib/tourCompare"
 import { type TourMode } from "@/lib/tourMode"
 import { TourStepNavigation } from "@/components/tour/TourStepNavigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -70,7 +70,8 @@ export function TourStep({
   mode,
   compareView,
 }: TourStepProps) {
-  const hasSolution = Boolean(step.solution_code)
+  const codeMode = mode === "compare" ? "v3" : mode
+  const hasSolution = Boolean(getTourSolutionCode(step, codeMode))
   const [selectedTab, setSelectedTab] = useState<LessonTab>("anti-pattern")
 
   // Radix Tabs use useId() which causes hydration mismatch in Next.js 15.5+ / React 19.2.
@@ -195,17 +196,23 @@ function TabbedLessonPanel({
   mounted,
   mode,
 }: TabbedLessonPanelProps) {
+  const conceptCode = getTourConceptCode(step, mode)
+  const solutionCode = getTourSolutionCode(step, mode)
   const solutionLabel = mode === "v4" ? "Solution (v4 beta)" : "Solution"
 
-  if (!step.concept_code) {
-    return null
+  if (!conceptCode) {
+    return (
+      <div className="flex h-full items-center justify-center bg-muted/30 p-8 text-center">
+        <p className="text-sm text-muted-foreground">No code snippet available for this step.</p>
+      </div>
+    )
   }
 
-  if (!hasSolution) {
+  if (!hasSolution || !solutionCode) {
     return (
       <div className="w-full flex-1" style={{ minHeight: "500px", height: "100%" }}>
         <TourCodeRunner
-          code={step.concept_code}
+          code={conceptCode}
           readOnly={true}
           panelTitle={mode === "v4" ? "v4 beta lesson code" : "Lesson code"}
         />
@@ -220,7 +227,7 @@ function TabbedLessonPanel({
         <div className="flex-1 min-h-0 mt-0">
           <div className="h-full min-h-[500px]">
             <TourCodeRunner
-              code={step.concept_code}
+              code={conceptCode}
               readOnly={true}
               panelTitle={mode === "v4" ? "v4 beta preview" : "Lesson code"}
             />
@@ -232,11 +239,6 @@ function TabbedLessonPanel({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {mode === "v4" && (
-        <div className="border-b border-dashed border-border/80 bg-background/70 px-3 py-2 text-sm text-muted-foreground">
-          v4 beta preview UI is enabled. This pane will render v4beta lesson code when the refactored content is wired.
-        </div>
-      )}
       <Tabs
         value={selectedTab}
         onValueChange={(value) => {
@@ -257,15 +259,15 @@ function TabbedLessonPanel({
         <TabsContent value="anti-pattern" className="flex-1 min-h-0 mt-0">
           <div className="h-full min-h-[500px]">
             {selectedTab === "anti-pattern" ? (
-              <TourCodeRunner code={step.concept_code} readOnly={true} panelTitle="Anti-pattern" />
+              <TourCodeRunner code={conceptCode} readOnly={true} panelTitle="Anti-pattern" />
             ) : null}
           </div>
         </TabsContent>
         <TabsContent value="solution" className="flex-1 min-h-0 mt-0">
           <div className="h-full min-h-[500px] flex flex-col">
-            {step.solution_code && selectedTab === "solution" && (
+            {solutionCode && selectedTab === "solution" && (
               <TourCodeRunner
-                code={step.solution_code}
+                code={solutionCode}
                 readOnly={true}
                 panelTitle={mode === "v4" ? "v4 beta solution" : "Solution"}
               />
@@ -289,6 +291,22 @@ interface CompareModePanelProps {
 }
 
 function CompareModePanel({ compareView }: CompareModePanelProps) {
+  const bothEmpty =
+    compareView.identical &&
+    compareView.v3Code === EMPTY_COMPARE_CODE
+
+  if (bothEmpty) {
+    return (
+      <div className="flex h-full min-h-[500px] items-center justify-center p-8">
+        <div className="max-w-sm text-center">
+          <p className="text-sm font-medium text-muted-foreground">
+            No code snippets are available for comparison on this step yet.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="grid h-full min-h-[500px] grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem_minmax(0,1fr)]">
       <div className="min-h-[500px]">
@@ -340,7 +358,7 @@ function CompareSummaryCard({ compareView }: CompareSummaryCardProps) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-foreground">Change summary</p>
         <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100/80 px-2 py-0.5 text-xs font-medium text-sky-900">
-          Temporary copy
+          Generated v4
         </span>
       </div>
       <p className="text-sm leading-6 text-muted-foreground">
