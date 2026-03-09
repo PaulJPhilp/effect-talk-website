@@ -1,5 +1,9 @@
 # Tour V4 QA Fix Prompt
 
+Historical note: this prompt describes the older pre-docs-first QA era when `scripts/seed-tour.ts` was still treated as the lesson source of truth. The current operational pipeline starts from `content/tour/tour-manifest.json` plus `content/tour-docs/v3/`, and current release docs are [`docs/Architecture.md`](/Users/paul/Projects/In-Progress/effect-talk-website/docs/Architecture.md) and [`docs/deployment.md`](/Users/paul/Projects/In-Progress/effect-talk-website/docs/deployment.md).
+
+Everything below is archived troubleshooting context from that earlier pipeline and should not be used as current operating guidance.
+
 Use this prompt with a coding agent working in both:
 
 - `/Users/paul/Projects/In-Progress/effect-talk-website`

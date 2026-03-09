@@ -58,12 +58,15 @@ Key route groups in the app today:
 
 Tour v4 content workflow:
 - Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --manifest /abs/path/to/effect-talk-website/content/tour/tour-manifest.json --v3-docs-root /abs/path/to/effect-talk-website/content/tour-docs/v3 --output /abs/path/to/tour-v4-snippets.json --transform-profile pilot-structural --metadata-out /abs/path/to/tour-v4-metadata.json`
-- `content/tour/tour-manifest.json` is the authored curriculum. `scripts/seed-tour.ts` is only the DB seeding adapter that consumes the manifest plus the migrated artifact.
-- `content/tour-docs/v3/` is the pinned v3 snippet provenance layer for compare mode.
+- `content/tour/tour-manifest.json` is the authored curriculum contract. It defines lesson metadata, pinned v3 snippet selectors, expected migration policy, and allowed validation path per step.
+- `content/tour-docs/v3/` is the pinned v3 snippet provenance layer for compare mode. Every displayed v3 snippet should be traceable back to one of these files.
+- `scripts/seed-tour.ts` is only the DB seeding adapter that consumes the manifest plus the migrated artifact. It is no longer the curriculum source of truth.
 - The migration tool is the contract owner: it emits both the snippet artifact and companion metadata JSON, and the website QA consumes that contract rather than reading the tool’s internal CSV mappings
 - `bun run qa:tour:v4` requires artifact metadata `transformProfile: "pilot-structural"` and validates the emitted artifact+metadata pair or the embedded metadata contract in the artifact
-- Historical `v3` snippets are treated as source material. QA fully validates generated `v4` snippets, but it does not fail a changed step just because a removed v3 API no longer compiles against the current installed `effect` version
-- QA and the UI both distinguish `unchanged`, `auto-certified`, and `review-needed` steps. The current bootstrapped corpus is intentionally `review-needed` until each manifest entry is audited against the real historical docs source.
+- Historical `v3` snippets are treated as source material. QA fully validates generated `v4` snippets, but it does not fail a changed step just because a removed v3 API no longer compiles against the current installed `effect` version.
+- QA and the UI both distinguish `unchanged`, `auto-certified`, and `review-needed` steps.
+- Current trust state: the checked-in manifest/docs corpus is a bootstrap import and is intentionally `review-needed` until each manifest entry is audited against the real historical v3 docs source.
+- Release rule: never treat `review-needed` as an auto-trusted migration. Promotion decisions should be made from explicit trust-state counts, not only pass/fail totals.
 - Seed the website staging tables with `TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run db:seed:tour`
 - Promote with `bun run db:promote tour`
 - CI gate: `.github/workflows/tour-v4-audit.yml` runs typecheck, tests, artifact generation, and `bun run qa:tour:v4` for tour-related changes only
