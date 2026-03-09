@@ -33,6 +33,11 @@
     "smoke:auth:staging": "bun run scripts/smoke-auth-redirect.ts https://staging-effecttalk.vercel.app staging-effecttalk.vercel.app",
     "perf:tour": "bun run scripts/tour-performance-baseline.ts",
     "qa:tour:v4": "bun run scripts/qa-tour-v4.ts",
+    "qa:tour:v4:release": "bun run scripts/prepare-tour-v4-release.ts",
+    "tour:prepare:staging": "bun run scripts/prepare-tour-v4-release.ts --environment staging",
+    "tour:prepare:staging:apply": "bun run scripts/prepare-tour-v4-release.ts --environment staging --apply",
+    "tour:prepare:prod": "bun run scripts/prepare-tour-v4-release.ts --environment production",
+    "tour:prepare:prod:apply": "bun run scripts/prepare-tour-v4-release.ts --environment production --apply",
     "test:policy": "bun run scripts/check-test-policy.ts",
     "test:ci": "vitest run --config vitest.config.mts --coverage && bun run scripts/check-test-policy.ts"
   },

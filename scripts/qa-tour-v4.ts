@@ -8,6 +8,7 @@ import { runTourV4Qa } from "@/lib/tourV4Qa"
 interface ParsedArgs {
   readonly seedPath: string
   readonly artifactPath?: string
+  readonly metadataPath?: string
   readonly toolRoot: string
   readonly reportPath?: string
 }
@@ -15,6 +16,7 @@ interface ParsedArgs {
 function parseArgs(argv: readonly string[]): ParsedArgs {
   let seedPath = path.resolve(process.cwd(), "scripts/seed-tour.ts")
   let artifactPath: string | undefined
+  let metadataPath: string | undefined
   let toolRoot = path.resolve(process.cwd(), "..", "effect-refactoring-tool")
   let reportPath: string | undefined
 
@@ -27,6 +29,10 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         break
       case "--artifact":
         artifactPath = path.resolve(argv[index + 1] ?? "")
+        index += 1
+        break
+      case "--metadata":
+        metadataPath = path.resolve(argv[index + 1] ?? "")
         index += 1
         break
       case "--tool-root":
@@ -42,6 +48,7 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 
 Usage:
   bun run scripts/qa-tour-v4.ts [--seed /abs/path/to/scripts/seed-tour.ts] [--artifact /abs/path/to/tour-v4-snippets.json]
+                                [--metadata /abs/path/to/tour-v4-metadata.json]
                                 [--tool-root /abs/path/to/effect-refactoring-tool] [--report /abs/path/to/report.json]
 
 Behavior:
@@ -58,6 +65,7 @@ Behavior:
   return {
     seedPath,
     artifactPath,
+    metadataPath,
     toolRoot,
     reportPath,
   }
@@ -69,33 +77,34 @@ function createTempArtifactPath(): string {
   return path.join(tempDir, "tour-v4-snippets.json")
 }
 
-function ensureToolPaths(toolRoot: string): { migrationPackageRoot: string; mappingsPath: string } {
+function buildTempMetadataPath(artifactPath: string): string {
+  return path.join(path.dirname(artifactPath), "tour-v4-metadata.json")
+}
+
+function ensureToolPaths(toolRoot: string): { migrationPackageRoot: string } {
   const migrationPackageRoot = path.join(toolRoot, "packages", "v4-migration")
-  const mappingsPath = path.join(migrationPackageRoot, "v3-to-v4-migration-primitives.csv")
 
   if (!existsSync(migrationPackageRoot)) {
     throw new Error(`Unable to find effect-v4-migration package at ${migrationPackageRoot}`)
   }
-  if (!existsSync(mappingsPath)) {
-    throw new Error(`Unable to find migration mappings at ${mappingsPath}`)
-  }
 
   return {
     migrationPackageRoot,
-    mappingsPath,
   }
 }
 
 async function generateArtifactIfNeeded(
   artifactPath: string | undefined,
+  metadataPath: string | undefined,
   migrationPackageRoot: string,
   seedPath: string
-): Promise<{ artifactPath: string; temporary: boolean }> {
+): Promise<{ artifactPath: string; metadataPath?: string; temporary: boolean }> {
   if (artifactPath) {
-    return { artifactPath, temporary: false }
+    return { artifactPath, metadataPath, temporary: false }
   }
 
   const generatedArtifactPath = createTempArtifactPath()
+  const generatedMetadataPath = buildTempMetadataPath(generatedArtifactPath)
   const child = Bun.spawn({
     cmd: [
       "bun",
@@ -106,6 +115,8 @@ async function generateArtifactIfNeeded(
       seedPath,
       "--output",
       generatedArtifactPath,
+      "--metadata-out",
+      generatedMetadataPath,
     ],
     cwd: migrationPackageRoot,
     stdout: "inherit",
@@ -116,20 +127,20 @@ async function generateArtifactIfNeeded(
     throw new Error(`Artifact generation failed with exit code ${exitCode}`)
   }
 
-  return { artifactPath: generatedArtifactPath, temporary: true }
+  return { artifactPath: generatedArtifactPath, metadataPath: generatedMetadataPath, temporary: true }
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
-  const { migrationPackageRoot, mappingsPath } = ensureToolPaths(args.toolRoot)
-  const generated = await generateArtifactIfNeeded(args.artifactPath, migrationPackageRoot, args.seedPath)
+  const { migrationPackageRoot } = ensureToolPaths(args.toolRoot)
+  const generated = await generateArtifactIfNeeded(args.artifactPath, args.metadataPath, migrationPackageRoot, args.seedPath)
 
   try {
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
       seedPath: args.seedPath,
       artifactPath: generated.artifactPath,
-      mappingsPath,
+      metadataPath: generated.metadataPath,
     })
 
     if (args.reportPath) {

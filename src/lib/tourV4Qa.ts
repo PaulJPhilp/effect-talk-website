@@ -5,16 +5,11 @@ import ts from "typescript"
 import { EMPTY_COMPARE_CODE, getTourCompareView } from "@/lib/tourCompare"
 import {
   buildTourArtifactStepKey,
+  type TourMigrationContractMetadata,
   type TourMigrationArtifact,
   validateTourMigrationArtifact,
 } from "@/lib/tourMigrationArtifact"
 import type { TourStep } from "@/services/TourProgress/types"
-
-const MANUAL_MARKER_PATTERNS = [
-  "TODO: EFFECT-MIGRATION-MANUAL",
-  "Something went wrong",
-  'throw new Error("TODO: EFFECT-MIGRATION-MANUAL',
-] as const
 
 const COMPARE_SUMMARY_IDENTICAL = "No API-level migration changes were needed for this step."
 const COMPARE_SUMMARY_CHANGED = "This step is showing the generated v4 lesson variant alongside the current v3 version."
@@ -33,12 +28,6 @@ export interface TourQaLesson {
   readonly slug: string
   readonly title: string
   readonly steps: readonly TourQaStep[]
-}
-
-export interface MigrationMapping {
-  readonly v3Api: string
-  readonly v4Api: string
-  readonly mappingType: string
 }
 
 export interface SnippetExecutionResult {
@@ -86,11 +75,7 @@ const EMPTY_EXECUTION_RESULT: SnippetExecutionResult = {
   timedOut: false,
 }
 
-type LessonStepsByName = ReadonlyMap<string, readonly TourQaStep[]>
-
 const normalizeText = (value: string): string => value.replace(/\r\n/g, "\n").trim()
-
-const normalizeCsvRow = (line: string): readonly string[] => line.split("\t")
 
 const getObjectLiteralProperty = (
   objectLiteral: ts.ObjectLiteralExpression,
@@ -233,33 +218,8 @@ export function loadTourMigrationArtifact(filePath: string): TourMigrationArtifa
   return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationArtifact
 }
 
-export function loadMigrationMappings(filePath: string): readonly MigrationMapping[] {
-  const lines = readFileSync(filePath, "utf8")
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0)
-
-  if (lines.length === 0) {
-    return []
-  }
-
-  const headers = normalizeCsvRow(lines[0]).map((header) => header.trim().toLowerCase())
-  const v3ApiIndex = headers.indexOf("v3 api")
-  const v4ApiIndex = headers.indexOf("v4 api")
-  const mappingTypeIndex = headers.indexOf("mapping type")
-
-  return lines.slice(1).map((line) => {
-    const cells = normalizeCsvRow(line)
-    return {
-      v3Api: (cells[v3ApiIndex] ?? "").trim(),
-      v4Api: (cells[v4ApiIndex] ?? "").trim(),
-      mappingType: (cells[mappingTypeIndex] ?? "").trim(),
-    } satisfies MigrationMapping
-  })
-}
-
-function buildLessonStepsByName(lessons: readonly TourQaLesson[]): LessonStepsByName {
-  return new Map(lessons.map((lesson) => [lesson.slug, lesson.steps]))
+export function loadTourMigrationMetadata(filePath: string): TourMigrationContractMetadata {
+  return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationContractMetadata
 }
 
 function buildTourStep(step: TourQaStep, artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number]): TourStep {
@@ -419,26 +379,22 @@ function collectQualifiedUsages(code: string): ReadonlySet<string> {
   return usages
 }
 
-function collectOptimalityFailures(code: string, mappings: readonly MigrationMapping[]): readonly string[] {
+function collectOptimalityFailures(
+  code: string,
+  metadata: TourMigrationContractMetadata,
+  artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number]
+): readonly string[] {
   const failures: string[] = []
 
-  for (const pattern of MANUAL_MARKER_PATTERNS) {
-    if (code.includes(pattern)) {
-      failures.push(`contains migration placeholder: ${pattern}`)
-    }
+  if (artifactStep.conceptHasManualReview || artifactStep.solutionHasManualReview) {
+    failures.push("artifact step is flagged for manual review")
   }
 
   const usages = collectQualifiedUsages(code)
-  const blockedApis = mappings.filter(
-    (mapping) =>
-      mapping.v3Api.length > 0 &&
-      mapping.v3Api !== mapping.v4Api &&
-      mapping.mappingType.toLowerCase() !== "[1:1 direct]"
-  )
 
-  for (const mapping of blockedApis) {
-    if (usages.has(mapping.v3Api)) {
-      failures.push(`still references non-v4 API ${mapping.v3Api}`)
+  for (const blockedApi of metadata.blockedV3Apis) {
+    if (usages.has(blockedApi)) {
+      failures.push(`still references non-v4 API ${blockedApi}`)
     }
   }
 
@@ -494,17 +450,24 @@ export async function runTourV4Qa(options: {
   readonly projectRoot: string
   readonly seedPath: string
   readonly artifactPath: string
-  readonly mappingsPath: string
+  readonly metadataPath?: string
 }): Promise<TourQaReport> {
   const lessons = extractTourLessonsFromSeedFile(options.seedPath)
   const artifact = loadTourMigrationArtifact(options.artifactPath)
-  const lessonStepsByName = buildLessonStepsByName(lessons)
+  const metadata = options.metadataPath ? loadTourMigrationMetadata(options.metadataPath) : artifact.metadata
   const lessonShapes = lessons.map((lesson) => ({
     slug: lesson.slug,
     steps: lesson.steps.map((step) => ({ orderIndex: step.orderIndex })),
   }))
   const stepMap = validateTourMigrationArtifact(artifact, lessonShapes)
-  const mappings = loadMigrationMappings(options.mappingsPath)
+  if (metadata.artifactVersion !== artifact.version) {
+    throw new Error(
+      `Tour v4 metadata mismatch: metadata artifact version ${metadata.artifactVersion} does not match artifact version ${artifact.version}`
+    )
+  }
+  if (metadata.generatedAt !== artifact.metadata.generatedAt || metadata.mappingVersion !== artifact.metadata.mappingVersion) {
+    throw new Error("Tour v4 metadata does not match the embedded artifact metadata")
+  }
   const tempDir = mkdtempSync(path.join(options.projectRoot, ".tmp-tour-v4-qa-"))
 
   try {
@@ -536,7 +499,7 @@ export async function runTourV4Qa(options: {
           ...v3TypecheckErrors.map((error) => `v3 typecheck: ${error}`),
           ...v4TypecheckErrors.map((error) => `v4 typecheck: ${error}`),
           ...(compareView.identical ? [] : compareExecutions(v3Execution, v4Execution)),
-          ...collectOptimalityFailures(compareView.v4Code, mappings),
+          ...collectOptimalityFailures(compareView.v4Code, metadata, artifactStep),
         ]
 
         results.push({

@@ -1,0 +1,63 @@
+name: Tour V4 Cross-Repo Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_ref:
+        description: effect-refactoring-tool ref to validate
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  cross-repo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: PaulJPhilp/effect-refactoring-tool
+          ref: ${{ inputs.migration_ref }}
+          path: effect-refactoring-tool
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install website dependencies
+        run: bun install
+
+      - name: Install migration tool dependencies
+        working-directory: effect-refactoring-tool
+        run: bun install
+
+      - name: Generate migration artifact
+        run: |
+          mkdir -p .generated/cross-repo
+          bun run --filter effect-v4-migration migrate-tour -- \
+            --seed "$GITHUB_WORKSPACE/scripts/seed-tour.ts" \
+            --output "$GITHUB_WORKSPACE/.generated/cross-repo/tour-v4-snippets.json" \
+            --metadata-out "$GITHUB_WORKSPACE/.generated/cross-repo/tour-v4-metadata.json"
+        working-directory: effect-refactoring-tool
+
+      - name: Run tour v4 audit
+        run: |
+          bun run qa:tour:v4 -- \
+            --artifact "$GITHUB_WORKSPACE/.generated/cross-repo/tour-v4-snippets.json" \
+            --metadata "$GITHUB_WORKSPACE/.generated/cross-repo/tour-v4-metadata.json" \
+            --tool-root "$GITHUB_WORKSPACE/effect-refactoring-tool" \
+            --report "$GITHUB_WORKSPACE/.generated/cross-repo/tour-v4-qa.json"
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tour-v4-cross-repo-audit-${{ inputs.migration_ref }}
+          path: |
+            .generated/cross-repo/tour-v4-snippets.json
+            .generated/cross-repo/tour-v4-metadata.json
+            .generated/cross-repo/tour-v4-qa.json

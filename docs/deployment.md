@@ -29,6 +29,7 @@ Set these in Vercel (or your host) for the **build** and **runtime** environment
 2. **Build**: In Vercel, add `DATABASE_URL` to the build environment as well as runtime envs so `next build` can resolve DB-backed pages and metadata.
 3. **Secrets**: Confirm `API_KEY_PEPPER`, `WORKOS_COOKIE_PASSWORD`, and WorkOS keys are set and are not placeholder values.
 4. **WorkOS**: In the WorkOS Dashboard, add your production redirect URI and ensure the GitHub (or other) provider is configured for the production client.
+5. **Tour changes only**: If the release includes tour content, compare-mode logic, or migration-tool inputs, run `bun run qa:tour:v4:release` first. For staging/prod content promotion, use `bun run tour:prepare:staging[:apply]` or the production equivalent so artifact generation, metadata export, audit, seed, and promote happen in the correct order.
 
 ## Applying schema changes (app-owned tables)
 
@@ -37,6 +38,8 @@ Use the targeted repo scripts for app-owned tables, for example:
 - `bun run db:apply-feedback`
 - `bun run db:seed:tour`
 - `bun run db:promote`
+- `bun run tour:prepare:staging`
+- `bun run tour:prepare:staging:apply`
 
 Run them with `DATABASE_URL` pointing at the intended target database or branch, then verify with `bun run db:check`.
 

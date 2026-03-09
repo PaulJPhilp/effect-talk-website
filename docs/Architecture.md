@@ -51,12 +51,19 @@ Key route groups in the app today:
 | `bun run env:check` | Validate deploy-critical env vars |
 | `bun run db:check` | Verify DB connectivity and required tables |
 | `bun run perf:tour` | Run the tour baseline script |
-| `bun run qa:tour:v4` | Generate the v4 artifact and QA all tour compare snippets |
+| `bun run qa:tour:v4` | Generate the v4 artifact plus metadata and QA all tour compare snippets |
+| `bun run qa:tour:v4:release` | Generate a release artifact plus metadata, run QA, and emit stable artifact/report paths |
+| `bun run tour:prepare:staging` | Prepare a staging tour release artifact and QA report without mutating the DB |
+| `bun run tour:prepare:staging:apply` | Prepare, QA, seed, promote, and verify staging tour content |
 
 Tour v4 content workflow:
-- Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --seed /abs/path/to/effect-talk-website/scripts/seed-tour.ts --output /abs/path/to/tour-v4-snippets.json`
+- Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --seed /abs/path/to/effect-talk-website/scripts/seed-tour.ts --output /abs/path/to/tour-v4-snippets.json --metadata-out /abs/path/to/tour-v4-metadata.json`
+- The migration tool is the contract owner: it emits both the snippet artifact and companion metadata JSON, and the website QA consumes that contract rather than reading the tool’s internal CSV mappings
+- `bun run qa:tour:v4` validates either the emitted artifact+metadata pair or the embedded metadata contract in the artifact
 - Seed the website staging tables with `TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run db:seed:tour`
 - Promote with `bun run db:promote tour`
+- CI gate: `.github/workflows/tour-v4-audit.yml` runs typecheck, tests, artifact generation, and `bun run qa:tour:v4` for tour-related changes only
+- Cross-repo validation: `.github/workflows/tour-v4-cross-repo.yml` can be run manually against a specific `effect-refactoring-tool` ref
 
 ## Service architecture
 

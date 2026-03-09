@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { extractTourLessonsFromSeedFile, extractTourLessonsFromSeedSource, loadMigrationMappings } from "@/lib/tourV4Qa"
+import { extractTourLessonsFromSeedFile, extractTourLessonsFromSeedSource, loadTourMigrationMetadata } from "@/lib/tourV4Qa"
 
 const tempDirs: string[] = []
 
@@ -79,21 +79,32 @@ describe("tourV4Qa helpers", () => {
     ])
   })
 
-  it("loads tab-delimited migration mappings", () => {
+  it("loads tool-emitted migration metadata", () => {
     const filePath = createTempFile(
-      "mappings.tsv",
-      [
-        "Module\tv3 API\tv4 API\tEvaluation\tMapping Type\tRequires AST Context?\tAST Notes",
-        "Data\tData.tagged\tData.tagged\tNo-op\t[1:1 Direct]\tNo\tDirect no-op",
-      ].join("\n")
+      "tour-v4-metadata.json",
+      JSON.stringify({
+        metadataVersion: 1,
+        artifactVersion: 2,
+        generatorVersion: "0.1.0",
+        mappingVersion: "abc123",
+        generatedAt: "2026-03-09T00:00:00.000Z",
+        transformProfile: "safe",
+        reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
+        blockedV3Apis: ["Effect.zipPar"],
+        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+      })
     )
 
-    expect(loadMigrationMappings(filePath)).toEqual([
-      {
-        v3Api: "Data.tagged",
-        v4Api: "Data.tagged",
-        mappingType: "[1:1 Direct]",
-      },
-    ])
+    expect(loadTourMigrationMetadata(filePath)).toEqual({
+      metadataVersion: 1,
+      artifactVersion: 2,
+      generatorVersion: "0.1.0",
+      mappingVersion: "abc123",
+      generatedAt: "2026-03-09T00:00:00.000Z",
+      transformProfile: "safe",
+      reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
+      blockedV3Apis: ["Effect.zipPar"],
+      blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+    })
   })
 })
