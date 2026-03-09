@@ -1,14 +1,12 @@
 # Environment files
 
-**The env files are set up correctly. Do not modify `.env`, `.env.example`, or `.env.local` unless you are explicitly adding a new variable or rotating a secret.**
-
-How they work and how to manage them.
+How env files work in this repo and how to manage them safely.
 
 ## How env files work
 
 - **Load order:** Next.js loads `.env`, then `.env.local`, then env vars from the shell. Later sources override earlier ones for the same key.
-- **Build and runtime:** Values are read at **build time** (e.g. `next build`, `vercel`) and at **runtime**. Middleware and server code use whatever was available when the app was built (and, on Vercel, runtime env can override for serverless/Edge where the platform injects vars).
-- **CLI deploy:** When you run `vercel` or `vercel --prod`, the build runs on your machine. So the build sees `.env` and `.env.local` from your repo. The deployed app uses those inlined values; sign-in and API keys only work if `.env.local` had real values when you built.
+- **Build and runtime:** Next.js reads env at build time, and Vercel injects runtime env for deployed server code.
+- **CLI deploy:** When you run `vercel` locally, the build sees your local env files. The deployed runtime still uses Vercel envs.
 
 ## File roles
 
@@ -23,7 +21,7 @@ How they work and how to manage them.
 1. **Do not put real secrets in `.env`** — It is committed. Use only safe defaults and placeholders (e.g. `WORKOS_COOKIE_PASSWORD=xxx`, `API_KEY_PEPPER=change-me-in-production`).
 2. **Do not commit `.env.local`** — It is gitignored. It holds real API keys, cookie passwords, and DB URLs.
 3. **Keep `.env` and `.env.example` in sync** — Same keys, same order. When you add a new env var the app needs, add it to both (with a safe default in `.env`, same placeholder or value in `.env.example`).
-4. **Leave env files alone** — They are set up correctly. Do not edit `.env`, `.env.example`, or `.env.local` unless you are adding a new variable or rotating a secret.
+4. **Edit env files only when needed** — add new keys deliberately, keep `.env` and `.env.example` aligned, and never commit real secrets.
 5. **WorkOS:** In `.env.local`, `WORKOS_COOKIE_PASSWORD` must be **at least 32 characters**. Generate with: `openssl rand -base64 24`.
 6. **CLI deploy:** Before running `vercel` or `vercel --prod`, ensure `.env.local` has real values for WorkOS and any other features you need in the deployed app; the build reads `.env` and `.env.local` on your machine. Run **`bun run env:check`** to validate required vars (no secrets printed).
 
@@ -50,10 +48,10 @@ Staging uses Vercel **Preview** deployments. Each external service needs its own
 | `OTEL_SERVICE_NAME` | `effect-talk-website` | Same service name; spans are distinguished by `deployment.environment` resource attribute |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `https://api.honeycomb.io` | Same endpoint; use a staging API key for dataset isolation |
 | `OTEL_EXPORTER_OTLP_HEADERS` | `x-honeycomb-team=<staging-api-key>` | Staging Honeycomb API key |
-| `WORKOS_API_KEY` | Staging environment key | From WorkOS Dashboard → Staging environment |
-| `WORKOS_CLIENT_ID` | Staging client ID | From WorkOS Dashboard → Staging environment |
-| `WORKOS_REDIRECT_URI` | `https://*-effect-talk-website.vercel.app/auth/callback` | Must match WorkOS redirect config |
-| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Same as `WORKOS_REDIRECT_URI` | Public for client redirect |
+| `WORKOS_API_KEY` | WorkOS API key used by staging | Must match the WorkOS environment/client your Preview deploy uses |
+| `WORKOS_CLIENT_ID` | Matching client ID | |
+| `WORKOS_REDIRECT_URI` | `https://staging-effecttalk.vercel.app/auth/callback` | Must match WorkOS redirect config |
+| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Same callback URL | Public redirect value; the staging deploy script can also inject this at build time |
 | `WORKOS_COOKIE_PASSWORD` | Separate 32+ char secret | Generate: `openssl rand -base64 24` |
 
 The `getAppEnv()` utility in `src/lib/env.ts` automatically derives `"staging"` from `VERCEL_ENV=preview` when `APP_ENV` is not set, but explicitly setting `APP_ENV=staging` is recommended.

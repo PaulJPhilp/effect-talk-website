@@ -13,8 +13,10 @@ Project guidance for **effect-talk-website**.
 |---|---|
 | `bun run dev` | Start dev server |
 | `bun run build` | Production build |
+| `bun run typecheck` | TypeScript check |
 | `bun run test` | Run tests (watch mode) |
 | `bun run test:run` | Run tests once |
+| `bun run test:coverage` | Run tests with coverage |
 | `bun run lint` | ESLint |
 | `bun run env:check` | Verify env vars for deploy |
 | `bun run db:check` | Verify DB connection + tables |

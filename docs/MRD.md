@@ -1,3 +1,5 @@
+> Historical planning document. For current implementation details, use `docs/Architecture.md`, `docs/env.md`, `docs/deployment.md`, and `docs/TESTING_STRATEGY.md`.
+
 MRD — EffectTalk Website (v1)
 
 1. Purpose

@@ -22,6 +22,27 @@ interface SignInPageProps {
 }
 
 async function getRedirectUriForRequest(): Promise<string> {
+  const configuredRedirectUri =
+    process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? process.env.WORKOS_REDIRECT_URI
+  const baseUrl = process.env.APP_BASE_URL
+  const isLocalDev = process.env.VERCEL_ENV === undefined || process.env.VERCEL_ENV === "development"
+
+  if (!isLocalDev) {
+    if (configuredRedirectUri) {
+      return configuredRedirectUri
+    }
+
+    if (!baseUrl) {
+      throw new Error("APP_BASE_URL is required in deployed environments.")
+    }
+
+    if (baseUrl.includes("localhost")) {
+      throw new Error(`Invalid APP_BASE_URL for deployed environment: ${baseUrl}`)
+    }
+
+    return `${baseUrl.replace(/\/$/, "")}/auth/callback`
+  }
+
   const requestHeaders = await headers()
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "https"
@@ -29,9 +50,6 @@ async function getRedirectUriForRequest(): Promise<string> {
   if (host) {
     return `${protocol}://${host}/auth/callback`
   }
-
-  const baseUrl = process.env.APP_BASE_URL
-  const isLocalDev = process.env.VERCEL_ENV === undefined || process.env.VERCEL_ENV === "development"
 
   if (!baseUrl && !isLocalDev) {
     throw new Error("APP_BASE_URL is required in deployed environments.")

@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeEach, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react"
 import { TourLessonView } from "@/components/tour/TourLessonView"
 import { _resetLoaderState } from "@/hooks/useTourProgress"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 import type { TourLessonWithSteps } from "@/services/TourProgress/types"
 
 const navigationState = {
@@ -45,8 +46,10 @@ const lesson: TourLessonWithSteps = {
       title: "First step",
       instruction: "Read the first example.",
       concept_code: "console.log('first concept')",
+      concept_code_v4: "console.log('first concept v4')",
       concept_code_language: "typescript",
       solution_code: "console.log('first solution')",
+      solution_code_v4: "console.log('first solution v4')",
       playground_url: null,
       hints: null,
       feedback_on_complete: null,
@@ -60,8 +63,10 @@ const lesson: TourLessonWithSteps = {
       title: "Second step",
       instruction: "Read the second example.",
       concept_code: "console.log('second concept')",
+      concept_code_v4: "console.log('second concept v4')",
       concept_code_language: "typescript",
       solution_code: "console.log('second solution')",
+      solution_code_v4: "console.log('second solution')",
       playground_url: null,
       hints: null,
       feedback_on_complete: null,
@@ -77,10 +82,18 @@ describe("TourLessonView", () => {
     navigationState.replace.mockReset()
     localStorage.clear()
     _resetLoaderState()
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ progress: [] }),
-    })))
+    const originalFetch = globalThis.fetch
+    vi.stubGlobal("fetch", createTypedFakeFetch({
+      originalFetch,
+      handler: async () => ({
+        ok: true,
+        json: async () => ({ progress: [] }),
+      } as Response),
+    }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it("preserves mode when restoring a saved step into the URL for logged-in users", async () => {
@@ -89,10 +102,12 @@ describe("TourLessonView", () => {
 
     render(<TourLessonView lesson={lesson} isLoggedIn={true} />)
 
-    expect(navigationState.replace).toHaveBeenCalledWith(
-      "/tour/pipes-and-flow?mode=compare&step=2",
-      { scroll: false }
-    )
+    await waitFor(() => {
+      expect(navigationState.replace).toHaveBeenCalledWith(
+        "/tour/pipes-and-flow?mode=compare&step=2",
+        { scroll: false }
+      )
+    })
   })
 
   it("falls back to v3 lesson navigation for guests", () => {

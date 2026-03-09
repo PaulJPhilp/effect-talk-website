@@ -6,15 +6,17 @@
  * Uses deterministic UUIDs so that tour_progress.step_id references
  * survive blue-green table swaps.
  *
- * Usage: bun run scripts/seed-tour.ts
+ * Usage: TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run scripts/seed-tour.ts
  *
  * After seeding, run `bun run db:promote tour` to swap staging → live.
  */
 
 import { config } from "dotenv"
+import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { drizzle } from "drizzle-orm/node-postgres"
+import { validateTourMigrationArtifact, type TourMigrationArtifact } from "../src/lib/tourMigrationArtifact"
 import { tourLessonsStaging, tourStepsStaging, patterns, contentDeployments } from "../src/db/schema"
 import { lessonId, stepId } from "./lib/deterministic-ids"
 
@@ -2373,8 +2375,10 @@ interface StepDefinition {
   patternTitle: string | null
   instruction: string
   conceptCode: string
+  conceptCodeV4?: string | null
   conceptCodeLanguage: string
   solutionCode: string
+  solutionCodeV4?: string | null
   hints: string[]
   feedbackOnComplete: string
 }
@@ -2382,10 +2386,31 @@ interface StepDefinition {
 /** Cache of pattern title → id (reads from LIVE patterns table) */
 let patternCache: Map<string, string> | null = null
 
+function hasMissingPatternsTableError(value: unknown): boolean {
+  if (value && typeof value === "object") {
+    const candidate = value as { message?: unknown; code?: unknown; cause?: unknown }
+    if (candidate.code === "42P01") return true
+    if (typeof candidate.message === "string" && candidate.message.includes("effect_patterns")) {
+      return true
+    }
+    if (candidate.cause) return hasMissingPatternsTableError(candidate.cause)
+  }
+  if (typeof value === "string" && value.includes("effect_patterns")) return true
+  return false
+}
+
 async function buildPatternCache() {
-  const allPatterns = await db.select({ id: patterns.id, title: patterns.title }).from(patterns)
-  patternCache = new Map(allPatterns.map((p) => [p.title, p.id]))
-  console.log(`Loaded ${patternCache.size} patterns for linking`)
+  try {
+    const allPatterns = await db.select({ id: patterns.id, title: patterns.title }).from(patterns)
+    patternCache = new Map(allPatterns.map((p) => [p.title, p.id]))
+    console.log(`Loaded ${patternCache.size} patterns for linking`)
+  } catch (error) {
+    if (!hasMissingPatternsTableError(error)) {
+      throw error
+    }
+    patternCache = new Map()
+    console.warn('Shared "effect_patterns" table is unavailable in this database; staging tour steps without pattern links.')
+  }
 }
 
 function resolvePatternId(patternTitle: string | null): string | null {
@@ -2395,6 +2420,34 @@ function resolvePatternId(patternTitle: string | null): string | null {
     console.warn(`  ⚠ Pattern not found: "${patternTitle}"`)
   }
   return id ?? null
+}
+
+function loadTourV4Artifact(filePath: string): TourMigrationArtifact {
+  const raw = readFileSync(filePath, "utf8")
+  return JSON.parse(raw) as TourMigrationArtifact
+}
+
+function attachV4LessonVariants(
+  lessons: readonly LessonDefinition[],
+  artifact: TourMigrationArtifact
+): LessonDefinition[] {
+  const stepMap = validateTourMigrationArtifact(artifact, lessons)
+
+  return lessons.map((lesson) => ({
+    ...lesson,
+    steps: lesson.steps.map((step) => {
+      const stepVariant = stepMap.get(`${lesson.slug}:${step.orderIndex}`)
+      if (!stepVariant) {
+        throw new Error(`Tour v4 artifact is missing ${lesson.slug} step ${step.orderIndex}`)
+      }
+
+      return {
+        ...step,
+        conceptCodeV4: stepVariant.migratedConceptCode,
+        solutionCodeV4: stepVariant.migratedSolutionCode,
+      }
+    }),
+  }))
 }
 
 /**
@@ -2410,8 +2463,10 @@ async function insertSteps(lessonSlug: string, deterministicLessonId: string, st
       title: step.title,
       instruction: step.instruction,
       conceptCode: step.conceptCode,
+      conceptCodeV4: step.conceptCodeV4 ?? null,
       conceptCodeLanguage: step.conceptCodeLanguage,
       solutionCode: step.solutionCode,
+      solutionCodeV4: step.solutionCodeV4 ?? null,
       playgroundUrl: null,
       hints: step.hints,
       feedbackOnComplete: step.feedbackOnComplete,
@@ -2624,6 +2679,14 @@ const allLessons: LessonDefinition[] = [
 // ---------------------------------------------------------------------------
 
 async function seed() {
+  const artifactPath = process.env.TOUR_V4_ARTIFACT_PATH
+  if (!artifactPath) {
+    throw new Error("Missing TOUR_V4_ARTIFACT_PATH. Generate the tour artifact first with effect-v4-migration migrate-tour.")
+  }
+
+  const v4Artifact = loadTourV4Artifact(artifactPath)
+  const lessonsWithV4 = attachV4LessonVariants(allLessons, v4Artifact)
+
   // Always clear staging tables (they're scratch space)
   console.log("Clearing staging tables...")
   await db.delete(tourStepsStaging)
@@ -2634,7 +2697,7 @@ async function seed() {
 
   // Insert all lessons and steps into staging tables
   let totalSteps = 0
-  for (const lesson of allLessons) {
+  for (const lesson of lessonsWithV4) {
     const deterministicId = lessonId(lesson.slug)
 
     console.log(`\nStaging Lesson ${lesson.orderIndex}: ${lesson.title} (id: ${deterministicId.slice(0, 8)}...)`)
@@ -2659,11 +2722,11 @@ async function seed() {
   await db.insert(contentDeployments).values({
     tableGroup: "tour",
     status: "staged",
-    rowCount: allLessons.length + totalSteps,
-    metadata: { lessons: allLessons.length, steps: totalSteps },
+    rowCount: lessonsWithV4.length + totalSteps,
+    metadata: { lessons: lessonsWithV4.length, steps: totalSteps, v4ArtifactPath: artifactPath },
   })
 
-  console.log(`\nStaging complete! ${allLessons.length} lessons, ${totalSteps} steps.`)
+  console.log(`\nStaging complete! ${lessonsWithV4.length} lessons, ${totalSteps} steps.`)
   console.log("To promote to live, run:")
   console.log("  bun run db:promote tour")
   process.exit(0)

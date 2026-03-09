@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest --config vitest.config.mts",
     "test:run": "vitest run --config vitest.config.mts",
     "test:coverage": "vitest run --config vitest.config.mts --coverage",

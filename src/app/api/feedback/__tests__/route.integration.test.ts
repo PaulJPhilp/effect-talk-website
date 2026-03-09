@@ -86,7 +86,7 @@ describe("POST /api/feedback", () => {
     it("returns 429 after exceeding form rate limit (5 per minute)", async () => {
       const ip = `rate-limit-test-${Date.now()}`
       const validBody = {
-        email: "ratelimit@example.com",
+        email: "not-an-email",
         message: "Valid message with enough length for the rate limit test.",
       }
       let lastStatus = 0

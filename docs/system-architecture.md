@@ -1,5 +1,7 @@
 # EffectTalk Website (v1) — Architecture Document
 
+> Historical architecture/spec document. It is useful for background and intent, but it does not fully match the current app. For current operational guidance, use `docs/Architecture.md`, `docs/deployment.md`, `docs/env.md`, and `docs/TESTING_STRATEGY.md`.
+
 This document describes the technical architecture for the v1 EffectTalk website. It is written to be directly actionable for implementation (and later to guide agents).
 
 ## 1) Goals and scope (architecture-relevant)

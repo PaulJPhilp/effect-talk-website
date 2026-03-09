@@ -13,17 +13,32 @@ const authState = {
   currentUser: null as null | { id: string },
 }
 
-const lesson = {
-  id: "lesson-1",
-  slug: "pipes-and-flow",
-  title: "Pipes and flow",
-  description: "Compose Effects in sequence.",
-  order_index: 1,
-  group: "Fundamentals",
-  difficulty: "beginner",
-  estimated_minutes: 10,
-  created_at: "2026-03-07T00:00:00.000Z",
-  steps: [],
+type MockLesson = {
+  id: string
+  slug: string
+  title: string
+  description: string
+  order_index: number
+  group: string
+  difficulty: string
+  estimated_minutes: number
+  created_at: string
+  steps: never[]
+} | null
+
+const lessonState = {
+  lesson: {
+    id: "lesson-1",
+    slug: "pipes-and-flow",
+    title: "Pipes and flow",
+    description: "Compose Effects in sequence.",
+    order_index: 1,
+    group: "Fundamentals",
+    difficulty: "beginner",
+    estimated_minutes: 10,
+    created_at: "2026-03-07T00:00:00.000Z",
+    steps: [],
+  } as MockLesson,
 }
 
 vi.mock("next/navigation", () => ({
@@ -36,7 +51,7 @@ vi.mock("@/services/Auth", () => ({
 }))
 
 vi.mock("@/services/TourProgress", () => ({
-  getLessonWithSteps: () => Effect.succeed(lesson),
+  getLessonWithSteps: () => Effect.succeed(lessonState.lesson),
 }))
 
 vi.mock("@/components/tour/TourLessonView", () => ({
@@ -46,6 +61,18 @@ vi.mock("@/components/tour/TourLessonView", () => ({
 describe("LessonPage", () => {
   beforeEach(() => {
     authState.currentUser = null
+    lessonState.lesson = {
+      id: "lesson-1",
+      slug: "pipes-and-flow",
+      title: "Pipes and flow",
+      description: "Compose Effects in sequence.",
+      order_index: 1,
+      group: "Fundamentals",
+      difficulty: "beginner",
+      estimated_minutes: 10,
+      created_at: "2026-03-07T00:00:00.000Z",
+      steps: [],
+    }
     redirectMock.mockClear()
     notFoundMock.mockClear()
   })
@@ -74,5 +101,41 @@ describe("LessonPage", () => {
 
     expect(result).toBeTruthy()
     expect(redirectMock).not.toHaveBeenCalled()
+  })
+
+  it("returns lesson metadata when the lesson exists", async () => {
+    const { generateMetadata } = await import("@/app/tour/[slug]/page")
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: "pipes-and-flow" }),
+      searchParams: Promise.resolve({}),
+    })
+
+    expect(metadata.title).toBe("Pipes and flow | EffectTalk")
+    expect(metadata.description).toBe("Compose Effects in sequence.")
+  })
+
+  it("returns fallback metadata when the lesson is missing", async () => {
+    lessonState.lesson = null
+    const { generateMetadata } = await import("@/app/tour/[slug]/page")
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: "missing" }),
+      searchParams: Promise.resolve({}),
+    })
+
+    expect(metadata.title).toBe("Lesson Not Found | EffectTalk")
+  })
+
+  it("calls notFound when the lesson does not exist", async () => {
+    lessonState.lesson = null
+    const { default: LessonPage } = await import("@/app/tour/[slug]/page")
+
+    await expect(
+      LessonPage({
+        params: Promise.resolve({ slug: "missing" }),
+        searchParams: Promise.resolve({ mode: "v3" }),
+      })
+    ).rejects.toThrow("NOT_FOUND")
   })
 })

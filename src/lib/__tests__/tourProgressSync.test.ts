@@ -16,6 +16,8 @@ import {
   fetchProgressFromAPI,
   persistStepCompleted,
 } from "@/lib/tourProgressSync"
+import { silenceConsole } from "@/test/console"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 
 /** Captured request from the fake fetch. */
 interface CapturedRequest {
@@ -39,22 +41,22 @@ function installFakeFetch(
   let shouldReject = false
   let rejectError: Error | null = null
 
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url
-    captured.push({ url, init })
-    if (shouldReject) {
-      return Promise.reject(rejectError ?? new Error("fetch error"))
-    }
-    return Promise.resolve(currentResponse.clone())
-  }
+  globalThis.fetch = createTypedFakeFetch({
+    originalFetch,
+    handler: (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      captured.push({ url, init })
+      if (shouldReject) {
+        return Promise.reject(rejectError ?? new Error("fetch error"))
+      }
+      return Promise.resolve(currentResponse.clone())
+    },
+  })
 
   return {
     captured,
@@ -233,7 +235,12 @@ describe("tourProgressSync", () => {
         JSON.stringify({ "step-1": "completed" }),
       )
 
-      await syncProgressToDB()
+      const restoreConsole = silenceConsole("error")
+      try {
+        await syncProgressToDB()
+      } finally {
+        restoreConsole()
+      }
 
       expect(
         localStorage.getItem("tour_progress"),

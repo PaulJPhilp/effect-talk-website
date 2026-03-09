@@ -122,8 +122,10 @@ export class TourProgress extends Effect.Service<TourProgressService>()("TourPro
               stepTitle: tourSteps.title,
               stepInstruction: tourSteps.instruction,
               stepConceptCode: tourSteps.conceptCode,
+              stepConceptCodeV4: tourSteps.conceptCodeV4,
               stepConceptCodeLanguage: tourSteps.conceptCodeLanguage,
               stepSolutionCode: tourSteps.solutionCode,
+              stepSolutionCodeV4: tourSteps.solutionCodeV4,
               stepPlaygroundUrl: tourSteps.playgroundUrl,
               stepHints: tourSteps.hints,
               stepFeedbackOnComplete: tourSteps.feedbackOnComplete,
@@ -147,8 +149,10 @@ export class TourProgress extends Effect.Service<TourProgressService>()("TourPro
               stepTitle: string | null
               stepInstruction: string | null
               stepConceptCode: string | null
+              stepConceptCodeV4: string | null
               stepConceptCodeLanguage: string | null
               stepSolutionCode: string | null
+              stepSolutionCodeV4: string | null
               stepPlaygroundUrl: string | null
               stepHints: readonly string[] | null
               stepFeedbackOnComplete: string | null
@@ -237,8 +241,10 @@ export class TourProgress extends Effect.Service<TourProgressService>()("TourPro
                   title: row.stepTitle,
                   instruction: row.stepInstruction,
                   conceptCode: row.stepConceptCode,
+                  conceptCodeV4: row.stepConceptCodeV4,
                   conceptCodeLanguage: row.stepConceptCodeLanguage,
                   solutionCode: row.stepSolutionCode,
+                  solutionCodeV4: row.stepSolutionCodeV4,
                   playgroundUrl: row.stepPlaygroundUrl,
                   hints: row.stepHints as string[] | null,
                   feedbackOnComplete: row.stepFeedbackOnComplete,

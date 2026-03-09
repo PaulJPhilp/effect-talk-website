@@ -17,6 +17,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { RegistryProvider } from "@effect-atom/atom-react"
 import { useAllTourProgress } from "@/hooks/useAllTourProgress"
 import { _resetLoaderState } from "@/hooks/useTourProgress"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 import type { ReactNode } from "react"
 
 /** Captured request from the fake fetch. */
@@ -30,25 +31,25 @@ function installFakeFetch() {
   const originalFetch = globalThis.fetch
   const routes = new Map<string, () => Response>()
 
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url
-    captured.push({ url, init })
-    const handler = routes.get(url)
-    const resp = handler
-      ? handler()
-      : new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-        })
-    return Promise.resolve(resp)
-  }
+  globalThis.fetch = createTypedFakeFetch({
+    originalFetch,
+    handler: (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      captured.push({ url, init })
+      const handler = routes.get(url)
+      const resp = handler
+        ? handler()
+        : new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+          })
+      return Promise.resolve(resp)
+    },
+  })
 
   return {
     captured,

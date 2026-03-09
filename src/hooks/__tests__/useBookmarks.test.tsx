@@ -19,6 +19,8 @@ import {
   useBookmarks,
   _resetBookmarkLoaderState,
 } from "@/hooks/useBookmarks"
+import { silenceConsole } from "@/test/console"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 import type { ReactNode } from "react"
 
 /** Captured request from the fake fetch. */
@@ -39,24 +41,24 @@ function installFakeFetch() {
     new Response(JSON.stringify({ ok: true }), { status: 200 })
   let shouldReject = false
 
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url
-    captured.push({ url, init })
-    if (shouldReject) {
-      return Promise.reject(new Error("Network error"))
-    }
-    const handler = routes.get(url)
-    const resp = handler ? handler() : defaultResponse()
-    return Promise.resolve(resp)
-  }
+  globalThis.fetch = createTypedFakeFetch({
+    originalFetch,
+    handler: (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      captured.push({ url, init })
+      if (shouldReject) {
+        return Promise.reject(new Error("Network error"))
+      }
+      const handler = routes.get(url)
+      const resp = handler ? handler() : defaultResponse()
+      return Promise.resolve(resp)
+    },
+  })
 
   return {
     captured,
@@ -282,16 +284,20 @@ describe("useBookmarks", () => {
     )
     fake.setReject()
 
-    const { result } = renderHook(
-      () => useBookmarks(true),
-      { wrapper },
-    )
+    const restoreConsole = silenceConsole("error")
+    try {
+      const { result } = renderHook(
+        () => useBookmarks(true),
+        { wrapper },
+      )
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    })
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
 
-    // localStorage data preserved despite API failure
-    expect(result.current.bookmarkedIds.has("p1")).toBe(true)
+      expect(result.current.bookmarkedIds.has("p1")).toBe(true)
+    } finally {
+      restoreConsole()
+    }
   })
 })

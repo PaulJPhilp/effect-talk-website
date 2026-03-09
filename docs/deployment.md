@@ -12,7 +12,7 @@ Set these in Vercel (or your host) for the **build** and **runtime** environment
 
 | Variable | Build | Runtime | Notes |
 |----------|-------|---------|--------|
-| `DATABASE_URL` | **Yes** | **Yes** | Next.js build runs `generateStaticParams` for patterns, rules, tour, and blog; the DB client loads at build time. Use the same Neon connection string (or a read-only URL) for both. |
+| `DATABASE_URL` | **Yes** | **Yes** | Build-time pages and runtime DB access both need it. Use the correct branch/target DB for the environment. |
 | `WORKOS_API_KEY` | No | Yes | WorkOS AuthKit. |
 | `WORKOS_CLIENT_ID` | No | Yes | |
 | `WORKOS_REDIRECT_URI` | No | Yes | Must match WorkOS Dashboard Redirects (e.g. `https://effecttalk.com/auth/callback`). |
@@ -26,22 +26,19 @@ Set these in Vercel (or your host) for the **build** and **runtime** environment
 ## Pre-deploy steps
 
 1. **Database**: Ensure the database has all required tables. Run `bun run db:check` against your target DB (see [docs/database.md](database.md)).
-2. **Build**: In Vercel, add `DATABASE_URL` to **Build** environment variables as well as **Production/Preview**, so `next build` can run `generateStaticParams`.
+2. **Build**: In Vercel, add `DATABASE_URL` to the build environment as well as runtime envs so `next build` can resolve DB-backed pages and metadata.
 3. **Secrets**: Confirm `API_KEY_PEPPER`, `WORKOS_COOKIE_PASSWORD`, and WorkOS keys are set and are not placeholder values.
 4. **WorkOS**: In the WorkOS Dashboard, add your production redirect URI and ensure the GitHub (or other) provider is configured for the production client.
 
 ## Applying schema changes (app-owned tables)
 
-To add the **feedback** table on production (or any DB that was not built from Drizzle migrations), run:
+Use the targeted repo scripts for app-owned tables, for example:
 
 - `bun run db:apply-feedback`
+- `bun run db:seed:tour`
+- `bun run db:promote`
 
-Run it with `DATABASE_URL` pointing at the target DB (e.g. production Neon URL). Options:
-
-- Temporarily set `DATABASE_URL` in `.env.local` to the Neon production connection string, run the script, then revert `.env.local`, or
-- Run: `DATABASE_URL='<neon-production-url>' bun run db:apply-feedback` (env set in the shell is not overwritten when loading `.env.local`).
-
-Then run `bun run db:check` (with the same `DATABASE_URL`) to confirm all required tables, including `feedback`, are present.
+Run them with `DATABASE_URL` pointing at the intended target database or branch, then verify with `bun run db:check`.
 
 ## Staging environment setup
 
@@ -54,13 +51,13 @@ Staging uses the stable URL **https://staging-effecttalk.vercel.app** and is dep
 3. Copy the connection string for the new branch.
 4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` scoped to **Preview** with the branch connection string.
 
-### 2. WorkOS (Production environment)
+### 2. WorkOS
 
-Staging uses the same WorkOS **Production** client as effecttalk.dev. In [WorkOS Dashboard](https://dashboard.workos.com) → **Production** → Redirects, add:
+Staging currently uses the same WorkOS client as the live site. In [WorkOS Dashboard](https://dashboard.workos.com), ensure the staging callback URL is present in Redirects:
 
 - `https://staging-effecttalk.vercel.app/auth/callback`
 
-In Vercel Preview env vars, set `APP_BASE_URL` and `WORKOS_REDIRECT_URI` to that base/callback URL; see [environments.md](environments.md#staging). `NEXT_PUBLIC_WORKOS_REDIRECT_URI` is set at build time by the deploy script.
+In Vercel Preview env vars, set `APP_BASE_URL` and `WORKOS_REDIRECT_URI` to that base/callback URL. `NEXT_PUBLIC_WORKOS_REDIRECT_URI` is set at build time by the deploy script.
 
 ### 3. PostHog (staging project)
 

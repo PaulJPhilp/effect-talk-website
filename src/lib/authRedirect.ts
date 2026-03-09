@@ -28,14 +28,16 @@ export function buildPathWithSearchParams(
   for (const [key, value] of Object.entries(searchParams)) {
     if (value == null) continue
 
+    if (typeof value === "string") {
+      next.set(key, value)
+      continue
+    }
+
     if (Array.isArray(value)) {
       for (const entry of value) {
         next.append(key, entry)
       }
-      continue
     }
-
-    next.set(key, value)
   }
 
   const query = next.toString()

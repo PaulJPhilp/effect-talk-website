@@ -17,6 +17,8 @@ import {
   addBookmarkAPI,
   removeBookmarkAPI,
 } from "@/lib/bookmarkSync"
+import { silenceConsole } from "@/test/console"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 
 /** Captured request from the fake fetch. */
 interface CapturedRequest {
@@ -41,23 +43,22 @@ function installFakeFetch(
   let shouldReject = false
   let rejectError: Error | null = null
 
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url
-    captured.push({ url, init })
-    if (shouldReject) {
-      return Promise.reject(rejectError ?? new Error("fetch error"))
-    }
-    // Clone response so each call gets a fresh body
-    return Promise.resolve(currentResponse.clone())
-  }
+  globalThis.fetch = createTypedFakeFetch({
+    originalFetch,
+    handler: (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      captured.push({ url, init })
+      if (shouldReject) {
+        return Promise.reject(rejectError ?? new Error("fetch error"))
+      }
+      return Promise.resolve(currentResponse.clone())
+    },
+  })
 
   return {
     captured,
@@ -210,7 +211,12 @@ describe("bookmarkSync", () => {
         JSON.stringify(["p1"]),
       )
 
-      await syncBookmarksToDB()
+      const restoreConsole = silenceConsole("error")
+      try {
+        await syncBookmarksToDB()
+      } finally {
+        restoreConsole()
+      }
 
       expect(localStorage.getItem("pattern_bookmarks")).not.toBeNull()
     })

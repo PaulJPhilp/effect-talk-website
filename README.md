@@ -1,62 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EffectTalk Website
 
-## Local database (Docker)
+EffectTalk is a Next.js 16 application for Effect.ts patterns, rules, the interactive tour, CLI/MCP documentation, consulting, and authenticated API-key management.
 
-The **Effect Pattern repo** is the schema source of truth for the shared `effect_patterns` table. This app only reads from it; see [docs/database.md](docs/database.md) for the contract and configuration. To verify the database has the effect_patterns table and required columns, run: `bun run db:check`.
+## What is in the app
 
-To run Postgres locally for development and integration tests:
+- Public patterns and rules browsing
+- Public blog
+- Interactive Effect Tour
+- CLI and MCP documentation
+- Coming-soon pages for Playground and Code Review with waitlist forms
+- Feedback and consulting forms
+- WorkOS AuthKit sign-in
+- Settings and API key management for signed-in users
 
-1. Start Docker, then:
+## Core commands
+
+| Command | Description |
+|---|---|
+| `bun run dev` | Start the local dev server |
+| `bun run build` | Production build |
+| `bun run lint` | ESLint |
+| `bun run typecheck` | TypeScript check (`tsc --noEmit`) |
+| `bun run test:run` | Run all tests once |
+| `bun run test:coverage` | Run tests with coverage thresholds |
+| `bun run env:check` | Validate deploy-critical environment variables |
+| `bun run db:check` | Verify DB connectivity and required tables |
+| `bun run perf:tour` | Run the tour baseline script |
+
+## Local setup
+
+1. Install dependencies:
    ```bash
-   docker compose up -d
+   bun install
    ```
-2. In `.env.local`, set:
+2. Copy envs:
    ```bash
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effecttalk
+   cp .env.example .env.local
    ```
-3. Apply the schema:
+3. Fill in real values in `.env.local`, especially:
+   - `DATABASE_URL`
+   - `WORKOS_API_KEY`
+   - `WORKOS_CLIENT_ID`
+   - `WORKOS_REDIRECT_URI`
+   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
+   - `WORKOS_COOKIE_PASSWORD`
+   - `API_KEY_PEPPER`
+4. Add `http://localhost:3000/auth/callback` to WorkOS Redirects.
+5. Start the app:
    ```bash
-   bun run db:push
+   bun run dev
    ```
-4. (Optional) Run integration tests: `RUN_INTEGRATION_TESTS=1 bun run test:run` (use a dedicated test database only—never point `DATABASE_URL` at production; tests truncate app tables).
 
-## Sign-in (WorkOS AuthKit)
+## Database safety
 
-GitHub sign-in uses [WorkOS AuthKit](https://workos.com/docs/authkit) via `@workos-inc/authkit-nextjs`. In `.env.local` set:
+Do **not** run `bun run db:push` or `drizzle-kit push` against this project. The database is shared with Effect Patterns, and Drizzle can propose destructive drops for tables this repo does not own.
 
-- `WORKOS_CLIENT_ID`, `WORKOS_API_KEY` — from WorkOS Dashboard (e.g. Staging)
-- `WORKOS_REDIRECT_URI` and `NEXT_PUBLIC_WORKOS_REDIRECT_URI` — e.g. `http://localhost:3000/auth/callback`
-- `WORKOS_COOKIE_PASSWORD` — at least 32 characters (e.g. `openssl rand -base64 24`)
+Use these docs instead:
 
-In [WorkOS Dashboard](https://dashboard.workos.com) → **Redirects**, add that same callback URL. If you see "Couldn't sign in", check the GitHub provider uses your app's credentials (not Demo), and that Redirect URI and environment match.
+- [docs/Rules.md](docs/Rules.md)
+- [docs/database.md](docs/database.md)
 
-## Getting Started
+## Testing
 
-First, run the development server:
+- `bun run test:run` currently passes across the full suite.
+- `bun run test:coverage` currently passes the repo thresholds.
+- Integration DB tests are gated behind `RUN_INTEGRATION_TESTS=1` and should only target a dedicated non-production database.
 
-```bash
-bun dev
-```
+See:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md)
+- [docs/testing.md](docs/testing.md)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentation map
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [docs/Architecture.md](docs/Architecture.md) — current architecture and commands
+- [docs/Rules.md](docs/Rules.md) — repo guardrails
+- [docs/env.md](docs/env.md) — env-file and deploy-env guidance
+- [docs/deployment.md](docs/deployment.md) — deploy checklist
+- [docs/environments.md](docs/environments.md) — local/staging/production setup
+- [docs/database.md](docs/database.md) — DB ownership and safety
+- [docs/tour-performance.md](docs/tour-performance.md) — tour perf verification
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-**Environments:** Dev (local), staging, and production are documented in **[docs/environments.md](docs/environments.md)**. Before deploying to staging or production, see **[docs/deployment.md](docs/deployment.md)** for environment variables and WorkOS setup. For env file setup (including CLI deploy), see **[docs/env.md](docs/env.md)**.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Historical planning docs remain in `docs/`, but the files above are the current operational source of truth.

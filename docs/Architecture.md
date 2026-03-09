@@ -1,75 +1,110 @@
 # Architecture
 
-Concise service-architecture guide for **effect-talk-website**. For the full system design (MRD), see [docs/system-architecture.md](./system-architecture.md).
-
----
+Current architecture guide for **effect-talk-website**.
 
 ## Project overview
 
-**effect-talk-website** — Interactive learning platform for Effect-TS patterns.
+EffectTalk is a Next.js App Router application for:
+
+- public Effect.ts patterns and rules
+- the interactive Effect Tour
+- CLI and MCP documentation
+- waitlist, consulting, and feedback flows
+- authenticated settings and API-key management
+
+## Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router) + React 19 |
-| Language | TypeScript 5.8+ (strict mode) |
-| Backend | Effect-TS services, PostgreSQL + Drizzle ORM |
+| Framework | Next.js 16 + React 19 |
+| Language | TypeScript 5.9+ |
+| Backend structure | Effect services |
+| Database | PostgreSQL + Drizzle ORM |
 | Styling | Tailwind CSS v4 |
 | Auth | WorkOS AuthKit |
-| Package manager | Bun |
-| Testing | Vitest (happy-dom) |
+| Client state | Effect Atom where useful |
+| Testing | Vitest + happy-dom |
 | Hosting | Vercel |
+
+## Current routes
+
+Key route groups in the app today:
+
+- Public content: `/`, `/patterns`, `/rules`, `/blog`, `/search`
+- Docs/tools: `/cli`, `/mcp`, `/tour`
+- Coming soon: `/playground`, `/code-review`
+- Forms/pages: `/consulting`, `/feedback`, `/thanks`
+- Auth/settings: `/auth/*`, `/settings`, `/settings/api-keys`
+- App APIs: `/api/waitlist`, `/api/consulting`, `/api/feedback`, `/api/events`, `/api/profile`, `/api/preferences`, `/api/api-keys`, `/api/bookmarks`, `/api/tour/progress`
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `bun run dev` | Start dev server |
+| `bun run dev` | Start the local dev server |
 | `bun run build` | Production build |
-| `bun run test` | Run tests (watch mode) |
-| `bun run test:run` | Run tests once |
 | `bun run lint` | ESLint |
-| `bun run env:check` | Verify env vars for deploy |
-| `bun run db:check` | Verify DB connection + tables |
+| `bun run typecheck` | TypeScript check |
+| `bun run test` | Run Vitest in watch mode |
+| `bun run test:run` | Run all tests once |
+| `bun run test:coverage` | Run tests with coverage thresholds |
+| `bun run env:check` | Validate deploy-critical env vars |
+| `bun run db:check` | Verify DB connectivity and required tables |
+| `bun run perf:tour` | Run the tour baseline script |
+
+Tour v4 content workflow:
+- Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --seed /abs/path/to/effect-talk-website/scripts/seed-tour.ts --output /abs/path/to/tour-v4-snippets.json`
+- Seed the website staging tables with `TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run db:seed:tour`
+- Promote with `bun run db:promote tour`
 
 ## Service architecture
 
-All backend logic is organized into **9 services** using the Effect.Service class pattern.
-
-### File layout per service
+Backend logic is organized into Effect services under `src/services`.
 
 ```
 src/services/${ServiceName}/
-├── api.ts              # Interface + convenience functions (consumer-facing)
-├── service.ts          # Effect.Service class + NoOp layer
-├── types.ts            # Service-specific types (if any)
-├── errors.ts           # Tagged errors (Data.TaggedError)
-├── helpers.ts          # Pure helpers and constants
-├── __tests__/          # Test files
-└── index.ts            # Barrel exports
+├── api.ts
+├── service.ts
+├── types.ts
+├── errors.ts
+├── helpers.ts
+├── __tests__/
+└── index.ts
 ```
 
-### Pattern
+Current services:
 
-- **`api.ts`** — defines the `*Service` interface and convenience functions. Consumers import from here; they never touch `service.ts` directly.
-- **`service.ts`** — contains the `Effect.Service` class and a `*NoOp` layer for testing.
-- **Convenience functions** auto-provide `Default` so callers don't manage dependencies.
-- **Auth is a special case** — convenience functions return `Promise` (via `Effect.runPromise`) for use in Next.js server components and middleware.
-- **NoOp layers** — every service exports a `*NoOp` layer (e.g. `BookmarksNoOp`) returning stub data. Tests use these instead of mocks.
+- Analytics
+- ApiKeys
+- Auth
+- BackendApi
+- Bookmarks
+- Db
+- Email
+- PostHog
+- TourProgress
 
-### The 9 services
+## Service conventions
 
-Analytics, ApiKeys, Auth, BackendApi, Bookmarks, Db, Email, PostHog, TourProgress.
+- `api.ts` exports the interface and convenience functions.
+- `service.ts` owns the `Effect.Service` implementation and test layer.
+- Auth convenience functions intentionally return `Promise` for use in Next.js server components and middleware.
+- Prefer `Effect.gen`, tagged errors, and `Layer.provide`.
 
-## Rules for agents
+## UI structure
 
-1. **Adding a service:** Follow the same file layout — `api.ts` for interface + convenience functions, `service.ts` for `Effect.Service` class + NoOp layer.
-2. **Modifying a service:** Keep the interface/convenience-function split. Don't put the `Effect.Service` class in `api.ts` or convenience functions in `service.ts`.
-3. **No mocks:** Use `*NoOp` layers in tests, never `vi.mock()` or `vi.fn()`.
+- `src/app/layout.tsx` provides the global shell, theme provider, PostHog provider, header, footer, and toaster.
+- `src/components/TabsBar.tsx` is the body-level product navigation for CLI, MCP, Tour, Playground, and Code Review.
+- Tour mode access is now enforced server-side: `v4` and `v3 ↔ v4` require login.
 
-## Further reading
+## Current source of truth
 
-- [docs/Rules.md](./Rules.md) — Coding rules (database safety, imports, type safety, testing, Effect patterns)
-- [docs/system-architecture.md](./system-architecture.md) — Full system design / MRD
-- [docs/TESTING_STRATEGY.md](./TESTING_STRATEGY.md) — Testing patterns and policy
-- [docs/env.md](./env.md) — Environment variable setup
-- [docs/deployment.md](./deployment.md) — Vercel deployment process
+Use these docs for current behavior:
+
+- [docs/Rules.md](./Rules.md)
+- [docs/database.md](./database.md)
+- [docs/env.md](./env.md)
+- [docs/deployment.md](./deployment.md)
+- [docs/TESTING_STRATEGY.md](./TESTING_STRATEGY.md)
+
+Historical planning docs still exist in `docs/`, but they are reference material, not the operational source of truth.

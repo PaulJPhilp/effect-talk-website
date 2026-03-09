@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { TourModeSwitcher } from "@/components/tour/TourModeSwitcher"
 import { TourStep } from "@/components/tour/TourStep"
 import { useTourProgress } from "@/hooks/useTourProgress"
-import { getTemporaryTourCompareView } from "@/lib/tourCompare"
+import { getTourCompareView } from "@/lib/tourCompare"
 import { buildTourHref, getAccessibleTourMode } from "@/lib/tourMode"
 import { getLastStepForLesson, setLastStepForLesson } from "@/lib/tourPosition"
 import { trackEventClient } from "@/lib/analytics-client"
@@ -70,7 +70,7 @@ export function TourLessonView({ lesson, isLoggedIn }: TourLessonViewProps) {
     return <div className="p-10 text-center text-muted-foreground">Step not found</div>
   }
 
-  const compareView = getTemporaryTourCompareView(currentStep)
+  const compareView = getTourCompareView(currentStep)
 
   return (
     <div className="space-y-4">

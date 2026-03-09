@@ -47,11 +47,12 @@ import { getUserById } from "../Db/api"
 
 ## Testing
 
-- **NO MOCKS.** Do not use `vi.mock()`, `vi.fn()`, `vi.spyOn()`, or `vi.mocked()`.
+- Avoid broad mocking and call-verification-driven tests.
 - Use real infrastructure or **NoOp layers** (test doubles that implement the same interface).
+- Narrow structural `vi.mock(...)` exceptions are acceptable for framework-only boundaries such as Next.js modules, WorkOS helpers, or `@/db/client` when the real module cannot run in the test environment.
 - Prefer integration tests over unit tests. Pure functions can be unit-tested directly.
 - Use Vitest for all testing.
-- See [docs/TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for detailed patterns (DB transactions, Effect test layers, AI SDK fixtures, E2E, structural mock exceptions).
+- See [docs/TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for the current policy, coverage thresholds, and allowed exceptions.
 
 ## Effect.js patterns
 

@@ -1,3 +1,5 @@
+> Historical build prompt. It reflects the original v1 implementation target, not the current shipped state of the repo. For live behavior, use `docs/Architecture.md`, `docs/Rules.md`, and the codebase itself.
+
 You are a senior full-stack engineer building the v1 EffectTalk website.
 
 You must follow this spec exactly. If anything is ambiguous, choose the simplest

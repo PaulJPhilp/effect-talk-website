@@ -1,5 +1,7 @@
 # Database
 
+This project uses a shared PostgreSQL database. Some tables are owned by this repo, and some are owned by the Effect Patterns project.
+
 ## Schema source of truth
 
 For the full schema (all columns, types, JSONB definitions, indexes, FKs, and migration history), see the Effect Pattern repo's `docs/DATABASE_ARCHITECTURE.md` (in that repo; e.g. `Effect-Patterns/docs/DATABASE_ARCHITECTURE.md` when checked out alongside this project).
@@ -19,8 +21,27 @@ When deployed on Vercel with `APP_ENV=production` or `APP_ENV=staging`, the app 
 
 ## App-owned tables
 
-App-owned tables (e.g. `feedback`, `users`, `api_keys`) are defined in this repo in `src/db/schema-app.ts` and migrated here. For the feedback table, a one-off apply is available: `bun run db:apply-feedback` (uses `drizzle/0004_feedback.sql`).
+App-owned tables are defined in `src/db/schema-app.ts`. Current app-owned areas include:
+
+- `users`
+- `waitlist_signups`
+- `consulting_inquiries`
+- `feedback`
+- `api_keys`
+- `rules` / `rules_staging`
+- `analytics_events`
+- `tour_lessons`, `tour_steps`, and their staging tables
+- `tour_progress`
+- `pattern_bookmarks`
+- `content_deployments`
+
+Use repo scripts that explicitly target these tables. Do **not** use `db:push` as a shortcut.
 
 ## Keeping the schema in sync
 
-When the Effect Pattern repo adds or changes columns on `effect_patterns`, update the Drizzle definition in `src/db/schema.ts` in this repo to match (same table name, same column names and types). Do not add migrations in this repo that create or alter `effect_patterns`; migrations for that table live only in the Effect Pattern repo.
+When the Effect Patterns repo adds or changes columns on `effect_patterns`, update the Drizzle definition in `src/db/schema.ts` in this repo to match. Do not add migrations here that create or alter `effect_patterns`; migrations for that table live only in the Effect Patterns repo.
+
+## Safe checks
+
+- `bun run db:check` verifies connectivity and required tables.
+- `bun run env:check` helps catch missing deploy-time configuration before running against a target environment.

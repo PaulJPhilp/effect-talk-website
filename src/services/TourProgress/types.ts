@@ -23,8 +23,10 @@ export interface TourStep {
   readonly title: string
   readonly instruction: string
   readonly concept_code: string | null
+  readonly concept_code_v4: string | null
   readonly concept_code_language: string | null
   readonly solution_code: string | null
+  readonly solution_code_v4: string | null
   readonly playground_url: string | null
   readonly hints: readonly string[] | null
   readonly feedback_on_complete: string | null

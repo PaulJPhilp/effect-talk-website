@@ -46,8 +46,7 @@ describe("Analytics api", () => {
       const svc = yield* Analytics
       return yield* svc.trackEvent({
         type: "tab_clicked",
-        tab: "patterns",
-        context: "main-nav",
+        tab: "tour",
       })
     })
     const result = await Effect.runPromise(program.pipe(Effect.provide(AnalyticsNoOp)))

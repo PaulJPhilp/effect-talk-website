@@ -1,0 +1,67 @@
+---
+title: "The Effect Tour Now Covers v3 and v4"
+date: 2026-03-09
+excerpt: "The Effect Tour now has three viewing modes — v3, v4, and a side-by-side comparison — so you can learn Effect v4 the same way you learned v3: one step at a time."
+---
+
+The Effect Tour now has three viewing modes: v3, v4, and a side-by-side comparison.
+
+Every lesson in the tour — all 18 of them, across all five groups — now includes v4 code alongside the original v3 code. You can view either version independently, or compare them side by side. The goal is simple: when Effect v4 ships, you should already know what changes and what doesn't.
+
+## Why this matters
+
+Major version upgrades are where adoption stalls. Not because the new version is bad, but because the migration path is unclear. You read the changelog. You skim the release notes. You still don't know what your code needs to look like on the other side.
+
+The gap between "v4 is released" and "I understand how my code changes" is where teams get stuck. Some teams delay the upgrade indefinitely. Others start the migration, hit unfamiliar patterns, and lose momentum. The problem isn't willpower — it's worked examples. People need to _see_ the before and after, not just read a list of API changes.
+
+That's what the new tour modes are for.
+
+## Three modes
+
+When you open any tour lesson, you'll see a mode switcher at the top with three options:
+
+- **v3** — The original tour, unchanged. This is the default and it's available to everyone, signed in or not. If you're learning Effect for the first time, start here.
+
+- **v4** — The same lessons, with code updated for Effect v4. The explanations, structure, and anti-pattern/solution format are identical — only the code changes. Where a step's v4 code is the same as v3 (because no API changed), it falls back to the v3 version automatically.
+
+- **v3 ↔ v4** — A side-by-side comparison. The v3 solution and the v4 solution are shown next to each other, with a summary card in between that tells you what changed. If nothing changed, the card says so.
+
+The v4 and comparison modes require sign-in. This is intentional — Effect v4 is still in beta, and we want a feedback loop with real users before making it the default view.
+
+## How the comparison works
+
+In compare mode, each step shows three panels: the v3 solution on the left, a change summary in the center, and the v4 solution on the right.
+
+The summary card does one of two things. If the v3 and v4 code are identical, it shows "No v4 changes" — which is useful information in itself, because it tells you this pattern is stable across versions. If the code differs, it shows "Generated v4" and describes the migration.
+
+This makes it possible to scan an entire lesson quickly. Open compare mode, step through, and you'll know in seconds which steps have real v4 changes and which are unchanged. That's faster than reading a migration guide, because you're looking at code you've already studied.
+
+## How the v4 code was generated
+
+The v4 snippets aren't hand-written. They're produced by automated migration tooling that takes the v3 code and applies the Effect v4 API changes systematically. The output is validated against the tour's lesson structure before it's published — every lesson slug and step index must match, every snippet must be present.
+
+This matters because it means the v4 code is auditable and reproducible. It's not one person's interpretation of what v4 should look like. It's the mechanical result of applying the documented API changes to the existing v3 code. When the v4 API stabilizes further, the migration runs again and the tour updates.
+
+## Tips for using the new modes
+
+**Start with compare mode if you already know v3.** Don't re-read every lesson from scratch. Open compare mode, step through the lessons in the areas you use most — Composition, Concurrency, whatever matches your codebase — and focus on the steps where the summary card says "Generated v4." Those are the steps with real changes.
+
+**Use v4 mode if you're learning Effect fresh.** If you're new to Effect and v4 is already out when you start, switch to v4 mode and work through the tour normally. The lessons teach the same concepts; only the API surface is different.
+
+**Sign in early.** The v4 and comparison modes require GitHub sign-in. If you plan to use them, sign in before you start navigating so you don't hit a dead end mid-lesson. Your progress syncs across devices either way.
+
+**Pair with the pattern library.** The tour teaches concepts; the patterns at [/patterns](/patterns) show production usage. When a step links to a related pattern, open it. The pattern may also have v4 variants in future updates.
+
+## What's next
+
+As Effect v4 moves from beta to stable, v4 will become the default tour mode. The v3 mode will remain available for teams that haven't migrated yet, and compare mode will stay for anyone mid-transition.
+
+We're also watching for v4 API changes during the beta period. When the API shifts, the migration tooling re-runs and the tour updates. You don't need to do anything — the next time you visit, the v4 code will reflect the latest beta.
+
+Head to [/tour](/tour) and try the mode switcher. If you find a step where the v4 code looks wrong or a comparison that's confusing, open an issue on [GitHub](https://github.com/PaulJPhilp/EffectPatterns). This is beta — your feedback directly improves it.
+
+## Read more
+
+- [A User Guide to the Effect Tour](/blog/guide-to-the-effect-tour) — How the guided tour works: lessons, steps, the code editor, and progress tracking.
+- [The Pattern Browser](/blog/exploring-the-pattern-browser) — Search, filter, and study 300+ production-ready Effect patterns.
+- [The EffectPatterns CLI](/blog/announcing-the-effect-patterns-cli) — Search patterns and install AI rules from your terminal.

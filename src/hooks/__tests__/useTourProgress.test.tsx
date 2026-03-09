@@ -20,6 +20,8 @@ import {
   _resetLoaderState,
 } from "@/hooks/useTourProgress"
 import type { TourStep } from "@/services/TourProgress/types"
+import { silenceConsole } from "@/test/console"
+import { createTypedFakeFetch } from "@/test/fakeFetch"
 import type { ReactNode } from "react"
 
 /** Captured request from the fake fetch. */
@@ -34,28 +36,28 @@ function installFakeFetch() {
   const routes = new Map<string, () => Response>()
   let shouldReject = false
 
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url
-    captured.push({ url, init })
-    if (shouldReject) {
-      return Promise.reject(new Error("Network error"))
-    }
-    const handler = routes.get(url)
-    const resp = handler
-      ? handler()
-      : new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-        })
-    return Promise.resolve(resp)
-  }
+  globalThis.fetch = createTypedFakeFetch({
+    originalFetch,
+    handler: (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      captured.push({ url, init })
+      if (shouldReject) {
+        return Promise.reject(new Error("Network error"))
+      }
+      const handler = routes.get(url)
+      const resp = handler
+        ? handler()
+        : new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+          })
+      return Promise.resolve(resp)
+    },
+  })
 
   return {
     captured,
@@ -85,8 +87,10 @@ function makeStep(id: string): TourStep {
     title: `Step ${id}`,
     instruction: "Do something",
     concept_code: null,
+    concept_code_v4: null,
     concept_code_language: null,
     solution_code: null,
+    solution_code_v4: null,
     playground_url: null,
     hints: null,
     feedback_on_complete: null,
@@ -334,16 +338,20 @@ describe("useTourProgress", () => {
     )
     fake.setReject()
 
-    const { result } = renderHook(
-      () => useTourProgress({ steps, isLoggedIn: true }),
-      { wrapper },
-    )
+    const restoreConsole = silenceConsole("error")
+    try {
+      const { result } = renderHook(
+        () => useTourProgress({ steps, isLoggedIn: true }),
+        { wrapper },
+      )
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    })
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
 
-    // localStorage data preserved despite API failure
-    expect(result.current.completedStepIds.has("s1")).toBe(true)
+      expect(result.current.completedStepIds.has("s1")).toBe(true)
+    } finally {
+      restoreConsole()
+    }
   })
 })

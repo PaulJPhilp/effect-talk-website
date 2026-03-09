@@ -240,7 +240,8 @@ export async function swapTables(
 
 /**
  * Re-create empty staging tables for the next deployment.
- * Uses CREATE TABLE ... (LIKE ... INCLUDING ALL) to clone the live schema.
+ * INCLUDING ALL preserves primary keys, indexes, defaults, and constraints so
+ * the next promote can safely rebind foreign keys to the swapped-in tables.
  */
 export async function recreateStagingTables(
   db: NodePgDatabase,
@@ -249,7 +250,7 @@ export async function recreateStagingTables(
   for (const table of group.tables) {
     await db.execute(sql.raw(`DROP TABLE IF EXISTS "${table}_staging" CASCADE`))
     await db.execute(sql.raw(
-      `CREATE TABLE "${table}_staging" (LIKE "${table}" INCLUDING DEFAULTS INCLUDING CONSTRAINTS)`,
+      `CREATE TABLE "${table}_staging" (LIKE "${table}" INCLUDING ALL)`,
     ))
   }
 }

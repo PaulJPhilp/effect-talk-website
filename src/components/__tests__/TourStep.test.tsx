@@ -23,8 +23,10 @@ const step: TourStepType = {
   title: "Create a program",
   instruction: "Use `Effect.gen` to compose work.",
   concept_code: "console.log('anti-pattern')",
+  concept_code_v4: "console.log('anti-pattern v4')",
   concept_code_language: "typescript",
   solution_code: "console.log('solution')",
+  solution_code_v4: "console.log('solution v4')",
   playground_url: null,
   hints: ["Reach for `Effect.gen` first."],
   feedback_on_complete: "Nice work.",
@@ -35,14 +37,14 @@ const step: TourStepType = {
 const compareView: TourCompareView = {
   v3Code: "console.log('v3')",
   v4Code: "console.log('v4')",
-  changeSummary: "Temporary migration note.",
+  changeSummary: "Generated migration note.",
   identical: false,
 }
 
 const identicalCompareView: TourCompareView = {
   v3Code: "console.log('same')",
   v4Code: "console.log('same')",
-  changeSummary: "No v4beta changes are staged for this step yet.",
+  changeSummary: "No API-level migration changes were needed for this step.",
   identical: true,
 }
 
@@ -79,8 +81,8 @@ describe("TourStep", () => {
       />
     )
 
-    expect(screen.getByText(/v4 beta preview UI is enabled/i)).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "Solution (v4 beta)" })).toBeInTheDocument()
+    expect(screen.getAllByTestId("code-runner")[0]).toHaveTextContent("console.log('anti-pattern v4')")
   })
 
   it("renders side-by-side comparison content in compare mode", () => {
@@ -100,7 +102,8 @@ describe("TourStep", () => {
     expect(screen.getByText("v3 solution")).toBeInTheDocument()
     expect(screen.getByText("v4 solution")).toBeInTheDocument()
     expect(screen.getByText("Change summary")).toBeInTheDocument()
-    expect(screen.getByText("Temporary migration note.")).toBeInTheDocument()
+    expect(screen.getByText("Generated migration note.")).toBeInTheDocument()
+    expect(screen.getByText("Generated v4")).toBeInTheDocument()
   })
 
   it("shows the identical-state badge and collapsed note in compare mode", () => {
@@ -119,6 +122,6 @@ describe("TourStep", () => {
 
     expect(screen.getByText("No v4 changes")).toBeInTheDocument()
     expect(screen.getByText("v3 and v4beta are identical for this step.")).toBeInTheDocument()
-    expect(screen.getByText("No v4beta changes are staged for this step yet.")).not.toBeVisible()
+    expect(screen.getByText("No API-level migration changes were needed for this step.")).not.toBeVisible()
   })
 })
