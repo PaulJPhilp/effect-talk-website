@@ -1,0 +1,37 @@
+---
+title: "Testable services"
+lessonSlug: "testing-layers"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+// A service that needs Config
+class Config extends Effect.Service<Config>()("Config", {
+  sync: () => ({ apiUrl: "https://api.prod.com" }),
+}) {}
+
+// For tests, we want apiUrl: "https://api.test.com"
+// Layer.succeed to the rescue!
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Config extends Effect.Service<Config>()("Config", {
+  sync: () => ({ apiUrl: "https://api.prod.com" }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const config = yield* Config
+  return config.apiUrl
+})
+
+const testLayer = Layer.succeed(Config, Config.make({
+  apiUrl: "https://api.test.com",
+}))
+
+Effect.runPromise(Effect.provide(program, testLayer)).then(console.log)
+```

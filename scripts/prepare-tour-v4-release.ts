@@ -6,7 +6,8 @@ import path from "node:path"
 type ReleaseEnvironment = "local" | "staging" | "production"
 
 interface ParsedArgs {
-  readonly seedPath: string
+  readonly manifestPath: string
+  readonly v3DocsRoot: string
   readonly toolRoot: string
   readonly environment: ReleaseEnvironment
   readonly outputDir: string
@@ -45,7 +46,8 @@ function parseEnvFile(filePath: string): Record<string, string> {
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
   const environmentDefault: ReleaseEnvironment = "local"
-  let seedPath = path.resolve(process.cwd(), "scripts/seed-tour.ts")
+  let manifestPath = path.resolve(process.cwd(), "content", "tour", "tour-manifest.json")
+  let v3DocsRoot = path.resolve(process.cwd(), "content", "tour-docs", "v3")
   let toolRoot = path.resolve(process.cwd(), "..", "effect-refactoring-tool")
   let environment: ReleaseEnvironment = environmentDefault
   let outputDir = path.resolve(process.cwd(), ".generated", "tour-v4-release", environment)
@@ -59,8 +61,12 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     switch (arg) {
-      case "--seed":
-        seedPath = path.resolve(argv[index + 1] ?? seedPath)
+      case "--manifest":
+        manifestPath = path.resolve(argv[index + 1] ?? manifestPath)
+        index += 1
+        break
+      case "--v3-docs-root":
+        v3DocsRoot = path.resolve(argv[index + 1] ?? v3DocsRoot)
         index += 1
         break
       case "--tool-root":
@@ -115,7 +121,8 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 
 Usage:
   bun run scripts/prepare-tour-v4-release.ts [--environment local|staging|production]
-    [--seed /abs/path/to/scripts/seed-tour.ts]
+    [--manifest /abs/path/to/content/tour/tour-manifest.json]
+    [--v3-docs-root /abs/path/to/content/tour-docs/v3]
     [--tool-root /abs/path/to/effect-refactoring-tool]
     [--output-dir /abs/path/to/output]
     [--artifact-out /abs/path/to/tour-v4-snippets.json]
@@ -137,7 +144,8 @@ Behavior:
   }
 
   return {
-    seedPath,
+    manifestPath,
+    v3DocsRoot,
     toolRoot,
     environment,
     outputDir,
@@ -214,10 +222,14 @@ async function main(): Promise<void> {
       "effect-v4-migration",
       "migrate-tour",
       "--",
-      "--seed",
-      args.seedPath,
+      "--manifest",
+      args.manifestPath,
+      "--v3-docs-root",
+      args.v3DocsRoot,
       "--output",
       args.artifactPath,
+      "--transform-profile",
+      "pilot-structural",
       "--metadata-out",
       args.metadataPath,
     ],
@@ -230,6 +242,10 @@ async function main(): Promise<void> {
       "run",
       "qa:tour:v4",
       "--",
+      "--manifest",
+      args.manifestPath,
+      "--v3-docs-root",
+      args.v3DocsRoot,
       "--artifact",
       args.artifactPath,
       "--metadata",
@@ -253,6 +269,7 @@ async function main(): Promise<void> {
 
   const env = mergeEnv(args.envFile ? parseEnvFile(args.envFile) : undefined)
   env.TOUR_V4_ARTIFACT_PATH = args.artifactPath
+  env.TOUR_MANIFEST_PATH = args.manifestPath
 
   await runCommand(["bun", "run", "db:seed:tour"], { cwd: process.cwd(), env })
   await runCommand(["bun", "run", "db:promote", "tour"], { cwd: process.cwd(), env })

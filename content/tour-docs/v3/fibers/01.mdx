@@ -1,0 +1,36 @@
+---
+title: "Effect.fork for background work"
+lessonSlug: "fibers"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Blocking - we wait for each task
+const task = Effect.sleep("200 millis").pipe(
+  Effect.flatMap(() => Effect.sync(() => console.log("Done")))
+)
+
+// Effect.runPromise(task) // Blocks until done!
+console.log("Main thread blocked...")
+```
+
+```ts title="solution"
+import { Effect, Fiber } from "effect"
+
+const backgroundTask = Effect.sleep("200 millis").pipe(
+  Effect.flatMap(() => Effect.sync(() => console.log("Background done")))
+)
+
+const program = Effect.gen(function* () {
+  const fiber = yield* Effect.fork(backgroundTask)
+  console.log("Main thread continues!")
+  yield* Effect.sleep("50 millis")
+  const result = yield* Fiber.join(fiber)
+  return result
+})
+
+Effect.runPromise(program)
+```

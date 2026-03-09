@@ -1,0 +1,28 @@
+---
+title: "Your first Effect"
+lessonSlug: "effects-are-lazy"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Thinking Effects execute immediately
+const myEffect = Effect.succeed(42)
+console.log(myEffect) // This logs the Effect object, not 42!
+
+// We might expect this to work, but Effects are lazy
+const result = myEffect // ❌ This is still an Effect, not a value!
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+// Effect way: Understanding laziness
+const myEffect = Effect.succeed(42)
+
+// Effects don't execute until you explicitly run them
+const result = Effect.runSync(myEffect)
+console.log(result) // 42 - Now we get the actual value!
+```

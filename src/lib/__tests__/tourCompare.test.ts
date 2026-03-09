@@ -17,6 +17,9 @@ const step: TourStep = {
   hints: null,
   feedback_on_complete: null,
   pattern_id: null,
+  migration_status: "auto-certified",
+  v3_source_ref: "bootstrap-seed-snapshot",
+  v3_source_path: "effects-are-lazy/01.mdx",
   created_at: "2026-03-08T00:00:00.000Z",
 }
 
@@ -42,6 +45,8 @@ describe("tourCompare", () => {
       v3Code: "v3 solution",
       v4Code: "v3 solution",
       identical: true,
+      conceptIdentical: true,
+      solutionIdentical: true,
     })
   })
 
@@ -50,7 +55,25 @@ describe("tourCompare", () => {
       v3Code: "v3 solution",
       v4Code: "v4 solution",
       identical: false,
-      changeSummary: "This step is showing the generated v4 lesson variant alongside the current v3 version.",
+      conceptIdentical: false,
+      solutionIdentical: false,
+      changeSummary: "Both the anti-pattern and solution snippets differ between the pinned v3 source and the generated v4 variant.",
+    })
+  })
+
+  it("marks compare output as changed when only the concept snippet differs", () => {
+    expect(
+      getTourCompareView({
+        ...step,
+        solution_code_v4: "v3 solution",
+      })
+    ).toMatchObject({
+      v3Code: "v3 solution",
+      v4Code: "v3 solution",
+      identical: false,
+      conceptIdentical: false,
+      solutionIdentical: true,
+      changeSummary: "The anti-pattern snippet differs between the pinned v3 source and the generated v4 variant.",
     })
   })
 

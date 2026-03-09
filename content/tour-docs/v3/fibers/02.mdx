@@ -1,0 +1,34 @@
+---
+title: "Fiber.join to wait for results"
+lessonSlug: "fibers"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We have two tasks - run them in parallel?
+const taskA = Effect.succeed("A").pipe(Effect.delay("100 millis"))
+const taskB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
+
+// Sequential: takes 200ms
+// How do we run both at once?
+```
+
+```ts title="solution"
+import { Effect, Fiber } from "effect"
+
+const taskA = Effect.succeed("A").pipe(Effect.delay("100 millis"))
+const taskB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
+
+const program = Effect.gen(function* () {
+  const fiberA = yield* Effect.fork(taskA)
+  const fiberB = yield* Effect.fork(taskB)
+  const [a, b] = yield* Effect.all([Fiber.join(fiberA), Fiber.join(fiberB)])
+  console.log(a, b) // "A" "B" - both completed in ~100ms
+  return [a, b]
+})
+
+Effect.runPromise(program)
+```

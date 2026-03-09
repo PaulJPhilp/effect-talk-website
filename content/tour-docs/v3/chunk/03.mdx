@@ -1,0 +1,26 @@
+---
+title: "Chunk vs Array in Effect pipelines"
+lessonSlug: "chunk"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Processing a stream - we get Chunk. Convert to array?
+const processItems = (items: number[]) =>
+  Effect.succeed(items.map((n) => n * 2))
+
+// Or work with Chunk directly...
+```
+
+```ts title="solution"
+import { Effect, Chunk } from "effect"
+
+const chunk = Chunk.fromIterable([1, 2, 3, 4, 5])
+const doubled = Chunk.map(chunk, (n) => n * 2)
+const sum = Chunk.reduce(doubled, 0, (acc, n) => acc + n)
+
+Effect.runPromise(Effect.succeed(sum)).then(console.log) // 30
+```

@@ -1,0 +1,36 @@
+---
+title: "Schedule for composable retry policies"
+lessonSlug: "retries"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schedule } from "effect"
+
+// We want: exponential backoff, with jitter, max 5 retries
+// Schedule lets us compose these concerns...
+```
+
+```ts title="solution"
+import { Effect, Schedule } from "effect"
+
+const exponentialBackoff = Schedule.exponential("100 millis")
+const withJitter = Schedule.jittered(exponentialBackoff)
+const limited = Schedule.compose(withJitter, Schedule.recurs(5))
+
+const flakyOp = Effect.try({
+  try: () => {
+    if (Math.random() > 0.5) throw new Error("flaky")
+    return "ok"
+  },
+  catch: (e) => e as Error,
+})
+
+const program = flakyOp.pipe(
+  Effect.retry(limited),
+  Effect.tap((r) => Effect.sync(() => console.log("Got:", r)))
+)
+
+Effect.runPromise(program)
+```

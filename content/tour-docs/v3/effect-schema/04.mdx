@@ -1,0 +1,30 @@
+---
+title: "Schema.Array and optional fields"
+lessonSlug: "effect-schema"
+orderIndex: 4
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schema } from "effect"
+
+// Payload: optional tags (array of strings), optional limit (number, default 10)
+// Schema.Array(Schema.String), Schema.optional, Schema.optionalWith
+```
+
+```ts title="solution"
+import { Effect, Schema } from "effect"
+
+const QuerySchema = Schema.Struct({
+  tags: Schema.optional(Schema.Array(Schema.String)),
+  limit: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), {
+    default: () => 10,
+  }),
+})
+
+const program = Schema.decodeUnknown(QuerySchema)({ tags: ["a", "b"] }).pipe(
+  Effect.tap((q) => Effect.sync(() => console.log(q.limit, q.tags)))
+)
+
+Effect.runPromise(program)
+```

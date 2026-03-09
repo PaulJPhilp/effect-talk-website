@@ -1,0 +1,47 @@
+---
+title: "The Three Channels: Success, Error, and Requirements"
+lessonSlug: "effect-channels"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Untyped errors
+const getUser = (id: number) => {
+  if (id === 1) {
+    return Effect.succeed({ name: "Alice" })
+  }
+  return Effect.fail("User not found") // ❌ Error type is 'string' - not descriptive!
+}
+
+// What can go wrong? TypeScript doesn't know!
+const user = getUser(2) // Effect<{ name: string }, string, never>
+```
+
+```ts title="solution"
+import { Effect, Data } from "effect"
+
+// Effect way: Typed errors with Data.tagged (plain objects, works in Sandpack)
+interface UserNotFoundError {
+  readonly _tag: "UserNotFoundError"
+  readonly userId: number
+}
+const UserNotFoundError = Data.tagged<UserNotFoundError>("UserNotFoundError")
+
+interface User {
+  readonly name: string
+}
+
+// Now the error type is explicit and descriptive
+const getUser = (id: number): Effect.Effect<User, UserNotFoundError> => {
+  if (id === 1) {
+    return Effect.succeed({ name: "Alice" })
+  }
+  return Effect.fail(UserNotFoundError({ userId: id }))
+}
+
+// TypeScript knows exactly what can go wrong
+const user = getUser(2) // Effect<User, UserNotFoundError, never>
+```

@@ -1,0 +1,36 @@
+---
+title: "Runtime.runFork for long-running effects"
+lessonSlug: "runtimes"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// A long-running server - we don't want to block
+// runPromise would wait forever...
+```
+
+```ts title="solution"
+import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
+
+class Logger extends Effect.Service<Logger>()("Logger", {
+  sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
+}) {}
+
+const server = Effect.log("Request received").pipe(
+  Effect.delay("1 second"),
+  Effect.forever
+)
+
+async function main() {
+  const runtime = ManagedRuntime.make(Logger.Default)
+  const fiber = runtime.runFork(server)
+  await Effect.runPromise(Effect.sleep("2 seconds"))
+  await Effect.runPromise(Fiber.interrupt(fiber))
+  await runtime.dispose()
+}
+
+main()
+```

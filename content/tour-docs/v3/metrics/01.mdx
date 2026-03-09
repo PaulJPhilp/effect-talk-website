@@ -1,0 +1,31 @@
+---
+title: "Metric.counter for counting events"
+lessonSlug: "metrics"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// We want to track how many users we've processed
+// Without metrics, we'd use mutable counters...
+```
+
+```ts title="solution"
+import { Effect, Metric } from "effect"
+
+const usersProcessed = Metric.counter("users_processed_total", {
+  description: "Total users processed",
+})
+
+const program = Effect.gen(function* () {
+  yield* Metric.increment(usersProcessed)
+  yield* Metric.increment(usersProcessed)
+  yield* Metric.incrementBy(usersProcessed, 3)
+  const total = yield* Metric.value(usersProcessed)
+  return total
+})
+
+Effect.runPromise(program).then(console.log)
+```

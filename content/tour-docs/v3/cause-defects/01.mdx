@@ -1,0 +1,31 @@
+---
+title: "Cause.isFailure vs Cause.isDie"
+lessonSlug: "cause-defects"
+orderIndex: 1
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// An Effect might fail with our error type, or crash with a defect
+// How do we tell them apart?
+```
+
+```ts title="solution"
+import { Effect, Cause } from "effect"
+
+const program = Effect.fail("expected error").pipe(
+  Effect.catchAllCause((cause) =>
+    Effect.sync(() => {
+      if (Cause.isFailure(cause)) {
+        console.log("Expected failure:", Cause.failures(cause))
+      } else if (Cause.isDie(cause)) {
+        console.log("Defect (bug):", Cause.defects(cause))
+      }
+    })
+  )
+)
+
+Effect.runPromise(program)
+```

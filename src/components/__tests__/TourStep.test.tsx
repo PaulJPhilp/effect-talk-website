@@ -31,6 +31,9 @@ const step: TourStepType = {
   hints: ["Reach for `Effect.gen` first."],
   feedback_on_complete: "Nice work.",
   pattern_id: null,
+  migration_status: "auto-certified",
+  v3_source_ref: "bootstrap-seed-snapshot",
+  v3_source_path: "pipes-and-flow/01.mdx",
   created_at: "2026-03-07T00:00:00.000Z",
 }
 
@@ -39,6 +42,9 @@ const compareView: TourCompareView = {
   v4Code: "console.log('v4')",
   changeSummary: "Generated migration note.",
   identical: false,
+  selectedSnippet: "solution",
+  conceptIdentical: false,
+  solutionIdentical: false,
 }
 
 const identicalCompareView: TourCompareView = {
@@ -46,6 +52,9 @@ const identicalCompareView: TourCompareView = {
   v4Code: "console.log('same')",
   changeSummary: "No API-level migration changes were needed for this step.",
   identical: true,
+  selectedSnippet: "solution",
+  conceptIdentical: true,
+  solutionIdentical: true,
 }
 
 describe("TourStep", () => {
@@ -103,7 +112,7 @@ describe("TourStep", () => {
     expect(screen.getByText("v4 solution")).toBeInTheDocument()
     expect(screen.getByText("Change summary")).toBeInTheDocument()
     expect(screen.getByText("Generated migration note.")).toBeInTheDocument()
-    expect(screen.getByText("Generated v4")).toBeInTheDocument()
+    expect(screen.getByText("Auto-certified v4 migration")).toBeInTheDocument()
   })
 
   it("shows the identical-state badge and collapsed note in compare mode", () => {
@@ -120,7 +129,7 @@ describe("TourStep", () => {
       />
     )
 
-    expect(screen.getByText("No v4 changes")).toBeInTheDocument()
+    expect(screen.getByText("Unchanged from v3")).toBeInTheDocument()
     expect(screen.getByText("v3 and v4beta are identical for this step.")).toBeInTheDocument()
     expect(screen.getByText("No API-level migration changes were needed for this step.")).not.toBeVisible()
   })

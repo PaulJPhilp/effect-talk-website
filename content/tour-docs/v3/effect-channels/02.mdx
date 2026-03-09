@@ -1,0 +1,35 @@
+---
+title: "Defining typed errors with Data.TaggedError"
+lessonSlug: "effect-channels"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Anti-pattern: Generic errors - hard to handle precisely
+const parseConfig = (input: string) => {
+  if (!input) return Effect.fail(new Error("Invalid"))
+  return Effect.succeed(JSON.parse(input))
+}
+// What exactly went wrong? TypeScript says Error - no structure!
+```
+
+```ts title="solution"
+import { Effect, Data } from "effect"
+
+// Define a tagged error with structured fields
+class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
+  readonly input: string
+  readonly message: string
+}> {}
+
+const parseConfig = (input: string) =>
+  input
+    ? Effect.succeed(JSON.parse(input))
+    : Effect.fail(new ConfigParseError({ input, message: "Empty input" }))
+
+// Effect<string, ConfigParseError, never>
+// The error type is explicit and carries usable data
+```

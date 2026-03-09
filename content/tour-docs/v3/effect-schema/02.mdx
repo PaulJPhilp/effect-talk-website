@@ -1,0 +1,44 @@
+---
+title: "Schema.Union and Schema.Literal"
+lessonSlug: "effect-schema"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Schema } from "effect"
+
+// Result: Success { _tag: "Success", value } | Failure { _tag: "Failure", error }
+// Schema.Union + Literal for each variant
+```
+
+```ts title="solution"
+import { Effect, Schema, Either } from "effect"
+
+const SuccessSchema = Schema.Struct({
+  _tag: Schema.Literal("Success"),
+  value: Schema.Number,
+})
+
+const FailureSchema = Schema.Struct({
+  _tag: Schema.Literal("Failure"),
+  error: Schema.String,
+})
+
+const ResultSchema = Schema.Union(SuccessSchema, FailureSchema)
+
+const combineTags = (first: { _tag: string }, second: { _tag: string }) =>
+  `${first._tag},${second._tag}`
+
+const first = Schema.decodeUnknownEither(ResultSchema)({ _tag: "Success", value: 42 })
+const second = Schema.decodeUnknownEither(ResultSchema)({ _tag: "Failure", error: "Nope" })
+const combined = Either.zipWith(first, second, combineTags)
+
+if (Either.isRight(combined)) {
+  console.log(combined.right)
+}
+
+const program = Schema.decodeUnknown(ResultSchema)({ _tag: "Success", value: 42 })
+
+Effect.runPromise(program)
+```

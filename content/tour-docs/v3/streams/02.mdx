@@ -1,0 +1,30 @@
+---
+title: "Stream.filter and Stream.take"
+lessonSlug: "streams"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Stream, Chunk } from "effect"
+
+// Filter evens, double them, take first 3
+const numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+
+// Build the pipeline...
+```
+
+```ts title="solution"
+import { Effect, Stream, Chunk } from "effect"
+
+const program = Stream.fromIterable([1, 2, 3, 4, 5, 6, 7, 8]).pipe(
+  Stream.filter((n) => n % 2 === 0),
+  Stream.map((n) => n * 2),
+  Stream.take(3),
+  Stream.runCollect
+)
+
+Effect.runPromise(program).then((chunk) => {
+  console.log(Chunk.toArray(chunk)) // [4, 8, 12]
+})
+```

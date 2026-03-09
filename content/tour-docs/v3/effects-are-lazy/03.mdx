@@ -1,0 +1,29 @@
+---
+title: "Chain effects with .pipe and Effect.map"
+lessonSlug: "effects-are-lazy"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+const numberEffect = Effect.succeed(5)
+
+// TODO: Transform this Effect to multiply by 2, then format as "The result is 10"
+const stringEffect = numberEffect // ...
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const numberEffect = Effect.succeed(5)
+
+const stringEffect = numberEffect.pipe(
+  Effect.map((n) => n * 2),
+  Effect.map((n) => `The result is ${n}`)
+)
+
+const result = Effect.runSync(stringEffect)
+console.log(result) // "The result is 10"
+```

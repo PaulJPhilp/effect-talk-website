@@ -1,0 +1,35 @@
+---
+title: "Effect.timeout for time limits"
+lessonSlug: "retries"
+orderIndex: 2
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// A slow operation - what if it never finishes?
+const slowOp = Effect.gen(function* () {
+  yield* Effect.sleep("5 seconds")
+  return "done"
+})
+
+// We need a timeout to avoid waiting forever...
+```
+
+```ts title="solution"
+import { Effect, Duration } from "effect"
+
+const slowOp = Effect.gen(function* () {
+  yield* Effect.sleep("500 millis")
+  return "done"
+})
+
+const program = slowOp.pipe(
+  Effect.timeout(Duration.millis(200)),
+  Effect.tap((value) => Effect.sync(() => console.log("Success:", value))),
+  Effect.catchTag("TimeoutException", () => Effect.sync(() => console.log("Timed out!")))
+)
+
+Effect.runPromise(program)
+```

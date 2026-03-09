@@ -5,6 +5,9 @@ export interface TourCompareView {
   readonly v4Code: string
   readonly changeSummary: string
   readonly identical: boolean
+  readonly selectedSnippet: "concept" | "solution"
+  readonly conceptIdentical: boolean
+  readonly solutionIdentical: boolean
 }
 
 export const EMPTY_COMPARE_CODE = "// Comparison preview is not available for this step yet."
@@ -27,17 +30,39 @@ function getBaseCompareCode(step: TourStep, mode: "v3" | "v4"): string {
   return getTourSolutionCode(step, mode) ?? getTourConceptCode(step, mode) ?? EMPTY_COMPARE_CODE
 }
 
+function summarizeDiffs(conceptIdentical: boolean, solutionIdentical: boolean): string {
+  if (conceptIdentical && solutionIdentical) {
+    return "No API-level migration changes were needed for this step."
+  }
+  if (!conceptIdentical && !solutionIdentical) {
+    return "Both the anti-pattern and solution snippets differ between the pinned v3 source and the generated v4 variant."
+  }
+  if (!conceptIdentical) {
+    return "The anti-pattern snippet differs between the pinned v3 source and the generated v4 variant."
+  }
+  return "The solution snippet differs between the pinned v3 source and the generated v4 variant."
+}
+
 export function getTourCompareView(step: TourStep): TourCompareView {
-  const v3Code = getBaseCompareCode(step, "v3")
-  const v4Code = getBaseCompareCode(step, "v4")
-  const identical = v3Code === v4Code
+  const conceptV3 = getTourConceptCode(step, "v3") ?? EMPTY_COMPARE_CODE
+  const conceptV4 = getTourConceptCode(step, "v4") ?? EMPTY_COMPARE_CODE
+  const solutionV3 = getTourSolutionCode(step, "v3") ?? EMPTY_COMPARE_CODE
+  const solutionV4 = getTourSolutionCode(step, "v4") ?? EMPTY_COMPARE_CODE
+  const conceptIdentical = conceptV3 === conceptV4
+  const solutionIdentical = solutionV3 === solutionV4
+  const identical = conceptIdentical && solutionIdentical
+  const selectedSnippet =
+    getTourSolutionCode(step, "v3") !== null || getTourSolutionCode(step, "v4") !== null ? "solution" : "concept"
+  const v3Code = selectedSnippet === "solution" ? solutionV3 : conceptV3
+  const v4Code = selectedSnippet === "solution" ? solutionV4 : conceptV4
 
   return {
     v3Code,
     v4Code,
-    changeSummary: identical
-      ? "No API-level migration changes were needed for this step."
-      : "This step is showing the generated v4 lesson variant alongside the current v3 version.",
+    changeSummary: summarizeDiffs(conceptIdentical, solutionIdentical),
     identical,
+    selectedSnippet,
+    conceptIdentical,
+    solutionIdentical,
   }
 }

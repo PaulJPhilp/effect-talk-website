@@ -1,0 +1,45 @@
+---
+title: "Layer.scoped for managed resources"
+lessonSlug: "layers"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Layer } from "effect"
+
+// A service that needs to be opened and closed
+const acquireConnection = Effect.sync(() => {
+  console.log("Connection acquired")
+  return { query: (sql: string) => Effect.succeed("result") }
+})
+const releaseConnection = () => Effect.sync(() => console.log("Connection released"))
+
+// Layer.scoped manages this lifecycle...
+```
+
+```ts title="solution"
+import { Effect, Layer } from "effect"
+
+class Database extends Effect.Service<Database>()("Database", {
+  scoped: Effect.gen(function* () {
+    const id = Math.floor(Math.random() * 1000)
+    yield* Effect.sync(() => console.log(`[DB ${id}] Acquired`))
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => console.log(`[DB ${id}] Released`))
+    )
+    return {
+      query: (sql: string) => Effect.succeed(`Result: ${sql}`),
+    }
+  }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const db = yield* Database
+  return yield* db.query("SELECT 1")
+})
+
+Effect.runPromise(
+  Effect.scoped(Effect.provide(program, Database.Default))
+).then(console.log)
+```

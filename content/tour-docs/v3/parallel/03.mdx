@@ -1,0 +1,34 @@
+---
+title: "Effect.all with record"
+lessonSlug: "parallel"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect } from "effect"
+
+// Multiple named fetches
+const fetchUser = Effect.succeed({ name: "Alice" }).pipe(Effect.delay("50 millis"))
+const fetchPosts = Effect.succeed([{ id: 1 }]).pipe(Effect.delay("50 millis"))
+
+// Run in parallel and get named results...
+```
+
+```ts title="solution"
+import { Effect } from "effect"
+
+const fetchUser = Effect.succeed({ name: "Alice" }).pipe(Effect.delay("50 millis"))
+const fetchPosts = Effect.succeed([{ id: 1 }]).pipe(Effect.delay("50 millis"))
+
+const program = Effect.all({
+  user: fetchUser,
+  posts: fetchPosts,
+}).pipe(
+  Effect.tap(({ user, posts }) =>
+    Effect.sync(() => console.log(user.name, posts.length))
+  )
+)
+
+Effect.runPromise(program)
+```

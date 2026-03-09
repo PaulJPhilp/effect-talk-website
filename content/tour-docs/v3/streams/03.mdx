@@ -1,0 +1,26 @@
+---
+title: "Stream.runDrain for side effects"
+lessonSlug: "streams"
+orderIndex: 3
+generatedFromSeedPath: "/Users/paul/Projects/In-Progress/effect-talk-website/scripts/seed-tour.ts"
+---
+
+```ts title="concept"
+import { Effect, Stream } from "effect"
+
+// We want to log each item, not collect
+const items = ["a", "b", "c"]
+
+// runCollect would give us Chunk - we don't need the values...
+```
+
+```ts title="solution"
+import { Effect, Stream } from "effect"
+
+const program = Stream.fromIterable(["a", "b", "c"]).pipe(
+  Stream.mapEffect((item) => Effect.sync(() => console.log("Got:", item))),
+  Stream.runDrain
+)
+
+Effect.runPromise(program)
+```
