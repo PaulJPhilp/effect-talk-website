@@ -335,13 +335,7 @@ console.log(getUser(1))`,
     conceptCodeLanguage: "typescript",
     solutionCode: `import { Effect } from "effect"
 
-// Define the service interface
-interface Database {
-  readonly query: (sql: string) => Effect.Effect<unknown>
-}
-
-// Define the service
-export class Database extends Effect.Service<Database>()(
+class Database extends Effect.Service<Database>()(
   "Database",
   {
     sync: () => ({
@@ -867,7 +861,7 @@ Effect.runPromise(program)`,
     orderIndex: 2,
     title: "Effect.timeout for time limits",
     patternTitle: "Race Effects and Handle Timeouts",
-    instruction: `Use \`Effect.timeout\` to fail an Effect if it takes too long. Returns \`Option.none\` on timeout, or \`Option.some(value)\` on success.
+    instruction: `Use \`Effect.timeout\` to fail an Effect if it takes too long. On timeout it fails with \`TimeoutException\`; on success it keeps the original value.
 
 Prevent runaway operations from blocking forever.`,
     conceptCode: `import { Effect } from "effect"
@@ -889,17 +883,14 @@ const slowOp = Effect.gen(function* () {
 
 const program = slowOp.pipe(
   Effect.timeout(Duration.millis(200)),
-  Effect.flatMap((option) =>
-    option._tag === "Some"
-      ? Effect.sync(() => console.log("Success:", option.value))
-      : Effect.sync(() => console.log("Timed out!"))
-  )
+  Effect.tap((value) => Effect.sync(() => console.log("Success:", value))),
+  Effect.catchTag("TimeoutException", () => Effect.sync(() => console.log("Timed out!")))
 )
 
 Effect.runPromise(program)`,
     hints: [
       "Use `Effect.timeout(duration)` to add a time limit",
-      "Returns `Option<A>` - `Some` on success, `None` on timeout",
+      "On timeout, the Effect fails with `TimeoutException`",
       "Use `Duration.millis(n)` or `Duration.seconds(n)`",
     ],
     feedbackOnComplete:
@@ -969,7 +960,7 @@ const task = Effect.sleep("200 millis").pipe(
 // Effect.runPromise(task) // Blocks until done!
 console.log("Main thread blocked...")`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect } from "effect"
+    solutionCode: `import { Effect, Fiber } from "effect"
 
 const backgroundTask = Effect.sleep("200 millis").pipe(
   Effect.flatMap(() => Effect.sync(() => console.log("Background done")))
@@ -979,7 +970,7 @@ const program = Effect.gen(function* () {
   const fiber = yield* Effect.fork(backgroundTask)
   console.log("Main thread continues!")
   yield* Effect.sleep("50 millis")
-  const result = yield* fiber.join
+  const result = yield* Fiber.join(fiber)
   return result
 })
 
@@ -1008,7 +999,7 @@ const taskB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
 // Sequential: takes 200ms
 // How do we run both at once?`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect } from "effect"
+    solutionCode: `import { Effect, Fiber } from "effect"
 
 const taskA = Effect.succeed("A").pipe(Effect.delay("100 millis"))
 const taskB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
@@ -1016,7 +1007,7 @@ const taskB = Effect.succeed("B").pipe(Effect.delay("100 millis"))
 const program = Effect.gen(function* () {
   const fiberA = yield* Effect.fork(taskA)
   const fiberB = yield* Effect.fork(taskB)
-  const [a, b] = yield* Effect.all([fiberA.join, fiberB.join])
+  const [a, b] = yield* Effect.all([Fiber.join(fiberA), Fiber.join(fiberB)])
   console.log(a, b) // "A" "B" - both completed in ~100ms
   return [a, b]
 })
@@ -1046,7 +1037,7 @@ const longTask = Effect.sleep("10 seconds").pipe(
 
 // We might want to cancel it after 1 second...`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect } from "effect"
+    solutionCode: `import { Effect, Fiber } from "effect"
 
 const longTask = Effect.sleep("5 seconds").pipe(
   Effect.flatMap(() => Effect.sync(() => console.log("Finished")))
@@ -1055,7 +1046,7 @@ const longTask = Effect.sleep("5 seconds").pipe(
 const program = Effect.gen(function* () {
   const fiber = yield* Effect.fork(longTask)
   yield* Effect.sleep("100 millis")
-  yield* fiber.interrupt
+  yield* Fiber.interrupt(fiber)
   console.log("Cancelled!")
 })
 
@@ -1437,7 +1428,7 @@ const program = Effect.gen(function* () {
 const prod = Effect.provide(program, Api.Default)
 
 // Test: use mock layer
-const testLayer = Layer.succeed(Api, Api.of({
+const testLayer = Layer.succeed(Api, Api.make({
   fetchUser: () => Effect.succeed({ id: 1, name: "Test User" }),
 }))
 const test = Effect.provide(program, testLayer)
@@ -1479,7 +1470,7 @@ const program = Effect.gen(function* () {
   return config.apiUrl
 })
 
-const testLayer = Layer.succeed(Config, Config.of({
+const testLayer = Layer.succeed(Config, Config.make({
   apiUrl: "https://api.test.com",
 }))
 
@@ -1531,7 +1522,7 @@ const program = Effect.gen(function* () {
 
 const testLayer = Layer.merge(
   Logger.Default,
-  Layer.succeed(Db, Db.of({ query: () => Effect.succeed([{ id: 1, name: "Test" }]) }))
+  Layer.succeed(Db, Db.make({ query: () => Effect.succeed([{ id: 1, name: "Test" }]) }))
 )
 
 Effect.runPromise(Effect.provide(program, testLayer)).then(console.log)`,
@@ -1673,15 +1664,15 @@ const program = Effect.gen(function* () {
   yield* Metric.increment(usersProcessed)
   yield* Metric.increment(usersProcessed)
   yield* Metric.incrementBy(usersProcessed, 3)
-  const snapshot = yield* Metric.snapshot(usersProcessed)
-  return snapshot
+  const total = yield* Metric.value(usersProcessed)
+  return total
 })
 
 Effect.runPromise(program).then(console.log)`,
     hints: [
       "Use `Metric.counter(name, { description })` to create a counter",
       "Use `Metric.increment(counter)` or `Metric.incrementBy(counter, n)`",
-      "Use `Metric.snapshot(counter)` to read the current value",
+      "Use `Metric.value(counter)` to read the current value",
     ],
     feedbackOnComplete:
       "Great! Counters let you track events without mutable state. Metrics are composable and work with Effect.",
@@ -1696,11 +1687,9 @@ Effect.runPromise(program).then(console.log)`,
 // We want to measure DB query latency
 // Manually timing is error-prone...`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect, Metric, Duration } from "effect"
+    solutionCode: `import { Effect, Metric } from "effect"
 
-const dbLatency = Metric.timer("db_query_duration", {
-  description: "Database query duration",
-})
+const dbLatency = Metric.timer("db_query_duration", "Database query duration")
 
 const query = Effect.sleep("50 millis").pipe(
   Effect.as("result")
@@ -1884,7 +1873,7 @@ const lesson16Steps = [
 // We have a service layer - we want to run many effects with it
 // Effect.provide(effect, layer) every time is tedious...`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect, Layer, ManagedRuntime } from "effect"
+    solutionCode: `import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
 
 class Logger extends Effect.Service<Logger>()("Logger", {
   sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
@@ -1922,7 +1911,7 @@ main()`,
 // HTTP server: handle many requests, same DB connection
 // When do we use which?`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect, Layer, ManagedRuntime } from "effect"
+    solutionCode: `import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
 
 class Db extends Effect.Service<Db>()("Db", {
   sync: () => ({ query: () => Effect.succeed("data") }),
@@ -1961,7 +1950,7 @@ runtime.dispose()`,
 // A long-running server - we don't want to block
 // runPromise would wait forever...`,
     conceptCodeLanguage: "typescript",
-    solutionCode: `import { Effect, Layer, ManagedRuntime } from "effect"
+    solutionCode: `import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
 
 class Logger extends Effect.Service<Logger>()("Logger", {
   sync: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) }),
@@ -1976,7 +1965,7 @@ async function main() {
   const runtime = ManagedRuntime.make(Logger.Default)
   const fiber = runtime.runFork(server)
   await Effect.runPromise(Effect.sleep("2 seconds"))
-  Effect.runPromise(fiber.interrupt)
+  await Effect.runPromise(Fiber.interrupt(fiber))
   await runtime.dispose()
 }
 
@@ -2230,7 +2219,7 @@ const lesson18EffectSchemaSteps = [
     title: "Schema.Class for class-based schemas",
     patternTitle: "Parse and Validate Data with Schema.decode",
     instruction:
-      "Use `Schema.Class` to define a schema that decodes to a class instance. You get a constructor and optional/default fields with `Schema.optional` and `Schema.default`.",
+      "Use `Schema.Class` to define a schema that decodes to a class instance. You get a constructor and optional fields with `Schema.optional`.",
     conceptCode:
       'import { Effect, Schema } from "effect"\n\n// We want a User class with name (required) and optional nickname\n// Schema.Class gives us a typed decode + a class we can use',
     conceptCodeLanguage: "typescript",
@@ -2298,18 +2287,17 @@ Effect.runPromise(program)`,
     title: "Schema.transform for encode/decode",
     patternTitle: "Transform Data During Validation with Schema",
     instruction:
-      "Use `Schema.transform` (or `Schema.transformOrFail`) to convert values during decode/encode. Map external shapes to internal types (e.g. string → Date) with validation.",
+      "Use `Schema.transform` (or `Schema.transformOrFail`) to convert values during decode/encode. Map external shapes to internal types (e.g. string -> Date) with validation.",
     conceptCode:
       'import { Effect, Schema } from "effect"\n\n// API sends date as ISO string; we want a Date inside our app\n// transform: decode string → Date, encode Date → string',
     conceptCodeLanguage: "typescript",
     solutionCode: `import { Effect, Schema } from "effect"
 
-const DateFromString = Schema.String.pipe(
-  Schema.transform(
-    (s) => new Date(s),
-    (d) => d.toISOString()
-  )
-)
+const DateFromString = Schema.transform(Schema.String, Schema.ValidDateFromSelf, {
+  strict: true,
+  decode: (value) => new Date(value),
+  encode: (date) => date.toISOString(),
+})
 
 const EventSchema = Schema.Struct({
   name: Schema.String,
@@ -2325,7 +2313,7 @@ const program = Schema.decodeUnknown(EventSchema)({
 
 Effect.runPromise(program)`,
     hints: [
-      "Schema.transform(decode, encode) for bidirectional conversion",
+      "Schema.transform(from, to, { decode, encode }) for bidirectional conversion",
       "Use transformOrFail when decode can fail (e.g. invalid date string)",
       "Compose with Schema.pipe after base schema",
     ],
@@ -2337,17 +2325,17 @@ Effect.runPromise(program)`,
     title: "Schema.Array and optional fields",
     patternTitle: "Parse and Validate Data with Schema.decode",
     instruction:
-      "Use `Schema.Array(schema)` for arrays of validated items. Combine with `Schema.optional` and `Schema.default` for flexible request/response shapes.",
+      "Use `Schema.Array(schema)` for arrays of validated items. Combine with `Schema.optional` and `Schema.optionalWith` for flexible request/response shapes.",
     conceptCode:
-      'import { Effect, Schema } from "effect"\n\n// Payload: optional tags (array of strings), optional limit (number, default 10)\n// Schema.Array(Schema.String), Schema.optional, Schema.default',
+      'import { Effect, Schema } from "effect"\n\n// Payload: optional tags (array of strings), optional limit (number, default 10)\n// Schema.Array(Schema.String), Schema.optional, Schema.optionalWith',
     conceptCodeLanguage: "typescript",
     solutionCode: `import { Effect, Schema } from "effect"
 
 const QuerySchema = Schema.Struct({
   tags: Schema.optional(Schema.Array(Schema.String)),
-  limit: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.positive())).pipe(
-    Schema.default(10)
-  ),
+  limit: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), {
+    default: () => 10,
+  }),
 })
 
 const program = Schema.decodeUnknown(QuerySchema)({ tags: ["a", "b"] }).pipe(
@@ -2357,7 +2345,7 @@ const program = Schema.decodeUnknown(QuerySchema)({ tags: ["a", "b"] }).pipe(
 Effect.runPromise(program)`,
     hints: [
       "Schema.Array(itemSchema) validates each element",
-      "Schema.default(value) provides a value when input is undefined",
+      "Schema.optionalWith(schema, { default: () => value }) provides a fallback when input is missing",
       "Combine optional + default for \"optional with fallback\"",
     ],
     feedbackOnComplete:

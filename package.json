@@ -32,6 +32,7 @@
     "smoke:auth:prod": "bun run scripts/smoke-auth-redirect.ts https://effecttalk.dev effecttalk.dev",
     "smoke:auth:staging": "bun run scripts/smoke-auth-redirect.ts https://staging-effecttalk.vercel.app staging-effecttalk.vercel.app",
     "perf:tour": "bun run scripts/tour-performance-baseline.ts",
+    "qa:tour:v4": "bun run scripts/qa-tour-v4.ts",
     "test:policy": "bun run scripts/check-test-policy.ts",
     "test:ci": "vitest run --config vitest.config.mts --coverage && bun run scripts/check-test-policy.ts"
   },

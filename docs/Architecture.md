@@ -51,6 +51,7 @@ Key route groups in the app today:
 | `bun run env:check` | Validate deploy-critical env vars |
 | `bun run db:check` | Verify DB connectivity and required tables |
 | `bun run perf:tour` | Run the tour baseline script |
+| `bun run qa:tour:v4` | Generate the v4 artifact and QA all tour compare snippets |
 
 Tour v4 content workflow:
 - Generate the migrated snippet artifact in `effect-refactoring-tool` with `bun run --filter effect-v4-migration migrate-tour -- --seed /abs/path/to/effect-talk-website/scripts/seed-tour.ts --output /abs/path/to/tour-v4-snippets.json`
