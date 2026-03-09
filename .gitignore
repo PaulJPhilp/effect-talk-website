@@ -25,6 +25,7 @@
 *.pem
 Thumbs.db
 *~
+.generated/
 
 # debug & logs
 npm-debug.log*

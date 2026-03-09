@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest"
 import { buildTourArtifactStepKey, indexTourMigrationArtifact, validateTourMigrationArtifact, type TourMigrationArtifact } from "@/lib/tourMigrationArtifact"
 
 const artifact: TourMigrationArtifact = {
+  version: 2,
+  metadata: {
+    metadataVersion: 1,
+    artifactVersion: 2,
+    generatorVersion: "0.1.0",
+    mappingVersion: "abc123",
+    generatedAt: "2026-03-09T00:00:00.000Z",
+    transformProfile: "safe",
+    reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
+    blockedV3Apis: ["Effect.zipPar"],
+    blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+  },
   lessonCount: 1,
   stepCount: 2,
   snippetCount: 4,
@@ -89,5 +101,43 @@ describe("tourMigrationArtifact", () => {
         ]
       )
     ).toThrow(/snippet count mismatch/i)
+  })
+
+  it("fails on unsupported artifact versions", () => {
+    expect(() =>
+      validateTourMigrationArtifact(
+        {
+          ...artifact,
+          version: 999,
+          metadata: {
+            ...artifact.metadata,
+            artifactVersion: 999,
+          },
+        },
+        [
+          {
+            slug: "effects-are-lazy",
+            steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
+          },
+        ]
+      )
+    ).toThrow(/unsupported tour v4 artifact version/i)
+  })
+
+  it("fails when contract metadata is missing", () => {
+    expect(() =>
+      validateTourMigrationArtifact(
+        {
+          ...(artifact as unknown as Record<string, unknown>),
+          metadata: undefined,
+        } as unknown as TourMigrationArtifact,
+        [
+          {
+            slug: "effects-are-lazy",
+            steps: [{ orderIndex: 1 }, { orderIndex: 2 }],
+          },
+        ]
+      )
+    ).toThrow(/missing contract metadata/i)
   })
 })
