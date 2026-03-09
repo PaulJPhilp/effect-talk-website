@@ -2,8 +2,10 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Check } from "lucide-react"
 import { useAllTourProgress } from "@/hooks/useAllTourProgress"
+import { buildTourHref, getAccessibleTourMode } from "@/lib/tourMode"
 import { getLastStepForLesson } from "@/lib/tourPosition"
 import type { TourLessonListItem } from "@/services/TourProgress/types"
 
@@ -32,6 +34,8 @@ interface TourLessonListProps {
 }
 
 export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
+  const searchParams = useSearchParams()
+  const mode = getAccessibleTourMode(searchParams.get("mode"), isLoggedIn)
   const completedStepIds = useAllTourProgress(isLoggedIn)
   const byGroup = useMemo(() => groupLessons(lessons), [lessons])
 
@@ -71,7 +75,14 @@ export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
               const done = isLessonComplete(lesson)
               const stepCount = lesson.step_count
               const lastStep = getLastStepForLesson(lesson.slug)
-              const href = lastStep != null ? `/tour/${lesson.slug}?step=${lastStep}` : `/tour/${lesson.slug}`
+              const href = buildTourHref(
+                `/tour/${lesson.slug}`,
+                searchParams,
+                {
+                  mode,
+                  step: lastStep,
+                }
+              )
 
               return (
                 <li key={lesson.id}>

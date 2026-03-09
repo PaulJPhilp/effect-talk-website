@@ -5,6 +5,7 @@
 import { DbError } from "@/services/Db/errors"
 import type { patterns, rules, users, apiKeys } from "@/db/schema"
 import { NEW_PATTERN_RELEASE_CUTOFF } from "@/db/schema"
+import { semverGte } from "@/lib/semverCompare"
 import type { DbPattern, DbRule, DbUser, DbApiKey } from "@/services/Db/types"
 
 export function toDbError(error: unknown): DbError {
@@ -25,7 +26,7 @@ export function parseTagsJsonb(tags: unknown): readonly string[] | null {
 
 export function mapPattern(row: typeof patterns.$inferSelect): DbPattern {
   const isNewFromRelease =
-    row.releaseVersion != null && row.releaseVersion >= NEW_PATTERN_RELEASE_CUTOFF
+    row.releaseVersion != null && semverGte(row.releaseVersion, NEW_PATTERN_RELEASE_CUTOFF)
   return {
     id: row.id,
     title: row.title,

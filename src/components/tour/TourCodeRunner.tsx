@@ -12,6 +12,7 @@ import { githubLight } from "@codesandbox/sandpack-themes"
 interface TourCodeRunnerProps {
   readonly code: string
   readonly readOnly?: boolean
+  readonly panelTitle?: string
 }
 
 /**
@@ -21,7 +22,11 @@ interface TourCodeRunnerProps {
  * Note: Sandpack generates random IDs that cause hydration mismatches,
  * so we only render it after the component has mounted on the client.
  */
-export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) {
+export function TourCodeRunner({
+  code,
+  readOnly = false,
+  panelTitle = "Code",
+}: TourCodeRunnerProps) {
   const isMounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -42,7 +47,7 @@ export function TourCodeRunner({ code, readOnly = false }: TourCodeRunnerProps) 
       className="h-full w-full min-h-[500px] flex flex-col rounded border border-border bg-background shadow-sm tour-code-runner"
     >
       <div className="px-2 py-1.5 text-sm font-medium border-b bg-muted/50">
-        Code
+        {panelTitle}
       </div>
       <SandpackProvider
         template="vanilla-ts"

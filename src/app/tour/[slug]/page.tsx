@@ -1,10 +1,12 @@
 import { Effect } from "effect"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { cache } from "react"
 import { getLessonWithSteps } from "@/services/TourProgress"
 import { getCurrentUser } from "@/services/Auth"
 import { TourLessonView } from "@/components/tour/TourLessonView"
+import { buildPathWithSearchParams } from "@/lib/authRedirect"
 import { buildMetadata } from "@/lib/seo"
+import { isProtectedTourMode, parseTourMode } from "@/lib/tourMode"
 import type { Metadata } from "next"
 
 /**
@@ -14,6 +16,7 @@ export const revalidate = 300
 
 interface LessonPageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 const getLessonWithStepsCached = cache(async (slug: string) => {
@@ -36,13 +39,22 @@ export async function generateMetadata({ params }: LessonPageProps): Promise<Met
   })
 }
 
-export default async function LessonPage({ params }: LessonPageProps) {
+export default async function LessonPage({ params, searchParams }: LessonPageProps) {
   const { slug } = await params
+  const resolvedSearchParams = await searchParams
+  const requestedMode = parseTourMode(
+    typeof resolvedSearchParams.mode === "string" ? resolvedSearchParams.mode : null
+  )
 
   const [lesson, currentUser] = await Promise.all([
     getLessonWithStepsCached(slug),
     getCurrentUser(),
   ])
+
+  if (!currentUser && isProtectedTourMode(requestedMode)) {
+    const returnTo = buildPathWithSearchParams(`/tour/${slug}`, resolvedSearchParams)
+    redirect(`/auth/sign-in?returnTo=${encodeURIComponent(returnTo)}`)
+  }
 
   if (!lesson) {
     notFound()

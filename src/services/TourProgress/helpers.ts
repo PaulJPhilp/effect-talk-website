@@ -4,6 +4,7 @@
 
 import type { tourLessons, tourSteps, tourProgress } from "@/db/schema"
 import { NEW_PATTERN_RELEASE_CUTOFF } from "@/db/schema"
+import { semverGte } from "@/lib/semverCompare"
 import type {
   TourLesson,
   TourStep,
@@ -33,8 +34,10 @@ export function mapStep(row: typeof tourSteps.$inferSelect): TourStep {
     title: row.title,
     instruction: row.instruction,
     concept_code: row.conceptCode,
+    concept_code_v4: row.conceptCodeV4,
     concept_code_language: row.conceptCodeLanguage,
     solution_code: row.solutionCode,
+    solution_code_v4: row.solutionCodeV4,
     playground_url: row.playgroundUrl,
     hints: row.hints as readonly string[] | null,
     feedback_on_complete: row.feedbackOnComplete,
@@ -50,7 +53,7 @@ export type StepRowWithPatternRelease = typeof tourSteps.$inferSelect & {
 export function mapStepWithPatternNew(row: StepRowWithPatternRelease): TourStep {
   const isNewFromRelease =
     row.patternReleaseVersion != null &&
-    row.patternReleaseVersion >= NEW_PATTERN_RELEASE_CUTOFF
+    semverGte(row.patternReleaseVersion, NEW_PATTERN_RELEASE_CUTOFF)
   return {
     ...mapStep(row),
     pattern_new: isNewFromRelease ? true : undefined,
