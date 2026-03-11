@@ -20,6 +20,7 @@ import {
   buildTourArtifactStepKey,
   type TourMigrationContractMetadata,
   type TourMigrationArtifact,
+  type TourMigrationArtifactStep,
   validateTourMigrationArtifact,
 } from "@/lib/tourMigrationArtifact"
 import type { TourStep } from "@/services/TourProgress/types"
@@ -119,7 +120,12 @@ function buildTourStep(
     playground_url: step.playgroundUrl,
     hints: step.hints,
     feedback_on_complete: step.feedbackOnComplete,
-    pattern_id: null,
+    pattern_id:
+      artifactStep.solutionMigrationReport?.primitives[0]?.id ??
+      artifactStep.conceptMigrationReport?.primitives[0]?.id ??
+      artifactStep.solutionMatchedPatternIds?.[0] ??
+      artifactStep.conceptMatchedPatternIds?.[0] ??
+      null,
     migration_status: artifactStep.migrationStatus,
     v3_source_ref: artifactStep.conceptProvenance.docsRef,
     v3_source_path: artifactStep.conceptProvenance.filePath,
@@ -271,7 +277,14 @@ function collectOptimalityFailures(
 ): readonly string[] {
   const failures: string[] = []
 
-  if (artifactStep.migrationStatus === "auto-certified" && (artifactStep.conceptHasManualReview || artifactStep.solutionHasManualReview)) {
+  if (
+    artifactStep.migrationStatus === "auto-certified" &&
+    ((artifactStep.reviewRequiredReasonCodes?.length ?? 0) > 0 ||
+      artifactStep.conceptHasManualReview ||
+      artifactStep.solutionHasManualReview ||
+      artifactStep.conceptMigrationReport?.snippetStatus === "review-needed" ||
+      artifactStep.solutionMigrationReport?.snippetStatus === "review-needed")
+  ) {
     failures.push("auto-certified step still contains manual-review markers")
   }
 
@@ -285,9 +298,57 @@ function collectOptimalityFailures(
   return failures
 }
 
+function collectReportBlockedV3ApiUsages(
+  artifactStep: TourMigrationArtifactStep,
+  metadata: TourMigrationContractMetadata
+): readonly string[] {
+  const reports = [artifactStep.conceptMigrationReport, artifactStep.solutionMigrationReport].filter(
+    (value): value is NonNullable<typeof value> => Boolean(value)
+  )
+
+  if (reports.length === 0) {
+    return []
+  }
+
+  const blocked = new Set<string>()
+  for (const report of reports) {
+    for (const primitive of report.primitives) {
+      if (metadata.blockedV3Apis.includes(primitive.original)) {
+        blocked.add(primitive.original)
+      }
+    }
+  }
+
+  return [...blocked].sort((left, right) => left.localeCompare(right))
+}
+
 function collectBlockedV3ApiUsages(code: string, metadata: TourMigrationContractMetadata): readonly string[] {
   const usages = collectQualifiedUsages(code)
   return metadata.blockedV3Apis.filter((blockedApi) => usages.has(blockedApi))
+}
+
+function collectArtifactBlockedV3ApiUsages(
+  artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number],
+  metadata: TourMigrationContractMetadata
+): readonly string[] {
+  const matchedPatternIds = [
+    ...(artifactStep.conceptMatchedPatternIds ?? []),
+    ...(artifactStep.solutionMatchedPatternIds ?? []),
+  ]
+  if (matchedPatternIds.length === 0) {
+    return []
+  }
+
+  const blocked = new Set<string>()
+  for (const blockedApi of metadata.blockedV3Apis) {
+    for (const patternId of matchedPatternIds) {
+      if (patternId.endsWith(`:${blockedApi}`)) {
+        blocked.add(blockedApi)
+      }
+    }
+  }
+
+  return [...blocked].sort((left, right) => left.localeCompare(right))
 }
 
 function isHistoricalApiAvailableInCurrentEffect(api: string): boolean {
@@ -393,7 +454,13 @@ export async function runTourV4Qa(options: {
       const compareView = getTourCompareView(compareStep)
       const typecheckBase = `${entry.lesson.slug}-${entry.step.orderIndex}`
       const v4TypecheckErrors = typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v4`, compareView.v4Code)
-      const blockedV3Usages = compareView.identical ? [] : collectBlockedV3ApiUsages(compareView.v3Code, metadata)
+      const blockedV3Usages = compareView.identical
+        ? []
+        : collectReportBlockedV3ApiUsages(artifactStep, metadata).length > 0
+          ? collectReportBlockedV3ApiUsages(artifactStep, metadata)
+          : collectArtifactBlockedV3ApiUsages(artifactStep, metadata).length > 0
+            ? collectArtifactBlockedV3ApiUsages(artifactStep, metadata)
+          : collectBlockedV3ApiUsages(compareView.v3Code, metadata)
       const blockedUnsupportedV3Usages = blockedV3Usages.filter((usage) => !isHistoricalApiAvailableInCurrentEffect(usage))
       const attemptedV3TypecheckErrors = compareView.identical
         ? []
@@ -420,6 +487,22 @@ export async function runTourV4Qa(options: {
         ...compareViewFailures(compareStep, { conceptIdentical, solutionIdentical, identical }),
         ...(artifactStep.migrationStatus === "auto-certified" && artifactStep.expectedMigrationPolicy === "review-needed"
           ? ["auto-certified step contradicts manifest review-needed policy"]
+          : []),
+        ...(artifactStep.conceptMigrationReport &&
+        artifactStep.conceptMigrationReport.resultCode !== artifactStep.migratedConceptCode
+          ? ["concept migration report result does not match migrated concept code"]
+          : []),
+        ...(artifactStep.solutionMigrationReport &&
+        artifactStep.solutionMigrationReport.resultCode !== artifactStep.migratedSolutionCode
+          ? ["solution migration report result does not match migrated solution code"]
+          : []),
+        ...(artifactStep.conceptChanged &&
+        artifactStep.conceptMigrationReport?.snippetStatus === "unchanged"
+          ? ["concept migration report marks changed code as unchanged"]
+          : []),
+        ...(artifactStep.solutionChanged &&
+        artifactStep.solutionMigrationReport?.snippetStatus === "unchanged"
+          ? ["solution migration report marks changed code as unchanged"]
           : []),
         ...v3TypecheckErrors.map((error) => `v3 typecheck: ${error}`),
         ...v4TypecheckErrors.map((error) => `v4 typecheck: ${error}`),

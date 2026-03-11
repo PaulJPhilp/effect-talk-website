@@ -5,6 +5,22 @@ export const SUPPORTED_TOUR_METADATA_VERSION = 1
 export const REQUIRED_TOUR_TRANSFORM_PROFILE = "pilot-structural"
 export type TourMigrationStatus = "unchanged" | "auto-certified" | "review-needed"
 
+export interface PrimitiveMigrationReport {
+  readonly id: string
+  readonly original: string
+  readonly migrated?: string
+  readonly migrationKind: "unchanged" | "direct" | "structural" | "review-needed"
+  readonly status: "unchanged" | "migrated" | "review-needed"
+}
+
+export interface SnippetMigrationReport {
+  readonly snippetId: string
+  readonly originalCode: string
+  readonly primitives: readonly PrimitiveMigrationReport[]
+  readonly resultCode: string
+  readonly snippetStatus: TourMigrationStatus
+}
+
 export interface TourMigrationContractMetadata {
   readonly metadataVersion: number
   readonly artifactVersion: number
@@ -53,6 +69,11 @@ export interface TourMigrationArtifactStep {
   }
   readonly conceptDiagnostics?: readonly unknown[]
   readonly solutionDiagnostics?: readonly unknown[]
+  readonly conceptMigrationReport?: SnippetMigrationReport
+  readonly solutionMigrationReport?: SnippetMigrationReport
+  readonly conceptMatchedPatternIds?: readonly string[]
+  readonly solutionMatchedPatternIds?: readonly string[]
+  readonly reviewRequiredReasonCodes?: readonly string[]
 }
 
 export interface TourMigrationArtifactLesson {
@@ -172,6 +193,39 @@ export function validateTourMigrationArtifact(
     }
     if (!step.solutionProvenance?.docsRef || !step.solutionProvenance?.filePath || !step.solutionProvenance?.contentHash) {
       throw new Error(`Tour v4 artifact is missing solution provenance for ${key}`)
+    }
+    if (step.conceptMatchedPatternIds && !Array.isArray(step.conceptMatchedPatternIds)) {
+      throw new Error(`Tour v4 artifact has invalid concept matched pattern ids for ${key}`)
+    }
+    if (step.solutionMatchedPatternIds && !Array.isArray(step.solutionMatchedPatternIds)) {
+      throw new Error(`Tour v4 artifact has invalid solution matched pattern ids for ${key}`)
+    }
+    if (step.reviewRequiredReasonCodes && !Array.isArray(step.reviewRequiredReasonCodes)) {
+      throw new Error(`Tour v4 artifact has invalid review-required reason codes for ${key}`)
+    }
+    if (step.conceptMigrationReport) {
+      if (!Array.isArray(step.conceptMigrationReport.primitives)) {
+        throw new Error(`Tour v4 artifact has invalid concept migration report for ${key}`)
+      }
+      if (
+        step.conceptMigrationReport.snippetStatus !== "unchanged" &&
+        step.conceptMigrationReport.snippetStatus !== "auto-certified" &&
+        step.conceptMigrationReport.snippetStatus !== "review-needed"
+      ) {
+        throw new Error(`Tour v4 artifact has invalid concept migration report status for ${key}`)
+      }
+    }
+    if (step.solutionMigrationReport) {
+      if (!Array.isArray(step.solutionMigrationReport.primitives)) {
+        throw new Error(`Tour v4 artifact has invalid solution migration report for ${key}`)
+      }
+      if (
+        step.solutionMigrationReport.snippetStatus !== "unchanged" &&
+        step.solutionMigrationReport.snippetStatus !== "auto-certified" &&
+        step.solutionMigrationReport.snippetStatus !== "review-needed"
+      ) {
+        throw new Error(`Tour v4 artifact has invalid solution migration report status for ${key}`)
+      }
     }
   }
 
