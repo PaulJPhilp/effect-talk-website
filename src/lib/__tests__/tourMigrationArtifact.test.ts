@@ -104,6 +104,23 @@ const artifact: TourMigrationArtifact = {
           migratedConceptCode: "v4 concept 1",
           migratedSolutionCode: "v4 solution 1",
           migrationStatus: "review-needed",
+          conceptMigrationReport: {
+            snippetId: "effects-are-lazy:1:concept",
+            originalCode: "v3 concept 1",
+            primitives: [],
+            resultCode: "v4 concept 1",
+            snippetStatus: "unchanged",
+          },
+          solutionMigrationReport: {
+            snippetId: "effects-are-lazy:1:solution",
+            originalCode: "v3 solution 1",
+            primitives: [{ id: "Effect:Effect.succeed", original: "Effect.succeed", migrated: "Effect.succeed", migrationKind: "unchanged", status: "unchanged" }],
+            resultCode: "v4 solution 1",
+            snippetStatus: "unchanged",
+          },
+          conceptMatchedPatternIds: [],
+          solutionMatchedPatternIds: ["Effect:Effect.succeed"],
+          reviewRequiredReasonCodes: [],
           conceptProvenance: {
             docsRef: "bootstrap-seed-snapshot",
             filePath: "effects-are-lazy/01.mdx",
@@ -124,6 +141,9 @@ const artifact: TourMigrationArtifact = {
           migratedConceptCode: "v4 concept 2",
           migratedSolutionCode: "v4 solution 2",
           migrationStatus: "review-needed",
+          conceptMatchedPatternIds: [],
+          solutionMatchedPatternIds: [],
+          reviewRequiredReasonCodes: [],
           conceptProvenance: {
             docsRef: "bootstrap-seed-snapshot",
             filePath: "effects-are-lazy/02.mdx",
@@ -291,5 +311,34 @@ describe("tourMigrationArtifact", () => {
         manifest
       )
     ).toThrow(/unsupported tour v4 transform profile/i)
+  })
+
+  it("fails on invalid snippet migration report status", () => {
+    expect(() =>
+      validateTourMigrationArtifact(
+        {
+          ...artifact,
+          lessons: [
+            {
+              ...artifact.lessons[0],
+              steps: [
+                {
+                  ...artifact.lessons[0]!.steps[0]!,
+                  conceptMigrationReport: {
+                    snippetId: "bad",
+                    originalCode: "x",
+                    primitives: [],
+                    resultCode: "y",
+                    snippetStatus: "bad-status",
+                  } as never,
+                },
+                artifact.lessons[0]!.steps[1]!,
+              ],
+            },
+          ],
+        },
+        manifest
+      )
+    ).toThrow(/invalid concept migration report status/i)
   })
 })
