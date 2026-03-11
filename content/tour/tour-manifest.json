@@ -1321,7 +1321,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "unchanged",
           "v4ValidationPath": "runtime-approved-rule"
         },
         {
@@ -1355,7 +1355,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "unchanged",
           "v4ValidationPath": "runtime-approved-rule"
         },
         {
@@ -1390,7 +1390,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "auto-certified",
           "v4ValidationPath": "runtime-approved-rule"
         }
       ]
@@ -2000,7 +2000,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "unchanged",
           "v4ValidationPath": "runtime-approved-rule"
         },
         {
@@ -2035,7 +2035,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "auto-certified",
           "v4ValidationPath": "runtime-approved-rule"
         },
         {
@@ -2069,7 +2069,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "unchanged",
           "v4ValidationPath": "runtime-approved-rule"
         },
         {
@@ -2103,7 +2103,7 @@
               }
             }
           },
-          "expectedMigrationPolicy": "review-needed",
+          "expectedMigrationPolicy": "unchanged",
           "v4ValidationPath": "runtime-approved-rule"
         }
       ]
