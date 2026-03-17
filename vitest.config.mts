@@ -1,16 +1,18 @@
-import { config } from "dotenv"
-import { defineConfig } from "vitest/config"
-import { resolve } from "node:path"
+import { resolve } from "node:path";
+import { config } from "dotenv";
+import { defineConfig } from "vitest/config";
 
 // Load .env.local so DATABASE_URL and other vars are available for integration tests
-config({ path: resolve(process.cwd(), ".env.local") })
+config({ path: resolve(process.cwd(), ".env.local") });
 
 export default defineConfig({
   test: {
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    include: [
+      "src/**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -41,11 +43,11 @@ export default defineConfig({
         // docs/TESTING_STRATEGY.md § "Coverage Exclusions".
         //
         // service.ts — Effect.Service implementations calling external SDKs
-        "src/services/Db/service.ts",          // Drizzle queries → integration.db.test.ts
-        "src/services/Auth/service.ts",        // Next.js cookies + WorkOS SDK
-        "src/services/Email/service.ts",       // Resend SDK; templates tested in helpers.ts
-        "src/services/Analytics/service.ts",   // delegates to Db; error-swallowing by type
-        "src/services/ApiKeys/service.ts",     // delegates to Db; token logic in helpers.ts
+        "src/services/Db/service.ts", // Drizzle queries → integration.db.test.ts
+        "src/services/Auth/service.ts", // Next.js cookies + WorkOS SDK
+        "src/services/Email/service.ts", // Resend SDK; templates tested in helpers.ts
+        "src/services/Analytics/service.ts", // delegates to Db; error-swallowing by type
+        "src/services/ApiKeys/service.ts", // delegates to Db; token logic in helpers.ts
         //
         // api.ts — convenience wrappers: Effect.provide(*.Default)
         "src/services/Db/api.ts",
@@ -80,4 +82,4 @@ export default defineConfig({
       "@": resolve(process.cwd(), "./src"),
     },
   },
-})
+});

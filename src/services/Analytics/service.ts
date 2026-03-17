@@ -7,30 +7,33 @@
  * @module Analytics/service
  */
 
-import { Effect, Layer } from "effect"
-import { insertAnalyticsEvent } from "@/services/Db/api"
-import type { DbError } from "@/services/Db/errors"
-import type { AnalyticsEvent } from "@/services/Analytics/types"
-import type { AnalyticsService } from "@/services/Analytics/api"
+import { Effect, Layer } from "effect";
+import type { AnalyticsService } from "@/services/Analytics/api";
+import type { AnalyticsEvent } from "@/services/Analytics/types";
+import { insertAnalyticsEvent } from "@/services/Db/api";
+import type { DbError } from "@/services/Db/errors";
 
 export class Analytics extends Effect.Service<AnalyticsService>()("Analytics", {
   effect: Effect.gen(function* () {
     return {
       trackEvent: (event: AnalyticsEvent) => {
-        const { type, ...payload } = event
-        return insertAnalyticsEvent(type, payload as Record<string, unknown>).pipe(
+        const { type, ...payload } = event;
+        return insertAnalyticsEvent(
+          type,
+          payload as Record<string, unknown>
+        ).pipe(
           Effect.catchAll((error: DbError) =>
-            Effect.logWarning(`Analytics tracking failed: ${error.message}`).pipe(
-              Effect.map(() => undefined)
-            )
+            Effect.logWarning(
+              `Analytics tracking failed: ${error.message}`
+            ).pipe(Effect.map(() => undefined))
           )
-        )
+        );
       },
-    } satisfies AnalyticsService
+    } satisfies AnalyticsService;
   }),
 }) {}
 
 /** No-op implementation for tests. */
 export const AnalyticsNoOp = Layer.succeed(Analytics, {
   trackEvent: () => Effect.void,
-})
+});

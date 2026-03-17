@@ -131,12 +131,8 @@
           "name": "api_keys_user_id_users_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -709,9 +705,7 @@
         "tour_lessons_slug_unique": {
           "name": "tour_lessons_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -874,12 +868,8 @@
           "name": "tour_progress_user_id_users_id_fk",
           "tableFrom": "tour_progress",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -887,12 +877,8 @@
           "name": "tour_progress_step_id_tour_steps_id_fk",
           "tableFrom": "tour_progress",
           "tableTo": "tour_steps",
-          "columnsFrom": [
-            "step_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["step_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1011,12 +997,8 @@
           "name": "tour_steps_lesson_id_tour_lessons_id_fk",
           "tableFrom": "tour_steps",
           "tableTo": "tour_lessons",
-          "columnsFrom": [
-            "lesson_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lesson_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1185,9 +1167,7 @@
         "users_workos_id_unique": {
           "name": "users_workos_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "workos_id"
-          ]
+          "columns": ["workos_id"]
         }
       },
       "policies": {},

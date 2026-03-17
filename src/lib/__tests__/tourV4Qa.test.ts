@@ -1,41 +1,32 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import os from "node:os"
-import path from "node:path"
-import { afterEach, describe, expect, it, vi } from "vitest"
-import { REQUIRED_TOUR_TRANSFORM_PROFILE } from "@/lib/tourMigrationArtifact"
-import { loadTourMigrationMetadata, runTourV4Qa } from "@/lib/tourV4Qa"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { REQUIRED_TOUR_TRANSFORM_PROFILE } from "@/lib/tourMigrationArtifact";
+import { loadTourMigrationMetadata, runTourV4Qa } from "@/lib/tourV4Qa";
 
-const tempDirs: string[] = []
+const tempDirs: string[] = [];
 
 afterEach(() => {
   while (tempDirs.length > 0) {
-    const tempDir = tempDirs.pop()
+    const tempDir = tempDirs.pop();
     if (tempDir) {
-      rmSync(tempDir, { recursive: true, force: true })
+      rmSync(tempDir, { recursive: true, force: true });
     }
   }
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 function createTempDir(): string {
-  const tempDir = mkdtempSync(path.join(os.tmpdir(), "tour-v4-qa-"))
-  tempDirs.push(tempDir)
-  return tempDir
-}
-
-function writeDocsFile(root: string, relativePath: string, conceptCode: string, solutionCode: string): void {
-  const absolutePath = path.join(root, relativePath)
-  writeFileSync(
-    absolutePath,
-    `\`\`\`ts title="concept"\n${conceptCode}\n\`\`\`\n\n\`\`\`ts title="solution"\n${solutionCode}\n\`\`\`\n`,
-    "utf8"
-  )
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), "tour-v4-qa-"));
+  tempDirs.push(tempDir);
+  return tempDir;
 }
 
 describe("tourV4Qa", () => {
   it("loads tool-emitted migration metadata", () => {
-    const tempDir = createTempDir()
-    const filePath = path.join(tempDir, "tour-v4-metadata.json")
+    const tempDir = createTempDir();
+    const filePath = path.join(tempDir, "tour-v4-metadata.json");
 
     writeFileSync(
       filePath,
@@ -48,9 +39,14 @@ describe("tourV4Qa", () => {
         transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
         reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
         blockedV3Apis: ["Effect.zipPar"],
-        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+        blockedMappingKinds: [
+          "structural",
+          "ambiguous",
+          "deprecated",
+          "unknown",
+        ],
       })
-    )
+    );
 
     expect(loadTourMigrationMetadata(filePath)).toEqual({
       metadataVersion: 1,
@@ -62,14 +58,14 @@ describe("tourV4Qa", () => {
       reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
       blockedV3Apis: ["Effect.zipPar"],
       blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
-    })
-  })
+    });
+  });
 
   it("marks removed historical v3 APIs as historical-v3-skipped while still validating v4", async () => {
-    const tempDir = createTempDir()
-    const manifestPath = path.join(tempDir, "tour-manifest.json")
-    const artifactPath = path.join(tempDir, "tour-v4-snippets.json")
-    const metadataPath = path.join(tempDir, "tour-v4-metadata.json")
+    const tempDir = createTempDir();
+    const manifestPath = path.join(tempDir, "tour-manifest.json");
+    const artifactPath = path.join(tempDir, "tour-v4-snippets.json");
+    const metadataPath = path.join(tempDir, "tour-v4-metadata.json");
 
     writeFileSync(
       manifestPath,
@@ -115,7 +111,7 @@ describe("tourV4Qa", () => {
         ],
       }),
       "utf8"
-    )
+    );
 
     const artifact = {
       version: 3,
@@ -128,7 +124,12 @@ describe("tourV4Qa", () => {
         transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
         reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
         blockedV3Apis: ["Effect.zipPar"],
-        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+        blockedMappingKinds: [
+          "structural",
+          "ambiguous",
+          "deprecated",
+          "unknown",
+        ],
       },
       sourceManifestPath: manifestPath,
       sourceDocsRoot: tempDir,
@@ -143,20 +144,26 @@ describe("tourV4Qa", () => {
             {
               orderIndex: 1,
               title: "zipPar step",
-              conceptCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+              conceptCode: [
+                'import { Effect } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               solutionCode: [
                 'import { Effect } from "effect"',
                 'const left = Effect.succeed("A")',
                 'const right = Effect.succeed("B")',
-                'const program = Effect.zipPar(left, right).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))',
+                "const program = Effect.zipPar(left, right).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))",
                 "Effect.runPromise(program)",
               ].join("\n"),
-              migratedConceptCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+              migratedConceptCode: [
+                'import { Effect } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               migratedSolutionCode: [
                 'import { Effect } from "effect"',
                 'const left = Effect.succeed("A")',
                 'const right = Effect.succeed("B")',
-                'const program = Effect.zip(left, right, { concurrent: true }).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))',
+                "const program = Effect.zip(left, right, { concurrent: true }).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))",
                 "Effect.runPromise(program)",
               ].join("\n"),
               conceptChanged: false,
@@ -182,9 +189,15 @@ describe("tourV4Qa", () => {
               solutionDiagnostics: [],
               conceptMigrationReport: {
                 snippetId: "parallel:1:concept",
-                originalCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+                originalCode: [
+                  'import { Effect } from "effect"',
+                  "const noop = 1",
+                ].join("\n"),
                 primitives: [],
-                resultCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+                resultCode: [
+                  'import { Effect } from "effect"',
+                  "const noop = 1",
+                ].join("\n"),
                 snippetStatus: "unchanged",
               },
               solutionMigrationReport: {
@@ -193,55 +206,79 @@ describe("tourV4Qa", () => {
                   'import { Effect } from "effect"',
                   'const left = Effect.succeed("A")',
                   'const right = Effect.succeed("B")',
-                  'const program = Effect.zipPar(left, right).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))',
+                  "const program = Effect.zipPar(left, right).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))",
                   "Effect.runPromise(program)",
                 ].join("\n"),
                 primitives: [
-                  { id: "Effect:Effect.succeed", original: "Effect.succeed", migrated: "Effect.succeed", migrationKind: "unchanged", status: "unchanged" },
-                  { id: "Effect:Effect.zipPar", original: "Effect.zipPar", migrationKind: "review-needed", status: "review-needed" },
+                  {
+                    id: "Effect:Effect.succeed",
+                    original: "Effect.succeed",
+                    migrated: "Effect.succeed",
+                    migrationKind: "unchanged",
+                    status: "unchanged",
+                  },
+                  {
+                    id: "Effect:Effect.zipPar",
+                    original: "Effect.zipPar",
+                    migrationKind: "review-needed",
+                    status: "review-needed",
+                  },
                 ],
                 resultCode: [
                   'import { Effect } from "effect"',
                   'const left = Effect.succeed("A")',
                   'const right = Effect.succeed("B")',
-                  'const program = Effect.zip(left, right, { concurrent: true }).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))',
+                  "const program = Effect.zip(left, right, { concurrent: true }).pipe(Effect.tap(([a, b]) => Effect.sync(() => console.log(a, b))))",
                   "Effect.runPromise(program)",
                 ].join("\n"),
                 snippetStatus: "review-needed",
               },
               conceptMatchedPatternIds: [],
-              solutionMatchedPatternIds: ["Effect:Effect.succeed", "Effect:Effect.zipPar"],
+              solutionMatchedPatternIds: [
+                "Effect:Effect.succeed",
+                "Effect:Effect.zipPar",
+              ],
               reviewRequiredReasonCodes: ["MANUAL_AST_CONTEXT_REQUIRED"],
             },
           ],
         },
       ],
-    }
+    };
 
-    writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8")
-    writeFileSync(metadataPath, `${JSON.stringify(artifact.metadata, null, 2)}\n`, "utf8")
+    writeFileSync(
+      artifactPath,
+      `${JSON.stringify(artifact, null, 2)}\n`,
+      "utf8"
+    );
+    writeFileSync(
+      metadataPath,
+      `${JSON.stringify(artifact.metadata, null, 2)}\n`,
+      "utf8"
+    );
 
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
       manifestPath,
       artifactPath,
       metadataPath,
-    })
+    });
 
-    expect(report.summary.failed).toBe(0)
-    expect(report.summary.reviewNeededCount).toBe(1)
+    expect(report.summary.failed).toBe(0);
+    expect(report.summary.reviewNeededCount).toBe(1);
     expect(report.results[0]).toMatchObject({
       comparisonMode: "historical-v3-skipped",
       migrationStatus: "review-needed",
       failures: [],
-    })
-  }, 15_000)
+    });
+  }, 15_000);
 
-  it("still validates both sides when a changed v3 API remains compilable", { timeout: 15_000 }, async () => {
-    const tempDir = createTempDir()
-    const manifestPath = path.join(tempDir, "tour-manifest.json")
-    const artifactPath = path.join(tempDir, "tour-v4-snippets.json")
-    const metadataPath = path.join(tempDir, "tour-v4-metadata.json")
+  it("still validates both sides when a changed v3 API remains compilable", {
+    timeout: 15_000,
+  }, async () => {
+    const tempDir = createTempDir();
+    const manifestPath = path.join(tempDir, "tour-manifest.json");
+    const artifactPath = path.join(tempDir, "tour-v4-snippets.json");
+    const metadataPath = path.join(tempDir, "tour-v4-metadata.json");
 
     writeFileSync(
       manifestPath,
@@ -287,7 +324,7 @@ describe("tourV4Qa", () => {
         ],
       }),
       "utf8"
-    )
+    );
 
     const artifact = {
       version: 3,
@@ -300,7 +337,12 @@ describe("tourV4Qa", () => {
         transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
         reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
         blockedV3Apis: ["Either.zipWith"],
-        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+        blockedMappingKinds: [
+          "structural",
+          "ambiguous",
+          "deprecated",
+          "unknown",
+        ],
       },
       sourceManifestPath: manifestPath,
       sourceDocsRoot: tempDir,
@@ -315,7 +357,10 @@ describe("tourV4Qa", () => {
             {
               orderIndex: 1,
               title: "Either zipWith",
-              conceptCode: ['import { Either } from "effect"', "const noop = 1"].join("\n"),
+              conceptCode: [
+                'import { Either } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               solutionCode: [
                 'import { Either } from "effect"',
                 "const merge = (a: number, b: number) => a + b",
@@ -324,7 +369,10 @@ describe("tourV4Qa", () => {
                 "  console.log(result.right)",
                 "}",
               ].join("\n"),
-              migratedConceptCode: ['import { Either } from "effect"', "const noop = 1"].join("\n"),
+              migratedConceptCode: [
+                'import { Either } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               migratedSolutionCode: [
                 'import { Either } from "effect"',
                 "const merge = (a: number, b: number) => a + b",
@@ -356,9 +404,15 @@ describe("tourV4Qa", () => {
               solutionDiagnostics: [],
               conceptMigrationReport: {
                 snippetId: "schema:1:concept",
-                originalCode: ['import { Either } from "effect"', "const noop = 1"].join("\n"),
+                originalCode: [
+                  'import { Either } from "effect"',
+                  "const noop = 1",
+                ].join("\n"),
                 primitives: [],
-                resultCode: ['import { Either } from "effect"', "const noop = 1"].join("\n"),
+                resultCode: [
+                  'import { Either } from "effect"',
+                  "const noop = 1",
+                ].join("\n"),
                 snippetStatus: "unchanged",
               },
               solutionMigrationReport: {
@@ -372,7 +426,13 @@ describe("tourV4Qa", () => {
                   "}",
                 ].join("\n"),
                 primitives: [
-                  { id: "Either:Either.zipWith", original: "Either.zipWith", migrated: "Either.all([...] )", migrationKind: "structural", status: "migrated" },
+                  {
+                    id: "Either:Either.zipWith",
+                    original: "Either.zipWith",
+                    migrated: "Either.all([...] )",
+                    migrationKind: "structural",
+                    status: "migrated",
+                  },
                 ],
                 resultCode: [
                   'import { Either } from "effect"',
@@ -391,17 +451,25 @@ describe("tourV4Qa", () => {
           ],
         },
       ],
-    }
+    };
 
-    writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8")
-    writeFileSync(metadataPath, `${JSON.stringify(artifact.metadata, null, 2)}\n`, "utf8")
+    writeFileSync(
+      artifactPath,
+      `${JSON.stringify(artifact, null, 2)}\n`,
+      "utf8"
+    );
+    writeFileSync(
+      metadataPath,
+      `${JSON.stringify(artifact.metadata, null, 2)}\n`,
+      "utf8"
+    );
 
     const emptyStream = () =>
       new ReadableStream<Uint8Array>({
         start(controller) {
-          controller.close()
+          controller.close();
         },
-      })
+      });
 
     vi.stubGlobal("Bun", {
       spawn: () => ({
@@ -410,28 +478,28 @@ describe("tourV4Qa", () => {
         exited: Promise.resolve(0),
         signalCode: null,
       }),
-    })
+    });
 
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
       manifestPath,
       artifactPath,
       metadataPath,
-    })
+    });
 
-    expect(report.summary.failed).toBe(0)
+    expect(report.summary.failed).toBe(0);
     expect(report.results[0]).toMatchObject({
       comparisonMode: "validated",
       migrationStatus: "auto-certified",
       failures: [],
-    })
-  })
+    });
+  });
 
   it("fails auto-certified steps that still carry review-required reason codes", async () => {
-    const tempDir = createTempDir()
-    const manifestPath = path.join(tempDir, "tour-manifest.json")
-    const artifactPath = path.join(tempDir, "tour-v4-snippets.json")
-    const metadataPath = path.join(tempDir, "tour-v4-metadata.json")
+    const tempDir = createTempDir();
+    const manifestPath = path.join(tempDir, "tour-manifest.json");
+    const artifactPath = path.join(tempDir, "tour-v4-snippets.json");
+    const metadataPath = path.join(tempDir, "tour-v4-metadata.json");
 
     writeFileSync(
       manifestPath,
@@ -477,7 +545,7 @@ describe("tourV4Qa", () => {
         ],
       }),
       "utf8"
-    )
+    );
 
     const artifact = {
       version: 3,
@@ -490,7 +558,12 @@ describe("tourV4Qa", () => {
         transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
         reviewRequiredReasonCodes: ["MANUAL_AST_CONTEXT_REQUIRED"],
         blockedV3Apis: ["Effect.zipPar"],
-        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+        blockedMappingKinds: [
+          "structural",
+          "ambiguous",
+          "deprecated",
+          "unknown",
+        ],
       },
       sourceManifestPath: manifestPath,
       sourceDocsRoot: tempDir,
@@ -505,14 +578,20 @@ describe("tourV4Qa", () => {
             {
               orderIndex: 1,
               title: "Bad auto-certified",
-              conceptCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+              conceptCode: [
+                'import { Effect } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               solutionCode: [
                 'import { Effect } from "effect"',
                 'const left = Effect.succeed("A")',
                 'const right = Effect.succeed("B")',
                 "const program = Effect.zipPar(left, right)",
               ].join("\n"),
-              migratedConceptCode: ['import { Effect } from "effect"', "const noop = 1"].join("\n"),
+              migratedConceptCode: [
+                'import { Effect } from "effect"',
+                "const noop = 1",
+              ].join("\n"),
               migratedSolutionCode: [
                 'import { Effect } from "effect"',
                 'const left = Effect.succeed("A")',
@@ -541,32 +620,45 @@ describe("tourV4Qa", () => {
               conceptDiagnostics: [],
               solutionDiagnostics: [],
               conceptMatchedPatternIds: [],
-              solutionMatchedPatternIds: ["Effect:Effect.succeed", "Effect:Effect.zipPar"],
+              solutionMatchedPatternIds: [
+                "Effect:Effect.succeed",
+                "Effect:Effect.zipPar",
+              ],
               reviewRequiredReasonCodes: ["MANUAL_AST_CONTEXT_REQUIRED"],
             },
           ],
         },
       ],
-    }
+    };
 
-    writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8")
-    writeFileSync(metadataPath, `${JSON.stringify(artifact.metadata, null, 2)}\n`, "utf8")
+    writeFileSync(
+      artifactPath,
+      `${JSON.stringify(artifact, null, 2)}\n`,
+      "utf8"
+    );
+    writeFileSync(
+      metadataPath,
+      `${JSON.stringify(artifact.metadata, null, 2)}\n`,
+      "utf8"
+    );
 
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
       manifestPath,
       artifactPath,
       metadataPath,
-    })
+    });
 
-    expect(report.summary.failed).toBe(1)
-    expect(report.results[0]?.failures).toContain("auto-certified step still contains manual-review markers")
-  }, 15_000)
+    expect(report.summary.failed).toBe(1);
+    expect(report.results[0]?.failures).toContain(
+      "auto-certified step still contains manual-review markers"
+    );
+  }, 15_000);
 
   it("fails when the embedded snippet report disagrees with migrated code", async () => {
-    const tempDir = createTempDir()
-    const manifestPath = path.join(tempDir, "tour-manifest.json")
-    const artifactPath = path.join(tempDir, "tour-v4-snippets.json")
+    const tempDir = createTempDir();
+    const manifestPath = path.join(tempDir, "tour-manifest.json");
+    const artifactPath = path.join(tempDir, "tour-v4-snippets.json");
 
     writeFileSync(
       manifestPath,
@@ -612,7 +704,7 @@ describe("tourV4Qa", () => {
         ],
       }),
       "utf8"
-    )
+    );
 
     const artifact = {
       version: 3,
@@ -625,7 +717,12 @@ describe("tourV4Qa", () => {
         transformProfile: REQUIRED_TOUR_TRANSFORM_PROFILE,
         reviewRequiredReasonCodes: ["MANUAL_AMBIGUOUS"],
         blockedV3Apis: [],
-        blockedMappingKinds: ["structural", "ambiguous", "deprecated", "unknown"],
+        blockedMappingKinds: [
+          "structural",
+          "ambiguous",
+          "deprecated",
+          "unknown",
+        ],
       },
       sourceManifestPath: manifestPath,
       sourceDocsRoot: tempDir,
@@ -684,16 +781,20 @@ describe("tourV4Qa", () => {
           ],
         },
       ],
-    }
+    };
 
-    writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8")
+    writeFileSync(
+      artifactPath,
+      `${JSON.stringify(artifact, null, 2)}\n`,
+      "utf8"
+    );
 
     const emptyStream = () =>
       new ReadableStream<Uint8Array>({
         start(controller) {
-          controller.close()
+          controller.close();
         },
-      })
+      });
 
     vi.stubGlobal("Bun", {
       spawn: () => ({
@@ -702,15 +803,17 @@ describe("tourV4Qa", () => {
         exited: Promise.resolve(0),
         signalCode: null,
       }),
-    })
+    });
 
     const report = await runTourV4Qa({
       projectRoot: process.cwd(),
       manifestPath,
       artifactPath,
-    })
+    });
 
-    expect(report.summary.failed).toBe(1)
-    expect(report.results[0]?.failures).toContain("concept migration report result does not match migrated concept code")
-  })
-})
+    expect(report.summary.failed).toBe(1);
+    expect(report.results[0]?.failures).toContain(
+      "concept migration report result does not match migrated concept code"
+    );
+  });
+});

@@ -2,24 +2,29 @@
  * API Keys service helpers.
  */
 
-import { randomBytes, createHash } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto";
 import {
-  DEFAULT_API_KEY_PEPPER,
-  API_KEY_RANDOM_BYTES,
   API_KEY_PREFIX,
-} from "@/types/constants"
+  API_KEY_RANDOM_BYTES,
+  DEFAULT_API_KEY_PEPPER,
+} from "@/types/constants";
 
 function getPepper(): string {
-  const raw = process.env.API_KEY_PEPPER ?? DEFAULT_API_KEY_PEPPER
-  const appEnv = process.env.APP_ENV as "local" | "staging" | "production" | undefined
-  if (appEnv === "production" || appEnv === "staging") {
-    if (!raw || raw === DEFAULT_API_KEY_PEPPER) {
-      throw new Error(
-        "API_KEY_PEPPER must be set to a strong secret in production/staging (e.g. openssl rand -base64 32). Do not use the default."
-      )
-    }
+  const raw = process.env.API_KEY_PEPPER ?? DEFAULT_API_KEY_PEPPER;
+  const appEnv = process.env.APP_ENV as
+    | "local"
+    | "staging"
+    | "production"
+    | undefined;
+  if (
+    (appEnv === "production" || appEnv === "staging") &&
+    (!raw || raw === DEFAULT_API_KEY_PEPPER)
+  ) {
+    throw new Error(
+      "API_KEY_PEPPER must be set to a strong secret in production/staging (e.g. openssl rand -base64 32). Do not use the default."
+    );
   }
-  return raw
+  return raw;
 }
 
 /**
@@ -29,7 +34,7 @@ function getPepper(): string {
 export function hashToken(token: string): string {
   return createHash("sha256")
     .update(token + getPepper())
-    .digest("hex")
+    .digest("hex");
 }
 
 /**
@@ -37,6 +42,6 @@ export function hashToken(token: string): string {
  * Format: ek_<40 random hex characters>
  */
 export function generateToken(): string {
-  const random = randomBytes(API_KEY_RANDOM_BYTES).toString("hex")
-  return `${API_KEY_PREFIX}${random}`
+  const random = randomBytes(API_KEY_RANDOM_BYTES).toString("hex");
+  return `${API_KEY_PREFIX}${random}`;
 }

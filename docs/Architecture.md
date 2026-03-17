@@ -43,7 +43,9 @@ Key route groups in the app today:
 |---|---|
 | `bun run dev` | Start the local dev server |
 | `bun run build` | Production build |
-| `bun run lint` | ESLint |
+| `bun run lint` | Ultracite/Biome checks |
+| `bun run lint:fix` | Ultracite/Biome lint fixes |
+| `bun run format` | Biome formatting |
 | `bun run typecheck` | TypeScript check |
 | `bun run test` | Run Vitest in watch mode |
 | `bun run test:run` | Run all tests once |
@@ -65,7 +67,7 @@ Tour v4 content workflow:
 - `bun run qa:tour:v4` requires artifact metadata `transformProfile: "pilot-structural"` and validates the emitted artifact+metadata pair or the embedded metadata contract in the artifact
 - Historical `v3` snippets are treated as source material. QA fully validates generated `v4` snippets, but it does not fail a changed step just because a removed v3 API no longer compiles against the current installed `effect` version.
 - QA and the UI both distinguish `unchanged`, `auto-certified`, and `review-needed` steps.
-- Current trust state: the checked-in manifest/docs corpus is a bootstrap import and is intentionally `review-needed` until each manifest entry is audited against the real historical v3 docs source.
+- Current trust state on `main`: the checked-in tour corpus is fully classified and QA-clean at `unchanged=53`, `auto-certified=3`, `review-needed=0`.
 - Release rule: never treat `review-needed` as an auto-trusted migration. Promotion decisions should be made from explicit trust-state counts, not only pass/fail totals.
 - Seed the website staging tables with `TOUR_V4_ARTIFACT_PATH=/abs/path/to/tour-v4-snippets.json bun run db:seed:tour`
 - Promote with `bun run db:promote tour`

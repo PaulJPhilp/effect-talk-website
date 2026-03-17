@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
   Card,
   CardAction,
@@ -8,7 +8,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 
 describe("Card primitives", () => {
   it("renders all card slots", () => {
@@ -22,15 +22,27 @@ describe("Card primitives", () => {
         <CardContent>Content</CardContent>
         <CardFooter>Footer</CardFooter>
       </Card>
-    )
+    );
 
-    expect(container.querySelector("[data-slot='card']")).toBeInTheDocument()
-    expect(container.querySelector("[data-slot='card-header']")).toBeInTheDocument()
-    expect(container.querySelector("[data-slot='card-title']")).toHaveTextContent("Title")
-    expect(container.querySelector("[data-slot='card-description']")).toHaveTextContent("Description")
-    expect(container.querySelector("[data-slot='card-action']")).toHaveTextContent("Action")
-    expect(container.querySelector("[data-slot='card-content']")).toHaveTextContent("Content")
-    expect(container.querySelector("[data-slot='card-footer']")).toHaveTextContent("Footer")
-    expect(screen.getByText("Title")).toBeInTheDocument()
-  })
-})
+    expect(container.querySelector("[data-slot='card']")).toBeInTheDocument();
+    expect(
+      container.querySelector("[data-slot='card-header']")
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector("[data-slot='card-title']")
+    ).toHaveTextContent("Title");
+    expect(
+      container.querySelector("[data-slot='card-description']")
+    ).toHaveTextContent("Description");
+    expect(
+      container.querySelector("[data-slot='card-action']")
+    ).toHaveTextContent("Action");
+    expect(
+      container.querySelector("[data-slot='card-content']")
+    ).toHaveTextContent("Content");
+    expect(
+      container.querySelector("[data-slot='card-footer']")
+    ).toHaveTextContent("Footer");
+    expect(screen.getByText("Title")).toBeInTheDocument();
+  });
+});

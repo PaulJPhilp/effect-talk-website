@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
+import type { TourManifest } from "@/lib/tourManifest";
 import {
-  REQUIRED_TOUR_TRANSFORM_PROFILE,
   buildTourArtifactStepKey,
   indexTourMigrationArtifact,
-  validateTourMigrationArtifact,
+  REQUIRED_TOUR_TRANSFORM_PROFILE,
   type TourMigrationArtifact,
-} from "@/lib/tourMigrationArtifact"
-import type { TourManifest } from "@/lib/tourManifest"
+  validateTourMigrationArtifact,
+} from "@/lib/tourMigrationArtifact";
 
 const manifest: TourManifest = {
   version: 1,
@@ -72,7 +72,7 @@ const manifest: TourManifest = {
       ],
     },
   ],
-}
+};
 
 const artifact: TourMigrationArtifact = {
   version: 3,
@@ -114,7 +114,15 @@ const artifact: TourMigrationArtifact = {
           solutionMigrationReport: {
             snippetId: "effects-are-lazy:1:solution",
             originalCode: "v3 solution 1",
-            primitives: [{ id: "Effect:Effect.succeed", original: "Effect.succeed", migrated: "Effect.succeed", migrationKind: "unchanged", status: "unchanged" }],
+            primitives: [
+              {
+                id: "Effect:Effect.succeed",
+                original: "Effect.succeed",
+                migrated: "Effect.succeed",
+                migrationKind: "unchanged",
+                status: "unchanged",
+              },
+            ],
             resultCode: "v4 solution 1",
             snippetStatus: "unchanged",
           },
@@ -160,17 +168,19 @@ const artifact: TourMigrationArtifact = {
       ],
     },
   ],
-}
+};
 
 describe("tourMigrationArtifact", () => {
   it("indexes steps by lesson slug and step order", () => {
-    const stepMap = indexTourMigrationArtifact(artifact)
+    const stepMap = indexTourMigrationArtifact(artifact);
 
-    expect(stepMap.get(buildTourArtifactStepKey("effects-are-lazy", 2))).toMatchObject({
+    expect(
+      stepMap.get(buildTourArtifactStepKey("effects-are-lazy", 2))
+    ).toMatchObject({
       migratedConceptCode: "v4 concept 2",
       migratedSolutionCode: "v4 solution 2",
-    })
-  })
+    });
+  });
 
   it("fails when a required step is missing", () => {
     expect(() =>
@@ -223,8 +233,8 @@ describe("tourMigrationArtifact", () => {
           ],
         }
       )
-    ).toThrow(/missing async-effects step 3/i)
-  })
+    ).toThrow(/missing async-effects step 3/i);
+  });
 
   it("throws on duplicate step orderIndex within a lesson", () => {
     expect(() =>
@@ -239,23 +249,27 @@ describe("tourMigrationArtifact", () => {
                 migratedConceptCode: "a",
                 migratedSolutionCode: "b",
                 migrationStatus: "review-needed",
-                conceptProvenance: artifact.lessons[0]!.steps[0]!.conceptProvenance,
-                solutionProvenance: artifact.lessons[0]!.steps[0]!.solutionProvenance,
+                conceptProvenance:
+                  artifact.lessons[0]!.steps[0]!.conceptProvenance,
+                solutionProvenance:
+                  artifact.lessons[0]!.steps[0]!.solutionProvenance,
               },
               {
                 orderIndex: 1,
                 migratedConceptCode: "c",
                 migratedSolutionCode: "d",
                 migrationStatus: "review-needed",
-                conceptProvenance: artifact.lessons[0]!.steps[1]!.conceptProvenance,
-                solutionProvenance: artifact.lessons[0]!.steps[1]!.solutionProvenance,
+                conceptProvenance:
+                  artifact.lessons[0]!.steps[1]!.conceptProvenance,
+                solutionProvenance:
+                  artifact.lessons[0]!.steps[1]!.solutionProvenance,
               },
             ],
           },
         ],
       })
-    ).toThrow(/duplicate step entry.*effects-are-lazy.*step 1/i)
-  })
+    ).toThrow(/duplicate step entry.*effects-are-lazy.*step 1/i);
+  });
 
   it("fails when counts drift", () => {
     expect(() =>
@@ -266,8 +280,8 @@ describe("tourMigrationArtifact", () => {
         },
         manifest
       )
-    ).toThrow(/snippet count mismatch/i)
-  })
+    ).toThrow(/snippet count mismatch/i);
+  });
 
   it("fails on unsupported artifact versions", () => {
     expect(() =>
@@ -282,8 +296,8 @@ describe("tourMigrationArtifact", () => {
         },
         manifest
       )
-    ).toThrow(/unsupported tour v4 artifact version/i)
-  })
+    ).toThrow(/unsupported tour v4 artifact version/i);
+  });
 
   it("fails when contract metadata is missing", () => {
     expect(() =>
@@ -294,8 +308,8 @@ describe("tourMigrationArtifact", () => {
         } as unknown as TourMigrationArtifact,
         manifest
       )
-    ).toThrow(/missing contract metadata/i)
-  })
+    ).toThrow(/missing contract metadata/i);
+  });
 
   it("fails on unsupported transform profiles", () => {
     expect(() =>
@@ -310,8 +324,8 @@ describe("tourMigrationArtifact", () => {
         },
         manifest
       )
-    ).toThrow(/unsupported tour v4 transform profile/i)
-  })
+    ).toThrow(/unsupported tour v4 transform profile/i);
+  });
 
   it("fails on invalid snippet migration report status", () => {
     expect(() =>
@@ -339,6 +353,6 @@ describe("tourMigrationArtifact", () => {
         },
         manifest
       )
-    ).toThrow(/invalid concept migration report status/i)
-  })
-})
+    ).toThrow(/invalid concept migration report status/i);
+  });
+});

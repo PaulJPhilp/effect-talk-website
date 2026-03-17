@@ -2,9 +2,9 @@
  * Database service errors.
  */
 
-import { Data } from "effect"
+import { Data } from "effect";
 
 export class DbError extends Data.TaggedError("DbError")<{
-  readonly message: string
-  readonly cause?: unknown
+  readonly message: string;
+  readonly cause?: unknown;
 }> {}

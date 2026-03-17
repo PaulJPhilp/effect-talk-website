@@ -2,19 +2,23 @@
  * Utility functions for syncing pattern bookmarks between localStorage (guest) and DB (logged-in).
  */
 
-const BOOKMARKS_STORAGE_KEY = "pattern_bookmarks"
+const BOOKMARKS_STORAGE_KEY = "pattern_bookmarks";
 
 /**
  * Get bookmarked pattern IDs from localStorage.
  */
 export function getLocalStorageBookmarks(): string[] {
-  if (typeof window === "undefined") return []
+  if (typeof window === "undefined") {
+    return [];
+  }
   try {
-    const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY)
-    if (!stored) return []
-    return JSON.parse(stored) as string[]
+    const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
+    if (!stored) {
+      return [];
+    }
+    return JSON.parse(stored) as string[];
   } catch {
-    return []
+    return [];
   }
 }
 
@@ -22,11 +26,16 @@ export function getLocalStorageBookmarks(): string[] {
  * Add a pattern ID to bookmarks in localStorage.
  */
 export function setLocalStorageBookmark(patternId: string): void {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined") {
+    return;
+  }
   try {
-    const current = getLocalStorageBookmarks()
+    const current = getLocalStorageBookmarks();
     if (!current.includes(patternId)) {
-      localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify([...current, patternId]))
+      localStorage.setItem(
+        BOOKMARKS_STORAGE_KEY,
+        JSON.stringify([...current, patternId])
+      );
     }
   } catch {
     // Ignore errors
@@ -37,11 +46,13 @@ export function setLocalStorageBookmark(patternId: string): void {
  * Remove a pattern ID from bookmarks in localStorage.
  */
 export function removeLocalStorageBookmark(patternId: string): void {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined") {
+    return;
+  }
   try {
-    const current = getLocalStorageBookmarks()
-    const next = current.filter((id) => id !== patternId)
-    localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(next))
+    const current = getLocalStorageBookmarks();
+    const next = current.filter((id) => id !== patternId);
+    localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Ignore errors
   }
@@ -51,10 +62,12 @@ export function removeLocalStorageBookmark(patternId: string): void {
  * Fetch all bookmarked pattern IDs from the API (authenticated users only).
  */
 export async function fetchBookmarksFromAPI(): Promise<string[]> {
-  const response = await fetch("/api/bookmarks", { method: "GET" })
-  if (!response.ok) return []
-  const payload = await response.json()
-  return payload.bookmarks ?? []
+  const response = await fetch("/api/bookmarks", { method: "GET" });
+  if (!response.ok) {
+    return [];
+  }
+  const payload = await response.json();
+  return payload.bookmarks ?? [];
 }
 
 /**
@@ -65,7 +78,7 @@ export async function addBookmarkAPI(patternId: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ patternId }),
-  })
+  });
 }
 
 /**
@@ -74,7 +87,7 @@ export async function addBookmarkAPI(patternId: string): Promise<void> {
 export async function removeBookmarkAPI(patternId: string): Promise<void> {
   await fetch(`/api/bookmarks/${encodeURIComponent(patternId)}`, {
     method: "DELETE",
-  })
+  });
 }
 
 /**
@@ -86,16 +99,18 @@ export async function removeBookmarkAPI(patternId: string): Promise<void> {
  * the DB write silently failed.
  */
 export async function syncBookmarksToDB(): Promise<void> {
-  const localBookmarks = getLocalStorageBookmarks()
-  if (localBookmarks.length === 0) return
+  const localBookmarks = getLocalStorageBookmarks();
+  if (localBookmarks.length === 0) {
+    return;
+  }
 
   try {
     await fetch("/api/bookmarks/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ patternIds: localBookmarks }),
-    })
+    });
   } catch (error) {
-    console.error("Failed to sync bookmarks:", error)
+    console.error("Failed to sync bookmarks:", error);
   }
 }

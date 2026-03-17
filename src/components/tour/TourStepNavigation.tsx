@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useMemo } from "react"
-import Link from "next/link"
-import { buildTourHref, type TourMode } from "@/lib/tourMode"
-import type { TourStep } from "@/services/TourProgress/types"
+import Link from "next/link";
+import { useMemo } from "react";
+import { buildTourHref, type TourMode } from "@/lib/tourMode";
+import type { TourStep } from "@/services/TourProgress/types";
 
 interface TourStepNavigationProps {
-  readonly currentStepIndex: number
-  readonly steps: readonly TourStep[]
-  readonly lessonSlug: string
-  readonly currentStepId: string
-  readonly completedStepIds: ReadonlySet<string>
-  readonly onMarkCurrentStepComplete: (stepId: string) => void
-  readonly mode: TourMode
+  readonly completedStepIds: ReadonlySet<string>;
+  readonly currentStepId: string;
+  readonly currentStepIndex: number;
+  readonly lessonSlug: string;
+  readonly mode: TourMode;
+  readonly onMarkCurrentStepComplete: (stepId: string) => void;
+  readonly steps: readonly TourStep[];
 }
 
 export function TourStepNavigation({
@@ -24,16 +24,16 @@ export function TourStepNavigation({
   onMarkCurrentStepComplete,
   mode,
 }: TourStepNavigationProps) {
-  const hasPrevious = currentStepIndex > 0
-  const hasNext = currentStepIndex < steps.length - 1
+  const hasPrevious = currentStepIndex > 0;
+  const hasNext = currentStepIndex < steps.length - 1;
 
-  const previousStep = hasPrevious ? steps[currentStepIndex - 1] : null
-  const nextStep = hasNext ? steps[currentStepIndex + 1] : null
+  const previousStep = hasPrevious ? steps[currentStepIndex - 1] : null;
+  const nextStep = hasNext ? steps[currentStepIndex + 1] : null;
 
   const stepLinks = useMemo(() => {
     return steps.map((step, index) => {
-      const isCurrent = index === currentStepIndex
-      const isCompleted = completedStepIds.has(step.id)
+      const isCurrent = index === currentStepIndex;
+      const isCompleted = completedStepIds.has(step.id);
       return {
         step,
         className: [
@@ -45,31 +45,34 @@ export function TourStepNavigation({
               : "border-muted-foreground/30 text-muted-foreground/50 hover:border-muted-foreground/60",
         ].join(" "),
         isCompleted,
-      }
-    })
-  }, [steps, currentStepIndex, completedStepIds])
+      };
+    });
+  }, [steps, currentStepIndex, completedStepIds]);
 
   return (
     <nav className="flex items-center justify-center gap-3 text-sm">
       {hasPrevious && previousStep ? (
         <Link
-          href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: previousStep.order_index })}
           className="font-medium hover:underline"
+          href={buildTourHref(`/tour/${lessonSlug}`, undefined, {
+            mode,
+            step: previousStep.order_index,
+          })}
         >
           Back
         </Link>
       ) : (
         <Link
-          href={buildTourHref("/tour", undefined, { mode, step: null })}
           className="font-medium hover:underline"
+          href={buildTourHref("/tour", undefined, { mode, step: null })}
         >
           Back
         </Link>
       )}
       <span className="text-muted-foreground">—</span>
       <Link
-        href={buildTourHref("/tour", undefined, { mode, step: null })}
         className="font-medium hover:underline"
+        href={buildTourHref("/tour", undefined, { mode, step: null })}
       >
         Lessons
       </Link>
@@ -77,39 +80,45 @@ export function TourStepNavigation({
         {stepLinks.map(({ step, className, isCompleted }) => {
           return (
             <Link
-              key={step.id}
-              href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: step.order_index })}
-              className={className}
               aria-label={`Go to step ${step.order_index}: ${step.title}`}
+              className={className}
+              href={buildTourHref(`/tour/${lessonSlug}`, undefined, {
+                mode,
+                step: step.order_index,
+              })}
+              key={step.id}
               title={step.title}
             >
               {isCompleted ? "✓" : ""}
             </Link>
-          )
+          );
         })}
       </div>
       <span className="text-muted-foreground">—</span>
       {hasNext && nextStep ? (
         <Link
-          href={buildTourHref(`/tour/${lessonSlug}`, undefined, { mode, step: nextStep.order_index })}
           className="font-medium hover:underline"
+          href={buildTourHref(`/tour/${lessonSlug}`, undefined, {
+            mode,
+            step: nextStep.order_index,
+          })}
           onClick={() => {
-            onMarkCurrentStepComplete(currentStepId)
+            onMarkCurrentStepComplete(currentStepId);
           }}
         >
           Next
         </Link>
       ) : (
         <Link
-          href={buildTourHref("/tour", undefined, { mode, step: null })}
           className="font-medium text-muted-foreground"
+          href={buildTourHref("/tour", undefined, { mode, step: null })}
           onClick={() => {
-            onMarkCurrentStepComplete(currentStepId)
+            onMarkCurrentStepComplete(currentStepId);
           }}
         >
           Finish
         </Link>
       )}
     </nav>
-  )
+  );
 }

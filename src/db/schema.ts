@@ -21,5 +21,5 @@
  * The `content_deployments` table provides an audit trail of every swap.
  */
 
-export * from "@/db/schema-app"
-export * from "@/db/schema-patterns"
+export * from "@/db/schema-app";
+export * from "@/db/schema-patterns";

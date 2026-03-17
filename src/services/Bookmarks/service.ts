@@ -7,12 +7,12 @@
  * @module Bookmarks/service
  */
 
-import { Effect, Layer } from "effect"
-import { eq, and } from "drizzle-orm"
-import { db } from "@/db/client"
-import { patternBookmarks } from "@/db/schema"
-import { toDbError } from "@/services/Db/helpers"
-import type { BookmarksService } from "@/services/Bookmarks/api"
+import { and, eq } from "drizzle-orm";
+import { Effect, Layer } from "effect";
+import { db } from "@/db/client";
+import { patternBookmarks } from "@/db/schema";
+import type { BookmarksService } from "@/services/Bookmarks/api";
+import { toDbError } from "@/services/Db/helpers";
 
 export class Bookmarks extends Effect.Service<BookmarksService>()("Bookmarks", {
   effect: Effect.gen(function* () {
@@ -23,8 +23,8 @@ export class Bookmarks extends Effect.Service<BookmarksService>()("Bookmarks", {
             const rows = await db
               .select({ patternId: patternBookmarks.patternId })
               .from(patternBookmarks)
-              .where(eq(patternBookmarks.userId, userId))
-            return rows.map((r) => r.patternId)
+              .where(eq(patternBookmarks.userId, userId));
+            return rows.map((r) => r.patternId);
           },
           catch: toDbError,
         }),
@@ -37,7 +37,7 @@ export class Bookmarks extends Effect.Service<BookmarksService>()("Bookmarks", {
               .values({ userId, patternId })
               .onConflictDoNothing({
                 target: [patternBookmarks.userId, patternBookmarks.patternId],
-              })
+              });
           },
           catch: toDbError,
         }),
@@ -50,9 +50,9 @@ export class Bookmarks extends Effect.Service<BookmarksService>()("Bookmarks", {
               .where(
                 and(
                   eq(patternBookmarks.userId, userId),
-                  eq(patternBookmarks.patternId, patternId),
+                  eq(patternBookmarks.patternId, patternId)
                 )
-              )
+              );
           },
           catch: toDbError,
         }),
@@ -60,21 +60,26 @@ export class Bookmarks extends Effect.Service<BookmarksService>()("Bookmarks", {
       bulkUpsertBookmarks: (userId: string, patternIds: readonly string[]) =>
         Effect.tryPromise({
           try: async () => {
-            if (patternIds.length === 0) return
+            if (patternIds.length === 0) {
+              return;
+            }
 
-            const dedupedIds = [...new Set(patternIds)]
-            const values = dedupedIds.map((patternId) => ({ userId, patternId }))
+            const dedupedIds = [...new Set(patternIds)];
+            const values = dedupedIds.map((patternId) => ({
+              userId,
+              patternId,
+            }));
 
             await db
               .insert(patternBookmarks)
               .values(values)
               .onConflictDoNothing({
                 target: [patternBookmarks.userId, patternBookmarks.patternId],
-              })
+              });
           },
           catch: toDbError,
         }),
-    } satisfies BookmarksService
+    } satisfies BookmarksService;
   }),
 }) {}
 
@@ -84,4 +89,4 @@ export const BookmarksNoOp = Layer.succeed(Bookmarks, {
   addBookmark: () => Effect.void,
   removeBookmark: () => Effect.void,
   bulkUpsertBookmarks: () => Effect.void,
-})
+});
