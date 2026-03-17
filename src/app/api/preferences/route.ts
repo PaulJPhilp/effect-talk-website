@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Effect, Schema, Either } from "effect"
 import { getCurrentUser } from "@/services/Auth"
-import { updateUserPreferences } from "@/services/Db"
+import { replaceCustomerConfig } from "@/services/CustomerConfig"
 import { formatSchemaErrors } from "@/lib/schema"
 
 const PreferencesSchema = Schema.Struct({
@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const updated = await Effect.runPromise(
-      updateUserPreferences(user.id, decoded.right.preferences as Record<string, unknown>).pipe(
+      replaceCustomerConfig(user.id, decoded.right.preferences as Record<string, unknown>).pipe(
         Effect.catchAll(() => Effect.succeed(null))
       )
     )
 
-    return NextResponse.json({ success: true, user: updated })
+    return NextResponse.json({ success: true, preferences: updated })
   } catch (error) {
     console.error("Preferences update error:", error)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
