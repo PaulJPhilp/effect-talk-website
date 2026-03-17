@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useMemo } from "react"
-import { highlight } from "sugar-high"
-import { cn } from "@/lib/utils"
+import { useMemo } from "react";
+import { highlight } from "sugar-high";
+import { cn } from "@/lib/utils";
 
 interface CodeHighlightProps {
-  readonly code: string
-  readonly language: string | null
-  readonly className?: string
+  readonly className?: string;
+  readonly code: string;
+  readonly language: string | null;
 }
 
 /**
@@ -18,12 +18,16 @@ interface CodeHighlightProps {
  * Styling is handled by CSS custom properties defined in globals.css.
  */
 export function CodeHighlight({ code, className }: CodeHighlightProps) {
-  const highlightedHtml = useMemo(() => highlight(code), [code])
+  const highlightedHtml = useMemo(() => highlight(code), [code]);
 
   return (
-    <pre className={cn("text-xs font-mono leading-relaxed overflow-x-auto sh-code", className)}>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: sugar-high returns pre-escaped HTML tokens */}
+    <pre
+      className={cn(
+        "sh-code overflow-x-auto font-mono text-xs leading-relaxed",
+        className
+      )}
+    >
       <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
     </pre>
-  )
+  );
 }

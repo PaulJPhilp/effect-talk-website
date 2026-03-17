@@ -1,32 +1,32 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { CheckCircle } from "lucide-react"
-import { buildMetadata } from "@/lib/seo"
+import { CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
   title: "Thank You",
   description: "Thanks for reaching out!",
   noIndex: true,
-})
+});
 
 export default function ThanksPage() {
   return (
-    <div className="container px-4 md:px-6 py-20 flex flex-col items-center text-center">
-      <div className="mb-6 rounded-full bg-green-100 dark:bg-green-900/30 p-4">
+    <div className="container flex flex-col items-center px-4 py-20 text-center md:px-6">
+      <div className="mb-6 rounded-full bg-green-100 p-4 dark:bg-green-900/30">
         <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight mb-3">Thank you!</h1>
-      <p className="text-muted-foreground max-w-md mb-8">
+      <h1 className="mb-3 font-bold text-3xl tracking-tight">Thank you!</h1>
+      <p className="mb-8 max-w-md text-muted-foreground">
         We&apos;ve received your submission. We&apos;ll be in touch soon.
       </p>
       <div className="flex gap-3">
         <Button asChild>
           <Link href="/">Back to Home</Link>
         </Button>
-        <Button variant="outline" asChild>
+        <Button asChild variant="outline">
           <Link href="/patterns">Browse Patterns</Link>
         </Button>
       </div>
     </div>
-  )
+  );
 }

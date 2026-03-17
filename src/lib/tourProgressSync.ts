@@ -2,23 +2,27 @@
  * Utility functions for syncing tour progress between localStorage (guest) and DB (logged-in).
  */
 
-const PROGRESS_STORAGE_KEY = "tour_progress"
+const PROGRESS_STORAGE_KEY = "tour_progress";
 
 export interface LocalStorageProgress {
-  readonly [stepId: string]: "completed" | "skipped"
+  readonly [stepId: string]: "completed" | "skipped";
 }
 
 /**
  * Get progress from localStorage (for guests).
  */
 export function getLocalStorageProgress(): LocalStorageProgress {
-  if (typeof window === "undefined") return {}
+  if (typeof window === "undefined") {
+    return {};
+  }
   try {
-    const stored = localStorage.getItem(PROGRESS_STORAGE_KEY)
-    if (!stored) return {}
-    return JSON.parse(stored) as LocalStorageProgress
+    const stored = localStorage.getItem(PROGRESS_STORAGE_KEY);
+    if (!stored) {
+      return {};
+    }
+    return JSON.parse(stored) as LocalStorageProgress;
   } catch {
-    return {}
+    return {};
   }
 }
 
@@ -26,14 +30,16 @@ export function getLocalStorageProgress(): LocalStorageProgress {
  * Mark a single step as completed in localStorage.
  */
 export function setLocalStorageStepCompleted(stepId: string): void {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined") {
+    return;
+  }
   try {
-    const current = getLocalStorageProgress()
+    const current = getLocalStorageProgress();
     const next: LocalStorageProgress = {
       ...current,
       [stepId]: "completed",
-    }
-    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(next))
+    };
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Ignore errors
   }
@@ -43,9 +49,11 @@ export function setLocalStorageStepCompleted(stepId: string): void {
  * Clear progress from localStorage (after syncing to DB).
  */
 export function clearLocalStorageProgress(): void {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined") {
+    return;
+  }
   try {
-    localStorage.removeItem(PROGRESS_STORAGE_KEY)
+    localStorage.removeItem(PROGRESS_STORAGE_KEY);
   } catch {
     // Ignore errors
   }
@@ -57,10 +65,12 @@ export function clearLocalStorageProgress(): void {
 export async function fetchProgressFromAPI(): Promise<
   { readonly step_id: string; readonly status: string }[]
 > {
-  const response = await fetch("/api/tour/progress", { method: "GET" })
-  if (!response.ok) return []
-  const payload = await response.json()
-  return payload.progress ?? []
+  const response = await fetch("/api/tour/progress", { method: "GET" });
+  if (!response.ok) {
+    return [];
+  }
+  const payload = await response.json();
+  return payload.progress ?? [];
 }
 
 /**
@@ -71,7 +81,7 @@ export async function persistStepCompleted(stepId: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stepId, status: "completed" }),
-  })
+  });
 }
 
 /**
@@ -84,8 +94,10 @@ export async function persistStepCompleted(stepId: string): Promise<void> {
  * failures due to its catchAll error handling).
  */
 export async function syncProgressToDB(): Promise<void> {
-  const localProgress = getLocalStorageProgress()
-  if (Object.keys(localProgress).length === 0) return
+  const localProgress = getLocalStorageProgress();
+  if (Object.keys(localProgress).length === 0) {
+    return;
+  }
 
   try {
     await fetch("/api/tour/progress/sync", {
@@ -97,8 +109,8 @@ export async function syncProgressToDB(): Promise<void> {
           status,
         })),
       }),
-    })
+    });
   } catch (error) {
-    console.error("Failed to sync progress:", error)
+    console.error("Failed to sync progress:", error);
   }
 }

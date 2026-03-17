@@ -7,14 +7,14 @@
  * @module Analytics/api
  */
 
-import { Effect } from "effect"
-import type { AnalyticsEvent } from "@/services/Analytics/types"
-import { Analytics } from "@/services/Analytics/service"
+import { Effect } from "effect";
+import { Analytics } from "@/services/Analytics/service";
+import type { AnalyticsEvent } from "@/services/Analytics/types";
 
 /** Service interface for analytics tracking. */
 export interface AnalyticsService {
   /** Track an analytics event. Failures are swallowed and logged. */
-  readonly trackEvent: (event: AnalyticsEvent) => Effect.Effect<void, never>
+  readonly trackEvent: (event: AnalyticsEvent) => Effect.Effect<void, never>;
 }
 
 /**
@@ -23,6 +23,6 @@ export interface AnalyticsService {
  */
 export const trackEvent = (event: AnalyticsEvent) =>
   Effect.gen(function* () {
-    const svc = yield* Analytics
-    return yield* svc.trackEvent(event)
-  }).pipe(Effect.provide(Analytics.Default))
+    const svc = yield* Analytics;
+    return yield* svc.trackEvent(event);
+  }).pipe(Effect.provide(Analytics.Default));

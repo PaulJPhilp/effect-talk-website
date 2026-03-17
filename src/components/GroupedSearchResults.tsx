@@ -1,14 +1,19 @@
-import Link from "next/link"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import type { Pattern, Rule } from "@/services/BackendApi"
-import type { SitePage } from "@/lib/pagesIndex"
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import type { SitePage } from "@/lib/pagesIndex";
+import type { Pattern, Rule } from "@/services/BackendApi";
 
 interface GroupedSearchResultsProps {
-  readonly query: string
-  readonly patterns: readonly Pattern[]
-  readonly rules: readonly Rule[]
-  readonly pages: readonly SitePage[]
+  readonly pages: readonly SitePage[];
+  readonly patterns: readonly Pattern[];
+  readonly query: string;
+  readonly rules: readonly Rule[];
 }
 
 export function GroupedSearchResults({
@@ -17,38 +22,39 @@ export function GroupedSearchResults({
   rules,
   pages,
 }: GroupedSearchResultsProps) {
-  const totalResults = patterns.length + rules.length + pages.length
+  const totalResults = patterns.length + rules.length + pages.length;
 
   if (totalResults === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-lg text-muted-foreground">
           No results found for &ldquo;{query}&rdquo;
         </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-muted-foreground">
-        {totalResults} result{totalResults !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
+      <p className="text-muted-foreground text-sm">
+        {totalResults} result{totalResults === 1 ? "" : "s"} for &ldquo;{query}
+        &rdquo;
       </p>
 
       {/* Patterns group */}
       {patterns.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-lg font-semibold">Patterns</h2>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="font-semibold text-lg">Patterns</h2>
             <Badge variant="secondary">{patterns.length}</Badge>
           </div>
           <div className="grid gap-2">
             {patterns.map((pattern) => (
-              <Link key={pattern.id} href={`/patterns/${pattern.id}`}>
-                <Card className="hover:bg-muted/50 transition-colors">
+              <Link href={`/patterns/${pattern.id}`} key={pattern.id}>
+                <Card className="transition-colors hover:bg-muted/50">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm">{pattern.title}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-1">
+                    <CardDescription className="line-clamp-1 text-xs">
                       {pattern.description}
                     </CardDescription>
                   </CardHeader>
@@ -62,17 +68,17 @@ export function GroupedSearchResults({
       {/* Rules group */}
       {rules.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-lg font-semibold">Rules</h2>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="font-semibold text-lg">Rules</h2>
             <Badge variant="secondary">{rules.length}</Badge>
           </div>
           <div className="grid gap-2">
             {rules.map((rule) => (
-              <Link key={rule.id} href={`/rules/${rule.id}`}>
-                <Card className="hover:bg-muted/50 transition-colors">
+              <Link href={`/rules/${rule.id}`} key={rule.id}>
+                <Card className="transition-colors hover:bg-muted/50">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm">{rule.title}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-1">
+                    <CardDescription className="line-clamp-1 text-xs">
                       {rule.description}
                     </CardDescription>
                   </CardHeader>
@@ -86,17 +92,17 @@ export function GroupedSearchResults({
       {/* Pages group */}
       {pages.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-lg font-semibold">Pages</h2>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="font-semibold text-lg">Pages</h2>
             <Badge variant="secondary">{pages.length}</Badge>
           </div>
           <div className="grid gap-2">
             {pages.map((page) => (
-              <Link key={page.href} href={page.href}>
-                <Card className="hover:bg-muted/50 transition-colors">
+              <Link href={page.href} key={page.href}>
+                <Card className="transition-colors hover:bg-muted/50">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm">{page.title}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-1">
+                    <CardDescription className="line-clamp-1 text-xs">
                       {page.description}
                     </CardDescription>
                   </CardHeader>
@@ -107,5 +113,5 @@ export function GroupedSearchResults({
         </section>
       )}
     </div>
-  )
+  );
 }

@@ -7,22 +7,22 @@
  * captured request data). No vi.spyOn or call-verification.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  getLocalStorageProgress,
-  setLocalStorageStepCompleted,
   clearLocalStorageProgress,
-  syncProgressToDB,
   fetchProgressFromAPI,
+  getLocalStorageProgress,
   persistStepCompleted,
-} from "@/lib/tourProgressSync"
-import { silenceConsole } from "@/test/console"
-import { createTypedFakeFetch } from "@/test/fakeFetch"
+  setLocalStorageStepCompleted,
+  syncProgressToDB,
+} from "@/lib/tourProgressSync";
+import { silenceConsole } from "@/test/console";
+import { createTypedFakeFetch } from "@/test/fakeFetch";
 
 /** Captured request from the fake fetch. */
 interface CapturedRequest {
-  url: string
-  init?: RequestInit
+  init?: RequestInit;
+  url: string;
 }
 
 /**
@@ -30,16 +30,15 @@ interface CapturedRequest {
  * returns a configurable response.
  */
 function installFakeFetch(
-  response: Response = new Response(
-    JSON.stringify({ ok: true }),
-    { status: 200 },
-  ),
+  response: Response = new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+  })
 ) {
-  const captured: CapturedRequest[] = []
-  const originalFetch = globalThis.fetch
-  let currentResponse = response
-  let shouldReject = false
-  let rejectError: Error | null = null
+  const captured: CapturedRequest[] = [];
+  const originalFetch = globalThis.fetch;
+  let currentResponse = response;
+  let shouldReject = false;
+  let rejectError: Error | null = null;
 
   globalThis.fetch = createTypedFakeFetch({
     originalFetch,
@@ -49,41 +48,41 @@ function installFakeFetch(
           ? input
           : input instanceof URL
             ? input.toString()
-            : input.url
-      captured.push({ url, init })
+            : input.url;
+      captured.push({ url, init });
       if (shouldReject) {
-        return Promise.reject(rejectError ?? new Error("fetch error"))
+        return Promise.reject(rejectError ?? new Error("fetch error"));
       }
-      return Promise.resolve(currentResponse.clone())
+      return Promise.resolve(currentResponse.clone());
     },
-  })
+  });
 
   return {
     captured,
     setResponse(r: Response) {
-      currentResponse = r
+      currentResponse = r;
     },
     setReject(err: Error) {
-      shouldReject = true
-      rejectError = err
+      shouldReject = true;
+      rejectError = err;
     },
     restore() {
-      globalThis.fetch = originalFetch
+      globalThis.fetch = originalFetch;
     },
-  }
+  };
 }
 
 describe("tourProgressSync", () => {
   beforeEach(() => {
-    localStorage.clear()
-  })
+    localStorage.clear();
+  });
 
   // ── localStorage tests (already compliant) ──────────────
 
   describe("getLocalStorageProgress", () => {
     it("returns empty object when nothing stored", () => {
-      expect(getLocalStorageProgress()).toEqual({})
-    })
+      expect(getLocalStorageProgress()).toEqual({});
+    });
 
     it("returns parsed progress from localStorage", () => {
       localStorage.setItem(
@@ -91,88 +90,82 @@ describe("tourProgressSync", () => {
         JSON.stringify({
           "step-1": "completed",
           "step-2": "skipped",
-        }),
-      )
+        })
+      );
       expect(getLocalStorageProgress()).toEqual({
         "step-1": "completed",
         "step-2": "skipped",
-      })
-    })
+      });
+    });
 
     it("returns empty object on invalid JSON", () => {
-      localStorage.setItem("tour_progress", "not-json")
-      expect(getLocalStorageProgress()).toEqual({})
-    })
-  })
+      localStorage.setItem("tour_progress", "not-json");
+      expect(getLocalStorageProgress()).toEqual({});
+    });
+  });
 
   describe("setLocalStorageStepCompleted", () => {
     it("sets a step as completed in localStorage", () => {
-      setLocalStorageStepCompleted("step-1")
-      const stored = JSON.parse(
-        localStorage.getItem("tour_progress")!,
-      )
-      expect(stored).toEqual({ "step-1": "completed" })
-    })
+      setLocalStorageStepCompleted("step-1");
+      const stored = JSON.parse(localStorage.getItem("tour_progress")!);
+      expect(stored).toEqual({ "step-1": "completed" });
+    });
 
     it("preserves existing progress", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" }),
-      )
-      setLocalStorageStepCompleted("step-2")
-      const stored = JSON.parse(
-        localStorage.getItem("tour_progress")!,
-      )
+        JSON.stringify({ "step-1": "completed" })
+      );
+      setLocalStorageStepCompleted("step-2");
+      const stored = JSON.parse(localStorage.getItem("tour_progress")!);
       expect(stored).toEqual({
         "step-1": "completed",
         "step-2": "completed",
-      })
-    })
+      });
+    });
 
     it("overwrites existing status for the same step", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "skipped" }),
-      )
-      setLocalStorageStepCompleted("step-1")
-      const stored = JSON.parse(
-        localStorage.getItem("tour_progress")!,
-      )
-      expect(stored).toEqual({ "step-1": "completed" })
-    })
-  })
+        JSON.stringify({ "step-1": "skipped" })
+      );
+      setLocalStorageStepCompleted("step-1");
+      const stored = JSON.parse(localStorage.getItem("tour_progress")!);
+      expect(stored).toEqual({ "step-1": "completed" });
+    });
+  });
 
   describe("clearLocalStorageProgress", () => {
     it("removes progress from localStorage", () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" }),
-      )
-      clearLocalStorageProgress()
-      expect(localStorage.getItem("tour_progress")).toBeNull()
-    })
+        JSON.stringify({ "step-1": "completed" })
+      );
+      clearLocalStorageProgress();
+      expect(localStorage.getItem("tour_progress")).toBeNull();
+    });
 
     it("does not throw when nothing stored", () => {
-      expect(() => clearLocalStorageProgress()).not.toThrow()
-    })
-  })
+      expect(() => clearLocalStorageProgress()).not.toThrow();
+    });
+  });
 
   // ── Fetch tests (rewritten — no spies) ──────────────────
 
   describe("syncProgressToDB", () => {
-    let fake: ReturnType<typeof installFakeFetch>
+    let fake: ReturnType<typeof installFakeFetch>;
 
     beforeEach(() => {
-      fake = installFakeFetch()
-    })
+      fake = installFakeFetch();
+    });
     afterEach(() => {
-      fake.restore()
-    })
+      fake.restore();
+    });
 
     it("does nothing when localStorage is empty", async () => {
-      await syncProgressToDB()
-      expect(fake.captured).toHaveLength(0)
-    })
+      await syncProgressToDB();
+      expect(fake.captured).toHaveLength(0);
+    });
 
     it("sends localStorage progress to sync endpoint", async () => {
       localStorage.setItem(
@@ -180,87 +173,77 @@ describe("tourProgressSync", () => {
         JSON.stringify({
           "step-1": "completed",
           "step-2": "skipped",
-        }),
-      )
+        })
+      );
 
-      await syncProgressToDB()
+      await syncProgressToDB();
 
-      expect(fake.captured).toHaveLength(1)
-      expect(fake.captured[0].url).toBe("/api/tour/progress/sync")
-      expect(fake.captured[0].init?.method).toBe("POST")
-      const body = JSON.parse(
-        fake.captured[0].init?.body as string,
-      )
+      expect(fake.captured).toHaveLength(1);
+      expect(fake.captured[0].url).toBe("/api/tour/progress/sync");
+      expect(fake.captured[0].init?.method).toBe("POST");
+      const body = JSON.parse(fake.captured[0].init?.body as string);
       expect(body).toEqual({
         progress: [
           { stepId: "step-1", status: "completed" },
           { stepId: "step-2", status: "skipped" },
         ],
-      })
-    })
+      });
+    });
 
     it("keeps localStorage after successful sync", async () => {
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" }),
-      )
+        JSON.stringify({ "step-1": "completed" })
+      );
 
-      await syncProgressToDB()
+      await syncProgressToDB();
 
-      expect(
-        localStorage.getItem("tour_progress"),
-      ).not.toBeNull()
-    })
+      expect(localStorage.getItem("tour_progress")).not.toBeNull();
+    });
 
     it("keeps localStorage when sync returns non-OK", async () => {
-      fake.setResponse(
-        new Response("Unauthorized", { status: 401 }),
-      )
+      fake.setResponse(new Response("Unauthorized", { status: 401 }));
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" }),
-      )
+        JSON.stringify({ "step-1": "completed" })
+      );
 
-      await syncProgressToDB()
+      await syncProgressToDB();
 
-      expect(
-        localStorage.getItem("tour_progress"),
-      ).not.toBeNull()
-    })
+      expect(localStorage.getItem("tour_progress")).not.toBeNull();
+    });
 
     it("keeps localStorage when fetch throws", async () => {
-      fake.setReject(new Error("Network error"))
+      fake.setReject(new Error("Network error"));
       localStorage.setItem(
         "tour_progress",
-        JSON.stringify({ "step-1": "completed" }),
-      )
+        JSON.stringify({ "step-1": "completed" })
+      );
 
-      const restoreConsole = silenceConsole("error")
+      const restoreConsole = silenceConsole("error");
       try {
-        await syncProgressToDB()
+        await syncProgressToDB();
       } finally {
-        restoreConsole()
+        restoreConsole();
       }
 
-      expect(
-        localStorage.getItem("tour_progress"),
-      ).not.toBeNull()
-    })
-  })
+      expect(localStorage.getItem("tour_progress")).not.toBeNull();
+    });
+  });
 
   describe("fetchProgressFromAPI", () => {
-    let fake: ReturnType<typeof installFakeFetch>
+    let fake: ReturnType<typeof installFakeFetch>;
 
     beforeEach(() => {
       fake = installFakeFetch(
         new Response(JSON.stringify({ progress: [] }), {
           status: 200,
-        }),
-      )
-    })
+        })
+      );
+    });
     afterEach(() => {
-      fake.restore()
-    })
+      fake.restore();
+    });
 
     it("fetches progress from the API", async () => {
       fake.setResponse(
@@ -271,62 +254,56 @@ describe("tourProgressSync", () => {
               { step_id: "step-2", status: "not_started" },
             ],
           }),
-          { status: 200 },
-        ),
-      )
+          { status: 200 }
+        )
+      );
 
-      const result = await fetchProgressFromAPI()
+      const result = await fetchProgressFromAPI();
 
-      expect(fake.captured[0].url).toBe("/api/tour/progress")
-      expect(fake.captured[0].init?.method).toBe("GET")
+      expect(fake.captured[0].url).toBe("/api/tour/progress");
+      expect(fake.captured[0].init?.method).toBe("GET");
       expect(result).toEqual([
         { step_id: "step-1", status: "completed" },
         { step_id: "step-2", status: "not_started" },
-      ])
-    })
+      ]);
+    });
 
     it("returns empty array on non-OK response", async () => {
-      fake.setResponse(
-        new Response("Unauthorized", { status: 401 }),
-      )
+      fake.setResponse(new Response("Unauthorized", { status: 401 }));
 
-      const result = await fetchProgressFromAPI()
-      expect(result).toEqual([])
-    })
+      const result = await fetchProgressFromAPI();
+      expect(result).toEqual([]);
+    });
 
     it("returns empty array when no progress field", async () => {
-      fake.setResponse(
-        new Response(JSON.stringify({}), { status: 200 }),
-      )
+      fake.setResponse(new Response(JSON.stringify({}), { status: 200 }));
 
-      const result = await fetchProgressFromAPI()
-      expect(result).toEqual([])
-    })
-  })
+      const result = await fetchProgressFromAPI();
+      expect(result).toEqual([]);
+    });
+  });
 
   describe("persistStepCompleted", () => {
-    let fake: ReturnType<typeof installFakeFetch>
+    let fake: ReturnType<typeof installFakeFetch>;
 
     beforeEach(() => {
-      fake = installFakeFetch()
-    })
+      fake = installFakeFetch();
+    });
     afterEach(() => {
-      fake.restore()
-    })
+      fake.restore();
+    });
 
     it("sends POST to API with step ID and status", async () => {
-      await persistStepCompleted("step-1")
+      await persistStepCompleted("step-1");
 
-      expect(fake.captured).toHaveLength(1)
-      expect(fake.captured[0].url).toBe("/api/tour/progress")
-      expect(fake.captured[0].init?.method).toBe("POST")
-      const body = JSON.parse(
-        fake.captured[0].init?.body as string,
-      )
+      expect(fake.captured).toHaveLength(1);
+      expect(fake.captured[0].url).toBe("/api/tour/progress");
+      expect(fake.captured[0].init?.method).toBe("POST");
+      const body = JSON.parse(fake.captured[0].init?.body as string);
       expect(body).toEqual({
         stepId: "step-1",
         status: "completed",
-      })
-    })
-  })
-})
+      });
+    });
+  });
+});

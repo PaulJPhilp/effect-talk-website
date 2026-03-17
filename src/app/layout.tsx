@@ -1,24 +1,24 @@
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { ThemeProvider } from "next-themes"
-import { Toaster } from "@/components/ui/sonner"
-import { PostHogProvider } from "@/components/providers/PostHogProvider"
-import { Header } from "@/components/Header"
-import { Footer } from "@/components/Footer"
-import "./globals.css"
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { Toaster } from "@/components/ui/sonner";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-})
+});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-})
+});
 
 /** Force dynamic so layout can use Auth (cookies) without breaking static generation of /_not-found. */
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
@@ -27,27 +27,27 @@ export const metadata: Metadata = {
   },
   description:
     "Production-ready Effect.ts patterns, tools, and consulting for TypeScript teams.",
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col antialiased`}
       >
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Header />
-            <main className="flex-1 w-full min-w-0">{children}</main>
+            <main className="w-full min-w-0 flex-1">{children}</main>
             <Footer />
             <Toaster />
           </ThemeProvider>
         </PostHogProvider>
       </body>
     </html>
-  )
+  );
 }

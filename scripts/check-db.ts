@@ -8,22 +8,22 @@
  * Exits 0 if everything looks correct, 1 with a message otherwise.
  */
 
-import { config } from "dotenv"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
-import { drizzle } from "drizzle-orm/node-postgres"
-import { sql } from "drizzle-orm"
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { config } from "dotenv";
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
 
-const rootDir = path.dirname(fileURLToPath(import.meta.url))
-config({ path: path.join(rootDir, "..", ".env.local") })
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+config({ path: path.join(rootDir, "..", ".env.local") });
 
-const databaseUrl = process.env.DATABASE_URL
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  console.error("Missing DATABASE_URL in .env.local")
-  process.exit(1)
+  console.error("Missing DATABASE_URL in .env.local");
+  process.exit(1);
 }
 
-const db = drizzle(databaseUrl)
+const db = drizzle(databaseUrl);
 
 /** Tables required in every environment. */
 const REQUIRED_TABLES = [
@@ -41,48 +41,56 @@ const REQUIRED_TABLES = [
   "tour_progress",
   "content_deployments",
   "analytics_events",
-] as const
+] as const;
 
 /** Either effect_patterns (shared DB) or patterns (local from old migrations) must exist. */
-const PATTERNS_TABLE_OPTIONS = ["effect_patterns", "patterns"] as const
+const PATTERNS_TABLE_OPTIONS = ["effect_patterns", "patterns"] as const;
 
 async function main(): Promise<void> {
-  let hasError = false
+  let hasError = false;
 
   // 1. Check tables exist
-  const existing = await db.execute(sql.raw(`
+  const existing = await db.execute(
+    sql.raw(`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-  `))
+  `)
+  );
   const existingSet = new Set(
-    (existing.rows as Array<{ table_name: string }>).map((r) => r.table_name),
-  )
+    (existing.rows as Array<{ table_name: string }>).map((r) => r.table_name)
+  );
 
   for (const table of REQUIRED_TABLES) {
     if (!existingSet.has(table)) {
-      console.error(`Missing table: ${table}`)
-      hasError = true
+      console.error(`Missing table: ${table}`);
+      hasError = true;
     }
   }
 
-  const patternsTable = PATTERNS_TABLE_OPTIONS.find((t) => existingSet.has(t))
+  const patternsTable = PATTERNS_TABLE_OPTIONS.find((t) => existingSet.has(t));
   if (!patternsTable) {
-    console.error(`Missing patterns table: need one of ${PATTERNS_TABLE_OPTIONS.join(", ")}`)
-    hasError = true
+    console.error(
+      `Missing patterns table: need one of ${PATTERNS_TABLE_OPTIONS.join(", ")}`
+    );
+    hasError = true;
   }
 
   // 2. Check patterns table has release_version column (used to derive "new" in UI)
   if (patternsTable) {
-    const patternColumns = await db.execute(sql.raw(`
+    const patternColumns = await db.execute(
+      sql.raw(`
       SELECT column_name FROM information_schema.columns
       WHERE table_schema = 'public' AND table_name = '${patternsTable}'
-    `))
+    `)
+    );
     const patternColSet = new Set(
-      (patternColumns.rows as Array<{ column_name: string }>).map((r) => r.column_name),
-    )
+      (patternColumns.rows as Array<{ column_name: string }>).map(
+        (r) => r.column_name
+      )
+    );
     if (!patternColSet.has("release_version")) {
-      console.error(`${patternsTable} table missing column: release_version`)
-      hasError = true
+      console.error(`${patternsTable} table missing column: release_version`);
+      hasError = true;
     }
   }
 
@@ -95,55 +103,63 @@ async function main(): Promise<void> {
     "tour_lessons_staging",
     "tour_steps",
     "tour_steps_staging",
-  ]
-  const counts: Record<string, number> = {}
+  ];
+  const counts: Record<string, number> = {};
   for (const table of contentTables) {
-    if (!existingSet.has(table)) continue
+    if (!existingSet.has(table)) {
+      continue;
+    }
     try {
-      const r = await db.execute(sql.raw(`SELECT count(*) AS c FROM "${table}"`))
-      counts[table] = Number((r.rows[0] as { c: string })?.c ?? 0)
+      const r = await db.execute(
+        sql.raw(`SELECT count(*) AS c FROM "${table}"`)
+      );
+      counts[table] = Number((r.rows[0] as { c: string })?.c ?? 0);
     } catch {
-      counts[table] = -1
+      counts[table] = -1;
     }
   }
 
   // 4. Lock triggers (optional; inform only)
-  const triggers = await db.execute(sql.raw(`
+  const triggers = await db.execute(
+    sql.raw(`
     SELECT c.relname AS table_name, t.tgname AS trigger_name
     FROM pg_trigger t
     JOIN pg_class c ON t.tgrelid = c.oid
     JOIN pg_namespace n ON c.relnamespace = n.oid
     WHERE n.nspname = 'public' AND t.tgname LIKE 'lock_%' AND NOT t.tgisinternal
-  `))
-  const triggerList = (triggers.rows as Array<{ table_name: string; trigger_name: string }>).map(
-    (r) => `${r.table_name}.${r.trigger_name}`,
-  )
+  `)
+  );
+  const triggerList = (
+    triggers.rows as Array<{ table_name: string; trigger_name: string }>
+  ).map((r) => `${r.table_name}.${r.trigger_name}`);
 
   // Report
-  console.log("--- Database check ---\n")
+  console.log("--- Database check ---\n");
   if (hasError) {
-    console.log("Result: FAILED (see errors above)\n")
-    process.exit(1)
+    console.log("Result: FAILED (see errors above)\n");
+    process.exit(1);
   }
 
-  console.log("Tables: all required tables present")
-  console.log(`Patterns table: ${patternsTable} (release_version present)`)
-  console.log("\nContent row counts:")
+  console.log("Tables: all required tables present");
+  console.log(`Patterns table: ${patternsTable} (release_version present)`);
+  console.log("\nContent row counts:");
   for (const table of contentTables) {
-    const c = counts[table] ?? 0
-    const label = c === -1 ? "error" : String(c)
-    console.log(`  ${table}: ${label}`)
+    const c = counts[table] ?? 0;
+    const label = c === -1 ? "error" : String(c);
+    console.log(`  ${table}: ${label}`);
   }
   if (triggerList.length > 0) {
-    console.log("\nLock triggers:", triggerList.join(", "))
+    console.log("\nLock triggers:", triggerList.join(", "));
   } else {
-    console.log("\nLock triggers: none (run db:migrate to add, or they are created on first promote)")
+    console.log(
+      "\nLock triggers: none (run db:migrate to add, or they are created on first promote)"
+    );
   }
-  console.log("\nResult: OK")
-  process.exit(0)
+  console.log("\nResult: OK");
+  process.exit(0);
 }
 
 main().catch((err) => {
-  console.error("Check failed:", err)
-  process.exit(1)
-})
+  console.error("Check failed:", err);
+  process.exit(1);
+});

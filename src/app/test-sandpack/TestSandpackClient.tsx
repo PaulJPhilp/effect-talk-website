@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Sandpack } from "@codesandbox/sandpack-react"
+import { Sandpack } from "@codesandbox/sandpack-react";
 
 const testCode = `import { Effect } from "effect"
 
@@ -12,25 +12,24 @@ const program = Effect.gen(function* () {
 })
 
 Effect.runSync(program)
-`
+`;
 
 export function TestSandpackClient() {
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-4">Sandpack + Effect.js Test</h1>
+      <h1 className="mb-4 font-bold text-2xl">Sandpack + Effect.js Test</h1>
       <p className="mb-4 text-muted-foreground">
         Testing if Effect.js imports and runs correctly in Sandpack.
       </p>
       <Sandpack
-        template="vanilla-ts"
         customSetup={{
           dependencies: {
-            effect: "latest"
+            effect: "latest",
           },
-          entry: "/index.ts"
+          entry: "/index.ts",
         }}
         files={{
-          "/index.ts": testCode
+          "/index.ts": testCode,
         }}
         options={{
           showConsole: true,
@@ -38,7 +37,8 @@ export function TestSandpackClient() {
           editorHeight: 300,
           editorWidthPercentage: 50,
         }}
+        template="vanilla-ts"
       />
     </div>
-  )
+  );
 }

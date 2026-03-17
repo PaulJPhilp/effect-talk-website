@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { PatternsSearch } from "@/components/PatternsSearch"
-import { Filter, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Filter, X } from "lucide-react";
+import { PatternsSearch } from "@/components/PatternsSearch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface FacetCount {
-  readonly value: string
-  readonly count: number
+  readonly count: number;
+  readonly value: string;
 }
 
 interface PatternsSidebarProps {
-  readonly categories: readonly FacetCount[]
-  readonly activeCategory: string | null
-  readonly onCategoryChange: (category: string | null) => void
-  readonly onClearAll: () => void
-  readonly className?: string
+  readonly activeCategory: string | null;
+  readonly categories: readonly FacetCount[];
+  readonly className?: string;
+  readonly onCategoryChange: (category: string | null) => void;
+  readonly onClearAll: () => void;
 }
 
 export function PatternsSidebar({
@@ -26,24 +26,24 @@ export function PatternsSidebar({
   onClearAll,
   className,
 }: PatternsSidebarProps) {
-  const hasActiveFilters = activeCategory !== null
+  const hasActiveFilters = activeCategory !== null;
 
   return (
-    <aside className={cn("w-full md:w-60 shrink-0", className)}>
+    <aside className={cn("w-full shrink-0 md:w-60", className)}>
       <div className="sticky top-20 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
+          <h2 className="flex items-center gap-2 font-semibold text-sm">
             <Filter className="h-4 w-4" />
             Filters
           </h2>
           {hasActiveFilters && (
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearAll}
               className="h-7 text-xs"
+              onClick={onClearAll}
+              size="sm"
+              variant="ghost"
             >
-              <X className="h-3 w-3 mr-1" />
+              <X className="mr-1 h-3 w-3" />
               Clear all
             </Button>
           )}
@@ -55,39 +55,43 @@ export function PatternsSidebar({
         {/* Categories */}
         {categories.length > 0 && (
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+            <h3 className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
               Category
             </h3>
             <div className="space-y-1">
               <button
-                type="button"
-                onClick={() => onCategoryChange(null)}
                 className={cn(
-                  "w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors flex items-center justify-between",
+                  "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors",
                   activeCategory === null
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted/50 text-muted-foreground"
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-muted/50"
                 )}
+                onClick={() => onCategoryChange(null)}
+                type="button"
               >
                 <span>All</span>
-                <Badge variant="secondary" className="text-xs">
+                <Badge className="text-xs" variant="secondary">
                   {categories.reduce((sum, cat) => sum + cat.count, 0)}
                 </Badge>
               </button>
               {categories.map((cat) => (
                 <button
-                  type="button"
-                  key={cat.value}
-                  onClick={() => onCategoryChange(cat.value === activeCategory ? null : cat.value)}
                   className={cn(
-                    "w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors flex items-center justify-between",
+                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors",
                     activeCategory === cat.value
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "hover:bg-muted/50 text-muted-foreground"
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "text-muted-foreground hover:bg-muted/50"
                   )}
+                  key={cat.value}
+                  onClick={() =>
+                    onCategoryChange(
+                      cat.value === activeCategory ? null : cat.value
+                    )
+                  }
+                  type="button"
                 >
                   <span className="truncate text-foreground">{cat.value}</span>
-                  <Badge variant="secondary" className="text-xs shrink-0 ml-2">
+                  <Badge className="ml-2 shrink-0 text-xs" variant="secondary">
                     {cat.count}
                   </Badge>
                 </button>
@@ -95,8 +99,7 @@ export function PatternsSidebar({
             </div>
           </div>
         )}
-
       </div>
     </aside>
-  )
+  );
 }

@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest"
-import { getTourCompareView, getTourConceptCode, getTourSolutionCode } from "@/lib/tourCompare"
-import type { TourStep } from "@/services/TourProgress/types"
+import { describe, expect, it } from "vitest";
+import {
+  getTourCompareView,
+  getTourConceptCode,
+  getTourSolutionCode,
+} from "@/lib/tourCompare";
+import type { TourStep } from "@/services/TourProgress/types";
 
 const step: TourStep = {
   id: "step-1",
@@ -21,18 +25,18 @@ const step: TourStep = {
   v3_source_ref: "bootstrap-seed-snapshot",
   v3_source_path: "effects-are-lazy/01.mdx",
   created_at: "2026-03-08T00:00:00.000Z",
-}
+};
 
 describe("tourCompare", () => {
   it("returns v3 fields in v3 mode", () => {
-    expect(getTourConceptCode(step, "v3")).toBe("v3 concept")
-    expect(getTourSolutionCode(step, "v3")).toBe("v3 solution")
-  })
+    expect(getTourConceptCode(step, "v3")).toBe("v3 concept");
+    expect(getTourSolutionCode(step, "v3")).toBe("v3 solution");
+  });
 
   it("prefers v4 lesson variants in v4 mode", () => {
-    expect(getTourConceptCode(step, "v4")).toBe("v4 concept")
-    expect(getTourSolutionCode(step, "v4")).toBe("v4 solution")
-  })
+    expect(getTourConceptCode(step, "v4")).toBe("v4 concept");
+    expect(getTourSolutionCode(step, "v4")).toBe("v4 solution");
+  });
 
   it("falls back to v3 when v4 variants are missing", () => {
     expect(
@@ -47,8 +51,8 @@ describe("tourCompare", () => {
       identical: true,
       conceptIdentical: true,
       solutionIdentical: true,
-    })
-  })
+    });
+  });
 
   it("marks compare output as changed when v4 content differs", () => {
     expect(getTourCompareView(step)).toMatchObject({
@@ -57,9 +61,10 @@ describe("tourCompare", () => {
       identical: false,
       conceptIdentical: false,
       solutionIdentical: false,
-      changeSummary: "Both the anti-pattern and solution snippets differ between the pinned v3 source and the generated v4 variant.",
-    })
-  })
+      changeSummary:
+        "Both the anti-pattern and solution snippets differ between the pinned v3 source and the generated v4 variant.",
+    });
+  });
 
   it("marks compare output as changed when only the concept snippet differs", () => {
     expect(
@@ -73,9 +78,10 @@ describe("tourCompare", () => {
       identical: false,
       conceptIdentical: false,
       solutionIdentical: true,
-      changeSummary: "The anti-pattern snippet differs between the pinned v3 source and the generated v4 variant.",
-    })
-  })
+      changeSummary:
+        "The anti-pattern snippet differs between the pinned v3 source and the generated v4 variant.",
+    });
+  });
 
   it("returns EMPTY_COMPARE_CODE on both sides when all code fields are null", () => {
     const emptyStep: TourStep = {
@@ -84,11 +90,17 @@ describe("tourCompare", () => {
       concept_code_v4: null,
       solution_code: null,
       solution_code_v4: null,
-    }
-    const view = getTourCompareView(emptyStep)
-    expect(view.v3Code).toBe("// Comparison preview is not available for this step yet.")
-    expect(view.v4Code).toBe("// Comparison preview is not available for this step yet.")
-    expect(view.identical).toBe(true)
-    expect(view.changeSummary).toBe("No API-level migration changes were needed for this step.")
-  })
-})
+    };
+    const view = getTourCompareView(emptyStep);
+    expect(view.v3Code).toBe(
+      "// Comparison preview is not available for this step yet."
+    );
+    expect(view.v4Code).toBe(
+      "// Comparison preview is not available for this step yet."
+    );
+    expect(view.identical).toBe(true);
+    expect(view.changeSummary).toBe(
+      "No API-level migration changes were needed for this step."
+    );
+  });
+});

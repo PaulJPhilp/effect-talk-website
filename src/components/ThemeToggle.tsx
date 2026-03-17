@@ -1,33 +1,39 @@
-"use client"
+"use client";
 
-import { useSyncExternalStore } from "react"
-import { useTheme } from "next-themes"
-import { Sun, Moon, Monitor } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+
+const subscribeNoop = () => {
+  return () => {
+    // No external subscription; this only gates rendering to the client.
+  };
+};
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
   const isMounted = useSyncExternalStore(
-    () => () => {},
+    subscribeNoop,
     () => true,
     () => false
-  )
+  );
 
-  const iconClass = "h-4 w-4 text-foreground"
+  const iconClass = "h-4 w-4 text-foreground";
 
   if (!isMounted) {
     return (
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+      <Button className="h-8 w-8 p-0" disabled size="sm" variant="ghost">
         <Sun className={iconClass} />
         <span className="sr-only">Theme</span>
       </Button>
-    )
+    );
   }
 
   const currentIcon =
@@ -37,12 +43,12 @@ export function ThemeToggle() {
       <Moon className={iconClass} />
     ) : (
       <Monitor className={iconClass} />
-    )
+    );
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+        <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
           {currentIcon}
           <span className="sr-only">Toggle theme</span>
         </Button>
@@ -62,5 +68,5 @@ export function ThemeToggle() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

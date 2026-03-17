@@ -2,11 +2,11 @@
  * API Keys service types.
  */
 
-import type { DbApiKey } from "@/services/Db/types"
+import type { DbApiKey } from "@/services/Db/types";
 
 export interface CreatedApiKey {
   /** The full plaintext token — shown ONCE to the user */
-  readonly plaintext: string
+  readonly plaintext: string;
   /** The DB record (without plaintext) */
-  readonly record: DbApiKey
+  readonly record: DbApiKey;
 }

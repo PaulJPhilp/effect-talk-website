@@ -5,10 +5,10 @@
  * See docs/deployment.md for production setup.
  */
 
-import { Resend } from "resend"
+import { Resend } from "resend";
 
 export function getResendClient(): Resend {
-  return new Resend(process.env.RESEND_API_KEY)
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
 export function escapeHtml(text: string): string {
@@ -17,31 +17,37 @@ export function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
+    .replace(/'/g, "&#039;");
 }
 
 // ── Email template builders (pure functions) ──────────────────────
 
 import {
-  EMAIL_FROM_ADDRESS,
-  FEEDBACK_RECIPIENT_EMAIL,
-  EMAIL_PATTERNS_LINK,
   BUSINESS_DAYS_RESPONSE_TIME,
-  PRODUCT_NAME_PLAYGROUND,
+  EMAIL_FROM_ADDRESS,
+  EMAIL_PATTERNS_LINK,
+  FEEDBACK_RECIPIENT_EMAIL,
   PRODUCT_NAME_CODE_REVIEW,
-} from "@/types/constants"
-import type { WaitlistSource } from "@/types/strings"
+  PRODUCT_NAME_PLAYGROUND,
+} from "@/types/constants";
+import type { WaitlistSource } from "@/types/strings";
 
 export interface EmailMessage {
-  readonly from: string
-  readonly to: string
-  readonly subject: string
-  readonly html: string
-  readonly replyTo?: string
+  readonly from: string;
+  readonly html: string;
+  readonly replyTo?: string;
+  readonly subject: string;
+  readonly to: string;
 }
 
-export function buildWaitlistEmail(email: string, source: WaitlistSource): EmailMessage {
-  const productName = source === "playground" ? PRODUCT_NAME_PLAYGROUND : PRODUCT_NAME_CODE_REVIEW
+export function buildWaitlistEmail(
+  email: string,
+  source: WaitlistSource
+): EmailMessage {
+  const productName =
+    source === "playground"
+      ? PRODUCT_NAME_PLAYGROUND
+      : PRODUCT_NAME_CODE_REVIEW;
   return {
     from: EMAIL_FROM_ADDRESS,
     to: email,
@@ -53,10 +59,13 @@ export function buildWaitlistEmail(email: string, source: WaitlistSource): Email
                 <br/>
                 <p>— The EffectTalk Team</p>
               `,
-  }
+  };
 }
 
-export function buildConsultingEmail(email: string, name: string): EmailMessage {
+export function buildConsultingEmail(
+  email: string,
+  name: string
+): EmailMessage {
   return {
     from: EMAIL_FROM_ADDRESS,
     to: email,
@@ -67,15 +76,15 @@ export function buildConsultingEmail(email: string, name: string): EmailMessage 
                 <br/>
                 <p>— The EffectTalk Team</p>
               `,
-  }
+  };
 }
 
 export function buildFeedbackEmail(data: {
-  name: string | null
-  email: string
-  message: string
+  name: string | null;
+  email: string;
+  message: string;
 }): EmailMessage {
-  const fromLabel = data.name ? `${data.name} <${data.email}>` : data.email
+  const fromLabel = data.name ? `${data.name} <${data.email}>` : data.email;
   return {
     from: EMAIL_FROM_ADDRESS,
     to: FEEDBACK_RECIPIENT_EMAIL,
@@ -87,5 +96,5 @@ export function buildFeedbackEmail(data: {
                 <p><strong>Message:</strong></p>
                 <pre style="white-space: pre-wrap; font-family: inherit;">${escapeHtml(data.message)}</pre>
               `,
-  }
+  };
 }

@@ -6,204 +6,207 @@
  * custom test layers.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
-import type { DbUser } from "@/services/Db/types"
+import { Effect, Layer } from "effect";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DbUser } from "@/services/Db/types";
 
 // Exception: structural mocks required — @workos-inc/authkit-nextjs imports
 // next/cache which doesn't resolve in Vitest. These stubs return valid shapes
 // only; no call-verification assertions.
 vi.mock("next/headers", () => ({
-  cookies: () => Promise.resolve({ get: () => undefined, set: () => {}, delete: () => {} }),
-}))
+  cookies: () =>
+    Promise.resolve({ get: () => undefined, set: () => {}, delete: () => {} }),
+}));
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   withAuth: () => Promise.resolve({ user: null }),
-}))
+}));
 
 // Import after mocks are registered so module resolution succeeds.
-const { Auth, AuthNoOp } = await import("@/services/Auth/service")
+const { Auth, AuthNoOp } = await import("@/services/Auth/service");
 
 describe("Auth api", () => {
-  const originalEnv = { ...process.env }
+  const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    process.env = { ...originalEnv }
-  })
+    process.env = { ...originalEnv };
+  });
 
   describe("isWorkOSConfigured", () => {
     it("returns false when WORKOS_API_KEY is missing", () => {
-      process.env.WORKOS_API_KEY = ""
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "";
+      process.env.WORKOS_CLIENT_ID = "client_xx";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns false when WORKOS_CLIENT_ID is missing", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = ""
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns false when redirect URI contains placeholder", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI = "http://xxx/callback"
-      delete process.env.WORKOS_REDIRECT_URI
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_xx";
+      process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI = "http://xxx/callback";
+      delete process.env.WORKOS_REDIRECT_URI;
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns false when WORKOS_COOKIE_PASSWORD is shorter than 32 chars", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "short"
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_xx";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "short";
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns true when all required vars are set and valid", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xx"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_xx";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(true)
-    })
+      );
+      expect(result).toBe(true);
+    });
 
     it("returns false when WORKOS_API_KEY contains placeholder", () => {
-      process.env.WORKOS_API_KEY = "sk_xxx_placeholder"
-      process.env.WORKOS_CLIENT_ID = "client_real"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_xxx_placeholder";
+      process.env.WORKOS_CLIENT_ID = "client_real";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns false when WORKOS_CLIENT_ID contains placeholder", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_xxx_placeholder"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_xxx_placeholder";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("falls back to WORKOS_REDIRECT_URI when NEXT_PUBLIC is missing", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_real"
-      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_real";
+      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI;
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(true)
-    })
+      );
+      expect(result).toBe(true);
+    });
 
     it("returns false when both redirect URI vars are missing", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_real"
-      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI
-      delete process.env.WORKOS_REDIRECT_URI
-      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32)
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_real";
+      delete process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI;
+      delete process.env.WORKOS_REDIRECT_URI;
+      process.env.WORKOS_COOKIE_PASSWORD = "a".repeat(32);
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
+      );
+      expect(result).toBe(false);
+    });
 
     it("returns false when WORKOS_COOKIE_PASSWORD is missing", () => {
-      process.env.WORKOS_API_KEY = "sk_test"
-      process.env.WORKOS_CLIENT_ID = "client_real"
-      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback"
-      delete process.env.WORKOS_COOKIE_PASSWORD
+      process.env.WORKOS_API_KEY = "sk_test";
+      process.env.WORKOS_CLIENT_ID = "client_real";
+      process.env.WORKOS_REDIRECT_URI = "http://localhost:3000/auth/callback";
+      delete process.env.WORKOS_COOKIE_PASSWORD;
       const result = Effect.runSync(
         Effect.gen(function* () {
-          const svc = yield* Auth
-          return svc.isWorkOSConfigured()
+          const svc = yield* Auth;
+          return svc.isWorkOSConfigured();
         }).pipe(Effect.provide(Auth.Default))
-      )
-      expect(result).toBe(false)
-    })
-  })
+      );
+      expect(result).toBe(false);
+    });
+  });
 
   describe("clearSessionCookie", () => {
     it("succeeds with AuthNoOp", async () => {
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.clearSessionCookie()
-      })
-      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
-    })
-  })
+        const svc = yield* Auth;
+        return yield* svc.clearSessionCookie();
+      });
+      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)));
+    });
+  });
 
   describe("setSessionCookie", () => {
     it("succeeds with AuthNoOp", async () => {
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.setSessionCookie("user-123")
-      })
-      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
-    })
-  })
+        const svc = yield* Auth;
+        return yield* svc.setSessionCookie("user-123");
+      });
+      await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)));
+    });
+  });
 
   describe("getSessionUserId", () => {
     it("returns null with AuthNoOp", async () => {
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.getSessionUserId()
-      })
-      const result = await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
-      expect(result).toBeNull()
-    })
+        const svc = yield* Auth;
+        return yield* svc.getSessionUserId();
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(AuthNoOp))
+      );
+      expect(result).toBeNull();
+    });
 
     it("returns userId from a custom layer", async () => {
       const CustomAuth = Layer.succeed(Auth, {
@@ -213,25 +216,29 @@ describe("Auth api", () => {
         getSessionUserId: () => Effect.succeed("user-123"),
         getCurrentUser: () => Effect.succeed(null),
         requireAuth: () => Effect.die("not used"),
-      })
+      });
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.getSessionUserId()
-      })
-      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
-      expect(result).toBe("user-123")
-    })
-  })
+        const svc = yield* Auth;
+        return yield* svc.getSessionUserId();
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(CustomAuth))
+      );
+      expect(result).toBe("user-123");
+    });
+  });
 
   describe("getCurrentUser", () => {
     it("returns null with AuthNoOp", async () => {
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.getCurrentUser()
-      })
-      const result = await Effect.runPromise(program.pipe(Effect.provide(AuthNoOp)))
-      expect(result).toBeNull()
-    })
+        const svc = yield* Auth;
+        return yield* svc.getCurrentUser();
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(AuthNoOp))
+      );
+      expect(result).toBeNull();
+    });
 
     it("returns user from a custom layer", async () => {
       const mockUser: DbUser = {
@@ -243,7 +250,7 @@ describe("Auth api", () => {
         preferences: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }
+      };
       const CustomAuth = Layer.succeed(Auth, {
         isWorkOSConfigured: () => true,
         setSessionCookie: () => Effect.void,
@@ -251,25 +258,29 @@ describe("Auth api", () => {
         getSessionUserId: () => Effect.succeed("user-123"),
         getCurrentUser: () => Effect.succeed(mockUser),
         requireAuth: () => Effect.succeed(mockUser),
-      })
+      });
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.getCurrentUser()
-      })
-      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
-      expect(result).toEqual(mockUser)
-    })
-  })
+        const svc = yield* Auth;
+        return yield* svc.getCurrentUser();
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(CustomAuth))
+      );
+      expect(result).toEqual(mockUser);
+    });
+  });
 
   describe("requireAuth", () => {
     it("dies with AuthNoOp (no authenticated user)", async () => {
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.requireAuth()
-      })
-      const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(AuthNoOp)))
-      expect(exit._tag).toBe("Failure")
-    })
+        const svc = yield* Auth;
+        return yield* svc.requireAuth();
+      });
+      const exit = await Effect.runPromiseExit(
+        program.pipe(Effect.provide(AuthNoOp))
+      );
+      expect(exit._tag).toBe("Failure");
+    });
 
     it("returns user from a custom layer with authenticated user", async () => {
       const mockUser: DbUser = {
@@ -281,7 +292,7 @@ describe("Auth api", () => {
         preferences: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }
+      };
       const CustomAuth = Layer.succeed(Auth, {
         isWorkOSConfigured: () => true,
         setSessionCookie: () => Effect.void,
@@ -289,13 +300,15 @@ describe("Auth api", () => {
         getSessionUserId: () => Effect.succeed("user-123"),
         getCurrentUser: () => Effect.succeed(mockUser),
         requireAuth: () => Effect.succeed(mockUser),
-      })
+      });
       const program = Effect.gen(function* () {
-        const svc = yield* Auth
-        return yield* svc.requireAuth()
-      })
-      const result = await Effect.runPromise(program.pipe(Effect.provide(CustomAuth)))
-      expect(result).toEqual(mockUser)
-    })
-  })
-})
+        const svc = yield* Auth;
+        return yield* svc.requireAuth();
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(CustomAuth))
+      );
+      expect(result).toEqual(mockUser);
+    });
+  });
+});

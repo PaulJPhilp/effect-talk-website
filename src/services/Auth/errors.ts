@@ -2,8 +2,8 @@
  * Auth service errors.
  */
 
-import { Data } from "effect"
+import { Data } from "effect";
 
 export class AuthError extends Data.TaggedError("AuthError")<{
-  readonly message: string
+  readonly message: string;
 }> {}

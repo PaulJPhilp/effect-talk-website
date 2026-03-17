@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useMemo } from "react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { Check } from "lucide-react"
-import { useAllTourProgress } from "@/hooks/useAllTourProgress"
-import { buildTourHref, getAccessibleTourMode } from "@/lib/tourMode"
-import { getLastStepForLesson } from "@/lib/tourPosition"
-import type { TourLessonListItem } from "@/services/TourProgress/types"
+import { Check } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { useAllTourProgress } from "@/hooks/useAllTourProgress";
+import { buildTourHref, getAccessibleTourMode } from "@/lib/tourMode";
+import { getLastStepForLesson } from "@/lib/tourPosition";
+import type { TourLessonListItem } from "@/services/TourProgress/types";
 
 const GROUP_ORDER = [
   "Fundamentals",
@@ -15,109 +15,120 @@ const GROUP_ORDER = [
   "Concurrency",
   "Data & I/O",
   "Validation",
-] as const
+] as const;
 
-function groupLessons(items: readonly TourLessonListItem[]): Map<string | null, TourLessonListItem[]> {
-  const map = new Map<string | null, TourLessonListItem[]>()
+function groupLessons(
+  items: readonly TourLessonListItem[]
+): Map<string | null, TourLessonListItem[]> {
+  const map = new Map<string | null, TourLessonListItem[]>();
   for (const lesson of items) {
-    const key = lesson.group
-    const list = map.get(key) ?? []
-    list.push(lesson)
-    map.set(key, list)
+    const key = lesson.group;
+    const list = map.get(key) ?? [];
+    list.push(lesson);
+    map.set(key, list);
   }
-  return map
+  return map;
 }
 
 interface TourLessonListProps {
-  readonly lessons: readonly TourLessonListItem[]
-  readonly isLoggedIn: boolean
+  readonly isLoggedIn: boolean;
+  readonly lessons: readonly TourLessonListItem[];
 }
 
 export function TourLessonList({ lessons, isLoggedIn }: TourLessonListProps) {
-  const searchParams = useSearchParams()
-  const mode = getAccessibleTourMode(searchParams.get("mode"), isLoggedIn)
-  const completedStepIds = useAllTourProgress(isLoggedIn)
-  const byGroup = useMemo(() => groupLessons(lessons), [lessons])
+  const searchParams = useSearchParams();
+  const mode = getAccessibleTourMode(searchParams.get("mode"), isLoggedIn);
+  const completedStepIds = useAllTourProgress(isLoggedIn);
+  const byGroup = useMemo(() => groupLessons(lessons), [lessons]);
 
   const numberedGroups = useMemo(() => {
-    const groups: { groupName: string; items: { lesson: TourLessonListItem; displayIndex: number }[] }[] = []
-    let counter = 1
+    const groups: {
+      groupName: string;
+      items: { lesson: TourLessonListItem; displayIndex: number }[];
+    }[] = [];
+    let counter = 1;
     for (const groupName of GROUP_ORDER) {
-      const items = byGroup.get(groupName)
-      if (!items || items.length === 0) continue
-      const numbered = items.map((lesson) => ({ lesson, displayIndex: counter++ }))
-      groups.push({ groupName, items: numbered })
+      const items = byGroup.get(groupName);
+      if (!items || items.length === 0) {
+        continue;
+      }
+      const numbered = items.map((lesson) => ({
+        lesson,
+        displayIndex: counter++,
+      }));
+      groups.push({ groupName, items: numbered });
     }
-    const uncategorized = byGroup.get(null) ?? []
+    const uncategorized = byGroup.get(null) ?? [];
     if (uncategorized.length > 0) {
-      const numbered = uncategorized.map((lesson) => ({ lesson, displayIndex: counter++ }))
-      groups.push({ groupName: "More", items: numbered })
+      const numbered = uncategorized.map((lesson) => ({
+        lesson,
+        displayIndex: counter++,
+      }));
+      groups.push({ groupName: "More", items: numbered });
     }
-    return groups
-  }, [byGroup])
+    return groups;
+  }, [byGroup]);
 
   const isLessonComplete = useMemo(() => {
     return function isComplete(lesson: TourLessonListItem): boolean {
-      if (lesson.step_ids.length === 0) return false
-      return lesson.step_ids.every((stepId) => completedStepIds.has(stepId))
-    }
-  }, [completedStepIds])
+      if (lesson.step_ids.length === 0) {
+        return false;
+      }
+      return lesson.step_ids.every((stepId) => completedStepIds.has(stepId));
+    };
+  }, [completedStepIds]);
 
   return (
     <div className="space-y-10">
       {numberedGroups.map(({ groupName, items }) => (
         <section key={groupName}>
-          <h2 className="text-lg font-semibold tracking-tight mb-4 text-muted-foreground">
+          <h2 className="mb-4 font-semibold text-lg text-muted-foreground tracking-tight">
             {groupName}
           </h2>
           <ol className="space-y-4">
             {items.map(({ lesson, displayIndex }) => {
-              const done = isLessonComplete(lesson)
-              const stepCount = lesson.step_count
-              const lastStep = getLastStepForLesson(lesson.slug)
-              const href = buildTourHref(
-                `/tour/${lesson.slug}`,
-                searchParams,
-                {
-                  mode,
-                  step: lastStep,
-                }
-              )
+              const done = isLessonComplete(lesson);
+              const stepCount = lesson.step_count;
+              const lastStep = getLastStepForLesson(lesson.slug);
+              const href = buildTourHref(`/tour/${lesson.slug}`, searchParams, {
+                mode,
+                step: lastStep,
+              });
 
               return (
                 <li key={lesson.id}>
                   <Link
+                    className="group block rounded-lg border p-4 transition-colors hover:bg-muted/50"
                     href={href}
-                    className="group block rounded-lg border p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <span className="font-medium group-hover:text-primary transition-colors">
+                        <span className="font-medium transition-colors group-hover:text-primary">
                           {displayIndex}. {lesson.title}
                         </span>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="mt-1 text-muted-foreground text-sm">
                           {lesson.description}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 mt-1">
+                      <div className="mt-1 flex shrink-0 items-center gap-2">
                         {done && (
-                          <span className="inline-flex items-center gap-1 text-xs text-success font-medium">
+                          <span className="inline-flex items-center gap-1 font-medium text-success text-xs">
                             <Check className="h-3.5 w-3.5" />
                             Done
                           </span>
                         )}
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="whitespace-nowrap text-muted-foreground text-xs">
                           {stepCount} {stepCount === 1 ? "step" : "steps"}
                         </span>
                       </div>
                     </div>
                   </Link>
                 </li>
-              )
+              );
             })}
           </ol>
         </section>
       ))}
     </div>
-  )
+  );
 }

@@ -9,41 +9,47 @@
  * @module PostHog/service
  */
 
-import { Effect, Layer } from "effect"
-import { PostHogError } from "@/services/PostHog/types"
-import type { PostHogAnalyticsService } from "@/services/PostHog/api"
+import { Effect, Layer } from "effect";
+import type { PostHogAnalyticsService } from "@/services/PostHog/api";
+import { PostHogError } from "@/services/PostHog/types";
 
-const SERVER_DISTINCT_ID = "server"
+const SERVER_DISTINCT_ID = "server";
 
 const noOpImpl: PostHogAnalyticsService = {
   capture: () => Effect.void,
   identify: () => Effect.void,
   flush: () => Effect.void,
-}
+};
 
 export class PostHogAnalytics extends Effect.Service<PostHogAnalyticsService>()(
   "PostHogAnalytics",
   {
     effect: Effect.gen(function* () {
-      const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-      const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
-      if (!key || !host) {
+      const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+      const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+      if (!(key && host)) {
         if (process.env.NODE_ENV === "development") {
-          console.info("[PostHog] Disabled: NEXT_PUBLIC_POSTHOG_KEY or NEXT_PUBLIC_POSTHOG_HOST not set.")
+          console.info(
+            "[PostHog] Disabled: NEXT_PUBLIC_POSTHOG_KEY or NEXT_PUBLIC_POSTHOG_HOST not set."
+          );
         }
-        return noOpImpl
+        return noOpImpl;
       }
       const { PostHog } = yield* Effect.tryPromise({
         try: () => import("posthog-node"),
         catch: (e) => new PostHogError({ message: String(e), cause: e }),
-      })
+      });
       const client = new PostHog(key, {
         host,
         flushAt: 1,
         flushInterval: 0,
-      })
+      });
       return {
-        capture: (event: string, properties?: Record<string, unknown>, distinctId?: string) =>
+        capture: (
+          event: string,
+          properties?: Record<string, unknown>,
+          distinctId?: string
+        ) =>
           Effect.tryPromise({
             try: () =>
               Promise.resolve(
@@ -73,10 +79,10 @@ export class PostHogAnalytics extends Effect.Service<PostHogAnalyticsService>()(
             try: () => client.flush(),
             catch: (e) => new PostHogError({ message: String(e), cause: e }),
           }).pipe(Effect.catchAll(() => Effect.void)),
-      } satisfies PostHogAnalyticsService
+      } satisfies PostHogAnalyticsService;
     }),
   }
 ) {}
 
 /** No-op implementation for tests. */
-export const PostHogAnalyticsNoOp = Layer.succeed(PostHogAnalytics, noOpImpl)
+export const PostHogAnalyticsNoOp = Layer.succeed(PostHogAnalytics, noOpImpl);

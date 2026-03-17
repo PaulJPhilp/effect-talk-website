@@ -1,47 +1,48 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { Effect, Schema, Either } from "effect"
-import { getCurrentUser } from "@/services/Auth"
-import { updateUserPreferences } from "@/services/Db"
-import { formatSchemaErrors } from "@/lib/schema"
+import { Effect, Either, Schema } from "effect";
+import { type NextRequest, NextResponse } from "next/server";
+import { formatSchemaErrors } from "@/lib/schema";
+import { getCurrentUser } from "@/services/Auth";
+import { replaceCustomerConfig } from "@/services/CustomerConfig";
 
 const PreferencesSchema = Schema.Struct({
   preferences: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-})
+});
 
 /**
  * POST /api/preferences - Update user preferences.
  */
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: unknown
+  let body: unknown;
   try {
-    body = await request.json()
+    body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const decoded = Schema.decodeUnknownEither(PreferencesSchema)(body)
+  const decoded = Schema.decodeUnknownEither(PreferencesSchema)(body);
   if (Either.isLeft(decoded)) {
     return NextResponse.json(
       { error: "Validation failed", details: formatSchemaErrors(decoded.left) },
       { status: 400 }
-    )
+    );
   }
 
   try {
     const updated = await Effect.runPromise(
-      updateUserPreferences(user.id, decoded.right.preferences as Record<string, unknown>).pipe(
-        Effect.catchAll(() => Effect.succeed(null))
-      )
-    )
+      replaceCustomerConfig(
+        user.id,
+        decoded.right.preferences as Record<string, unknown>
+      ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+    );
 
-    return NextResponse.json({ success: true, user: updated })
+    return NextResponse.json({ success: true, preferences: updated });
   } catch (error) {
-    console.error("Preferences update error:", error)
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+    console.error("Preferences update error:", error);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

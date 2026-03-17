@@ -43,7 +43,9 @@ Key route groups in the app today:
 |---|---|
 | `bun run dev` | Start the local dev server |
 | `bun run build` | Production build |
-| `bun run lint` | ESLint |
+| `bun run lint` | Ultracite/Biome checks |
+| `bun run lint:fix` | Ultracite/Biome lint fixes |
+| `bun run format` | Biome formatting |
 | `bun run typecheck` | TypeScript check |
 | `bun run test` | Run Vitest in watch mode |
 | `bun run test:run` | Run all tests once |

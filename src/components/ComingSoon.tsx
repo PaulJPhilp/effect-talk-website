@@ -1,8 +1,8 @@
-import { Lock } from "lucide-react"
+import { Lock } from "lucide-react";
 
 interface ComingSoonProps {
-  readonly title: string
-  readonly description: string
+  readonly description: string;
+  readonly title: string;
 }
 
 export function ComingSoon({ title, description }: ComingSoonProps) {
@@ -11,8 +11,8 @@ export function ComingSoon({ title, description }: ComingSoonProps) {
       <div className="mb-6 rounded-full bg-muted p-4">
         <Lock className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight mb-3">{title}</h1>
-      <p className="text-muted-foreground max-w-md mb-8">{description}</p>
+      <h1 className="mb-3 font-bold text-3xl tracking-tight">{title}</h1>
+      <p className="mb-8 max-w-md text-muted-foreground">{description}</p>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Schema } from "effect";
 
 export const FeedbackSchema = Schema.Struct({
   name: Schema.optional(Schema.String),
@@ -8,8 +8,10 @@ export const FeedbackSchema = Schema.Struct({
     })
   ),
   message: Schema.String.pipe(
-    Schema.minLength(10, { message: () => "Please provide at least 10 characters of feedback" })
+    Schema.minLength(10, {
+      message: () => "Please provide at least 10 characters of feedback",
+    })
   ),
-})
+});
 
-export type FeedbackInput = Schema.Schema.Type<typeof FeedbackSchema>
+export type FeedbackInput = Schema.Schema.Type<typeof FeedbackSchema>;

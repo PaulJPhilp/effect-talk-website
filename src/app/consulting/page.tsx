@@ -1,19 +1,19 @@
-import { ConsultingForm } from "@/components/ConsultingForm"
+import { ClipboardCheck, GitBranch, GraduationCap } from "lucide-react";
+import { ConsultingForm } from "@/components/ConsultingForm";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ClipboardCheck, GitBranch, GraduationCap } from "lucide-react"
-import { buildMetadata } from "@/lib/seo"
+} from "@/components/ui/card";
+import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
   title: "Consulting",
   description:
     "Effect.ts consulting — assessments, migration strategy, and developer training for your team.",
-})
+});
 
 const offers = [
   {
@@ -37,50 +37,50 @@ const offers = [
     icon: GraduationCap,
     tags: ["Workshops", "Custom Content"],
   },
-] as const
+] as const;
 
 export default function ConsultingPage() {
   return (
-    <div className="container px-4 md:px-6 py-10">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold tracking-tight mb-3">
+    <div className="container px-4 py-10 md:px-6">
+      <div className="mb-12 text-center">
+        <h1 className="mb-3 font-bold text-3xl tracking-tight">
           Effect.ts Consulting
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="mx-auto max-w-2xl text-muted-foreground">
           Expert guidance for teams adopting or scaling Effect.ts. From
           architecture reviews to hands-on training.
         </p>
       </div>
 
       {/* Offers */}
-      <div className="grid gap-6 md:grid-cols-3 mb-16">
+      <div className="mb-16 grid gap-6 md:grid-cols-3">
         {offers.map((offer) => {
-          const Icon = offer.icon
+          const Icon = offer.icon;
           return (
-            <Card key={offer.title} className="h-full">
+            <Card className="h-full" key={offer.title}>
               <CardHeader>
-                <Icon className="h-8 w-8 mb-2 text-primary" />
+                <Icon className="mb-2 h-8 w-8 text-primary" />
                 <CardTitle>{offer.title}</CardTitle>
                 <CardDescription className="mt-2">
                   {offer.description}
                 </CardDescription>
-                <div className="flex gap-1.5 mt-3">
+                <div className="mt-3 flex gap-1.5">
                   {offer.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                    <Badge className="text-xs" key={tag} variant="secondary">
                       {tag}
                     </Badge>
                   ))}
                 </div>
               </CardHeader>
             </Card>
-          )
+          );
         })}
       </div>
 
       {/* Form */}
-      <div className="max-w-lg mx-auto">
+      <div className="mx-auto max-w-lg">
         <ConsultingForm />
       </div>
     </div>
-  )
+  );
 }

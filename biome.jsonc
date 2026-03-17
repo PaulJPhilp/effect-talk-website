@@ -1,0 +1,95 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
+  ],
+  "files": {
+    "includes": [
+      "!!**/.next",
+      "!!**/build",
+      "!!**/coverage",
+      "!!**/out",
+      "!!**/.vercel"
+    ]
+  },
+  "javascript": {
+    "globals": ["Bun"]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "noNestedTernary": "off",
+        "noNonNullAssertion": "off",
+        "useAtIndex": "off",
+        "useFilenamingConvention": "off",
+        "useTemplate": "off"
+      },
+      "performance": {
+        "noDelete": "off",
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off",
+        "noVoid": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "suspicious": {
+            "noBitwiseOperators": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/db/schema.ts",
+        "src/services/index.ts",
+        "src/services/**/index.ts"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/app/blog/\\[slug\\]/page.tsx",
+        "src/app/rules/\\[id\\]/page.tsx",
+        "src/components/CodeHighlight.tsx",
+        "src/components/PatternContent.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/**/__tests__/**/*", "src/**/*.{test,spec}.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noEmptyBlockStatements": "off"
+          }
+        }
+      }
+    }
+  ]
+}

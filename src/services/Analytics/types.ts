@@ -2,52 +2,56 @@
  * Analytics service types.
  */
 
-import type { WaitlistSource, TabType, AnalyticsEventType } from "@/types/strings"
+import type {
+  AnalyticsEventType,
+  TabType,
+  WaitlistSource,
+} from "@/types/strings";
 
 export interface WaitlistSubmittedEvent {
-  readonly type: Extract<AnalyticsEventType, "waitlist_submitted">
-  readonly source: WaitlistSource
+  readonly source: WaitlistSource;
+  readonly type: Extract<AnalyticsEventType, "waitlist_submitted">;
 }
 
 export interface ConsultingSubmittedEvent {
-  readonly type: Extract<AnalyticsEventType, "consulting_submitted">
+  readonly type: Extract<AnalyticsEventType, "consulting_submitted">;
 }
 
 export interface FeedbackSubmittedEvent {
-  readonly type: Extract<AnalyticsEventType, "feedback_submitted">
+  readonly type: Extract<AnalyticsEventType, "feedback_submitted">;
 }
 
 export interface TabClickedEvent {
-  readonly type: Extract<AnalyticsEventType, "tab_clicked">
-  readonly tab: TabType
+  readonly tab: TabType;
+  readonly type: Extract<AnalyticsEventType, "tab_clicked">;
 }
 
 export interface SearchPerformedEvent {
-  readonly type: Extract<AnalyticsEventType, "search_performed">
-  readonly queryLength: number
-  readonly patternCount: number
-  readonly ruleCount: number
-  readonly pageCount: number
+  readonly pageCount: number;
+  readonly patternCount: number;
+  readonly queryLength: number;
+  readonly ruleCount: number;
+  readonly type: Extract<AnalyticsEventType, "search_performed">;
 }
 
 export interface TourStartedEvent {
-  readonly type: Extract<AnalyticsEventType, "tour_started">
+  readonly type: Extract<AnalyticsEventType, "tour_started">;
 }
 
 export interface LessonStartedEvent {
-  readonly type: Extract<AnalyticsEventType, "lesson_started">
-  readonly lessonSlug: string
+  readonly lessonSlug: string;
+  readonly type: Extract<AnalyticsEventType, "lesson_started">;
 }
 
 export interface StepCompletedEvent {
-  readonly type: Extract<AnalyticsEventType, "step_completed">
-  readonly lessonSlug: string
-  readonly stepId: string
+  readonly lessonSlug: string;
+  readonly stepId: string;
+  readonly type: Extract<AnalyticsEventType, "step_completed">;
 }
 
 export interface LessonCompletedEvent {
-  readonly type: Extract<AnalyticsEventType, "lesson_completed">
-  readonly lessonSlug: string
+  readonly lessonSlug: string;
+  readonly type: Extract<AnalyticsEventType, "lesson_completed">;
 }
 
 export type AnalyticsEvent =
@@ -59,4 +63,4 @@ export type AnalyticsEvent =
   | TourStartedEvent
   | LessonStartedEvent
   | StepCompletedEvent
-  | LessonCompletedEvent
+  | LessonCompletedEvent;

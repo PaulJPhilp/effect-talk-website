@@ -6,13 +6,13 @@
 // Waitlist Source Types
 // ---------------------------------------------------------------------------
 
-export type WaitlistSource = "playground" | "code_review"
+export type WaitlistSource = "playground" | "code_review";
 
 // ---------------------------------------------------------------------------
 // Tab Types
 // ---------------------------------------------------------------------------
 
-export type TabType = "cli" | "mcp" | "tour" | "playground" | "code-review"
+export type TabType = "cli" | "mcp" | "tour" | "playground" | "code-review";
 
 // ---------------------------------------------------------------------------
 // Analytics Event Types
@@ -27,40 +27,46 @@ export type AnalyticsEventType =
   | "tour_started"
   | "lesson_started"
   | "step_completed"
-  | "lesson_completed"
+  | "lesson_completed";
 
 // ---------------------------------------------------------------------------
 // HTTP Method Types
 // ---------------------------------------------------------------------------
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 // ---------------------------------------------------------------------------
 // Content Type Types
 // ---------------------------------------------------------------------------
 
-export type ContentType = "application/json" | "application/x-www-form-urlencoded" | "text/html"
+export type ContentType =
+  | "application/json"
+  | "application/x-www-form-urlencoded"
+  | "text/html";
 
 // ---------------------------------------------------------------------------
 // Cookie SameSite Types
 // ---------------------------------------------------------------------------
 
-export type CookieSameSite = "strict" | "lax" | "none"
+export type CookieSameSite = "strict" | "lax" | "none";
 
 // ---------------------------------------------------------------------------
 // OAuth Grant Types
 // ---------------------------------------------------------------------------
 
-export type OAuthGrantType = "authorization_code" | "refresh_token" | "client_credentials"
+export type OAuthGrantType =
+  | "authorization_code"
+  | "refresh_token"
+  | "client_credentials";
 
 // ---------------------------------------------------------------------------
 // OAuth Response Types
 // ---------------------------------------------------------------------------
 
-export type OAuthResponseType = "code" | "token"
+export type OAuthResponseType = "code" | "token";
 
 // ---------------------------------------------------------------------------
 // Environment Types
 // ---------------------------------------------------------------------------
 
-export type AppEnvironment = "local" | "staging" | "production" | "test"
+export type AppEnvironment = "local" | "staging" | "production" | "test";

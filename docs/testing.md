@@ -5,6 +5,7 @@ Use this to smoke-test the app after deploy or before release.
 Also run local quality gates before release candidates:
 
 - `bun run lint`
+- `bun run format`
 - `bun run typecheck`
 - `bun run test:run`
 - `bun run test:coverage` for larger changes

@@ -1,24 +1,30 @@
-"use client"
+"use client";
 
-import { useSyncExternalStore } from "react"
 import {
   SandpackCodeEditor,
   SandpackConsole,
-  SandpackProvider,
   SandpackPreview,
-} from "@codesandbox/sandpack-react"
-import { githubLight } from "@codesandbox/sandpack-themes"
+  SandpackProvider,
+} from "@codesandbox/sandpack-react";
+import { githubLight } from "@codesandbox/sandpack-themes";
+import { useSyncExternalStore } from "react";
+
+const subscribeNoop = () => {
+  return () => {
+    // No external subscription; this only gates rendering to the client.
+  };
+};
 
 interface TourCodeRunnerProps {
-  readonly code: string
-  readonly readOnly?: boolean
-  readonly panelTitle?: string
+  readonly code: string;
+  readonly panelTitle?: string;
+  readonly readOnly?: boolean;
 }
 
 /**
  * Embedded code runner using Sandpack with Effect.js pre-configured.
  * Replaces static CodeHighlight for runnable tour steps.
- * 
+ *
  * Note: Sandpack generates random IDs that cause hydration mismatches,
  * so we only render it after the component has mounted on the client.
  */
@@ -28,29 +34,28 @@ export function TourCodeRunner({
   panelTitle = "Code",
 }: TourCodeRunnerProps) {
   const isMounted = useSyncExternalStore(
-    () => () => {},
+    subscribeNoop,
     () => true,
     () => false
-  )
+  );
 
   // Don't render Sandpack during SSR to avoid hydration mismatch
   if (!isMounted) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-muted/30">
-        <div className="text-sm text-muted-foreground">Loading code editor...</div>
+      <div className="flex h-full flex-col items-center justify-center bg-muted/30">
+        <div className="text-muted-foreground text-sm">
+          Loading code editor...
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div
-      className="h-full w-full min-h-[500px] flex flex-col rounded border border-border bg-background shadow-sm tour-code-runner"
-    >
-      <div className="px-2 py-1.5 text-sm font-medium border-b bg-muted/50">
+    <div className="tour-code-runner flex h-full min-h-[500px] w-full flex-col rounded border border-border bg-background shadow-sm">
+      <div className="border-b bg-muted/50 px-2 py-1.5 font-medium text-sm">
         {panelTitle}
       </div>
       <SandpackProvider
-        template="vanilla-ts"
         customSetup={{
           dependencies: {
             effect: "latest",
@@ -65,36 +70,37 @@ export function TourCodeRunner({
             active: true,
           },
         }}
-        // Readable code font size (14px) with comfortable line height.
-        theme={{
-          ...githubLight,
-          font: { ...githubLight.font, size: "14px", lineHeight: "22px" },
-        }}
         options={{
           autorun: true,
           recompileMode: "immediate",
           recompileDelay: 300,
         }}
+        template="vanilla-ts"
+        // Readable code font size (14px) with comfortable line height.
+        theme={{
+          ...githubLight,
+          font: { ...githubLight.font, size: "14px", lineHeight: "22px" },
+        }}
       >
-        <div className="relative flex flex-col h-full min-h-[500px]">
+        <div className="relative flex h-full min-h-[500px] flex-col">
           {/* Off-screen Preview required for bundler to run code and populate Console */}
           <div
-            className="absolute -left-[9999px] top-0 w-[400px] h-[300px] overflow-hidden"
             aria-hidden="true"
+            className="absolute top-0 -left-[9999px] h-[300px] w-[400px] overflow-hidden"
           >
             <SandpackPreview />
           </div>
-          <div className="min-h-0 h-full flex-1">
+          <div className="h-full min-h-0 flex-1">
             <SandpackCodeEditor
-              showTabs={false}
-              showLineNumbers
-              showInlineErrors
-              wrapContent
               readOnly={readOnly}
+              showInlineErrors
+              showLineNumbers
               showReadOnly={false}
+              showTabs={false}
+              wrapContent
             />
           </div>
-          <div className="px-2 py-1.5 text-sm font-medium border-y bg-muted/50 dark:text-white">
+          <div className="border-y bg-muted/50 px-2 py-1.5 font-medium text-sm dark:text-white">
             Console
           </div>
           <div className="h-[140px] max-h-[140px] overflow-auto">
@@ -103,5 +109,5 @@ export function TourCodeRunner({
         </div>
       </SandpackProvider>
     </div>
-  )
+  );
 }
