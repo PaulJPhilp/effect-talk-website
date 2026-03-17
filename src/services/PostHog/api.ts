@@ -8,9 +8,9 @@
  * @module PostHog/api
  */
 
-import { Effect } from "effect"
-import type { PostHogError } from "@/services/PostHog/types"
-import { PostHogAnalytics } from "@/services/PostHog/service"
+import { Effect } from "effect";
+import { PostHogAnalytics } from "@/services/PostHog/service";
+import type { PostHogError } from "@/services/PostHog/types";
 
 /** Service interface for server-side PostHog analytics. */
 export interface PostHogAnalyticsService {
@@ -19,39 +19,46 @@ export interface PostHogAnalyticsService {
     event: string,
     properties?: Record<string, unknown>,
     distinctId?: string
-  ) => Effect.Effect<void, PostHogError>
+  ) => Effect.Effect<void, PostHogError>;
+  /** Flush queued events to PostHog. */
+  readonly flush: () => Effect.Effect<void, PostHogError>;
   /** Identify a user with optional traits. */
   readonly identify: (
     distinctId: string,
     traits?: Record<string, unknown>
-  ) => Effect.Effect<void, PostHogError>
-  /** Flush queued events to PostHog. */
-  readonly flush: () => Effect.Effect<void, PostHogError>
+  ) => Effect.Effect<void, PostHogError>;
 }
 
 /**
  * Capture a PostHog event.
  */
-export const capture = (event: string, properties?: Record<string, unknown>, distinctId?: string) =>
+export const capture = (
+  event: string,
+  properties?: Record<string, unknown>,
+  distinctId?: string
+) =>
   Effect.gen(function* () {
-    const svc = yield* PostHogAnalytics
-    return yield* svc.capture(event, properties, distinctId)
-  }).pipe(Effect.provide(PostHogAnalytics.Default))
+    const svc = yield* PostHogAnalytics;
+    return yield* svc.capture(event, properties, distinctId);
+  }).pipe(Effect.provide(PostHogAnalytics.Default));
 
 /**
  * Identify a user in PostHog.
  */
-export const identify = (distinctId: string, traits?: Record<string, unknown>) =>
+export const identify = (
+  distinctId: string,
+  traits?: Record<string, unknown>
+) =>
   Effect.gen(function* () {
-    const svc = yield* PostHogAnalytics
-    return yield* svc.identify(distinctId, traits)
-  }).pipe(Effect.provide(PostHogAnalytics.Default))
+    const svc = yield* PostHogAnalytics;
+    return yield* svc.identify(distinctId, traits);
+  }).pipe(Effect.provide(PostHogAnalytics.Default));
 
 /**
  * Flush PostHog events.
  */
 export const flush = () =>
   Effect.gen(function* () {
-    const svc = yield* PostHogAnalytics
-    return yield* svc.flush()
-  }).pipe(Effect.provide(PostHogAnalytics.Default))
+    const svc = yield* PostHogAnalytics;
+    return yield* svc.flush();
+  }).pipe(Effect.provide(PostHogAnalytics.Default));

@@ -1,11 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import os from "node:os"
-import path from "node:path"
-import ts from "typescript"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import {
   Clock,
-  Either as EitherModule,
   Effect as EffectModule,
+  Either as EitherModule,
   FiberRef,
   Logger,
   Request,
@@ -13,62 +11,66 @@ import {
   Schema as SchemaModule,
   Stream as StreamModule,
   Tracer,
-} from "effect"
-import { EMPTY_COMPARE_CODE, getTourCompareView } from "@/lib/tourCompare"
-import { buildTourManifestStepKey, indexTourManifest, loadTourManifest, type TourManifest } from "@/lib/tourManifest"
+} from "effect";
+import ts from "typescript";
+import { EMPTY_COMPARE_CODE, getTourCompareView } from "@/lib/tourCompare";
 import {
-  buildTourArtifactStepKey,
-  type TourMigrationContractMetadata,
+  indexTourManifest,
+  loadTourManifest,
+  type TourManifest,
+} from "@/lib/tourManifest";
+import {
   type TourMigrationArtifact,
   type TourMigrationArtifactStep,
+  type TourMigrationContractMetadata,
   validateTourMigrationArtifact,
-} from "@/lib/tourMigrationArtifact"
-import type { TourStep } from "@/services/TourProgress/types"
+} from "@/lib/tourMigrationArtifact";
+import type { TourStep } from "@/services/TourProgress/types";
 
 export interface SnippetExecutionResult {
-  readonly exitCode: number | null
-  readonly stdout: string
-  readonly stderr: string
-  readonly timedOut: boolean
+  readonly exitCode: number | null;
+  readonly stderr: string;
+  readonly stdout: string;
+  readonly timedOut: boolean;
 }
 
 export interface SnippetQaResult {
-  readonly typecheckErrors: readonly string[]
-  readonly execution: SnippetExecutionResult
+  readonly execution: SnippetExecutionResult;
+  readonly typecheckErrors: readonly string[];
 }
 
 export interface TourStepQaResult {
-  readonly stepKey: string
-  readonly slug: string
-  readonly lessonTitle: string
-  readonly orderIndex: number
-  readonly title: string
-  readonly identical: boolean
-  readonly comparisonMode: "identical" | "validated" | "historical-v3-skipped"
-  readonly migrationStatus: "unchanged" | "auto-certified" | "review-needed"
-  readonly failures: readonly string[]
-  readonly v3: SnippetQaResult
-  readonly v4: SnippetQaResult
+  readonly comparisonMode: "identical" | "validated" | "historical-v3-skipped";
+  readonly failures: readonly string[];
+  readonly identical: boolean;
+  readonly lessonTitle: string;
+  readonly migrationStatus: "unchanged" | "auto-certified" | "review-needed";
+  readonly orderIndex: number;
+  readonly slug: string;
+  readonly stepKey: string;
+  readonly title: string;
+  readonly v3: SnippetQaResult;
+  readonly v4: SnippetQaResult;
 }
 
 export interface TourQaSummary {
-  readonly stepCount: number
-  readonly passed: number
-  readonly failed: number
-  readonly identicalCount: number
-  readonly validatedCount: number
-  readonly historicalV3SkippedCount: number
-  readonly unchangedCount: number
-  readonly autoCertifiedCount: number
-  readonly reviewNeededCount: number
+  readonly autoCertifiedCount: number;
+  readonly failed: number;
+  readonly historicalV3SkippedCount: number;
+  readonly identicalCount: number;
+  readonly passed: number;
+  readonly reviewNeededCount: number;
+  readonly stepCount: number;
+  readonly unchangedCount: number;
+  readonly validatedCount: number;
 }
 
 export interface TourQaReport {
-  readonly artifactPath: string
-  readonly manifestPath: string
-  readonly generatedAt: string
-  readonly summary: TourQaSummary
-  readonly results: readonly TourStepQaResult[]
+  readonly artifactPath: string;
+  readonly generatedAt: string;
+  readonly manifestPath: string;
+  readonly results: readonly TourStepQaResult[];
+  readonly summary: TourQaSummary;
 }
 
 const EMPTY_EXECUTION_RESULT: SnippetExecutionResult = {
@@ -76,7 +78,7 @@ const EMPTY_EXECUTION_RESULT: SnippetExecutionResult = {
   stdout: "",
   stderr: "",
   timedOut: false,
-}
+};
 
 const EFFECT_MODULES: Readonly<Record<string, object>> = {
   Clock,
@@ -89,16 +91,23 @@ const EFFECT_MODULES: Readonly<Record<string, object>> = {
   Schema: SchemaModule,
   Stream: StreamModule,
   Tracer,
+};
+
+const normalizeText = (value: string): string =>
+  value.replace(/\r\n/g, "\n").trim();
+
+export function loadTourMigrationArtifact(
+  filePath: string
+): TourMigrationArtifact {
+  return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationArtifact;
 }
 
-const normalizeText = (value: string): string => value.replace(/\r\n/g, "\n").trim()
-
-export function loadTourMigrationArtifact(filePath: string): TourMigrationArtifact {
-  return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationArtifact
-}
-
-export function loadTourMigrationMetadata(filePath: string): TourMigrationContractMetadata {
-  return JSON.parse(readFileSync(filePath, "utf8")) as TourMigrationContractMetadata
+export function loadTourMigrationMetadata(
+  filePath: string
+): TourMigrationContractMetadata {
+  return JSON.parse(
+    readFileSync(filePath, "utf8")
+  ) as TourMigrationContractMetadata;
 }
 
 function buildTourStep(
@@ -130,48 +139,67 @@ function buildTourStep(
     v3_source_ref: artifactStep.conceptProvenance.docsRef,
     v3_source_path: artifactStep.conceptProvenance.filePath,
     created_at: "1970-01-01T00:00:00.000Z",
-  }
+  };
 }
 
 function createCompilerOptions(projectRoot: string): ts.CompilerOptions {
-  const configPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json")
+  const configPath = ts.findConfigFile(
+    projectRoot,
+    ts.sys.fileExists,
+    "tsconfig.json"
+  );
   if (!configPath) {
-    throw new Error(`Unable to find tsconfig.json from ${projectRoot}`)
+    throw new Error(`Unable to find tsconfig.json from ${projectRoot}`);
   }
 
-  const configFile = ts.readConfigFile(configPath, ts.sys.readFile)
+  const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
   if (configFile.error) {
-    throw new Error(ts.flattenDiagnosticMessageText(configFile.error.messageText, "\n"))
+    throw new Error(
+      ts.flattenDiagnosticMessageText(configFile.error.messageText, "\n")
+    );
   }
 
-  const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configPath))
+  const parsed = ts.parseJsonConfigFileContent(
+    configFile.config,
+    ts.sys,
+    path.dirname(configPath)
+  );
   return {
     ...parsed.options,
     incremental: false,
     noEmit: true,
-  }
+  };
 }
 
 function formatDiagnostic(diagnostic: ts.Diagnostic): string {
-  const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+  const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
   if (!diagnostic.file || typeof diagnostic.start !== "number") {
-    return message
+    return message;
   }
-  const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start)
-  return `${diagnostic.file.fileName}:${position.line + 1}:${position.character + 1} ${message}`
+  const position = diagnostic.file.getLineAndCharacterOfPosition(
+    diagnostic.start
+  );
+  return `${diagnostic.file.fileName}:${position.line + 1}:${position.character + 1} ${message}`;
 }
 
-function typecheckSnippet(projectRoot: string, tempDir: string, label: string, code: string): readonly string[] {
-  const filePath = path.join(tempDir, `${label}.ts`)
-  writeFileSync(filePath, `${code}\n`, "utf8")
+function typecheckSnippet(
+  projectRoot: string,
+  tempDir: string,
+  label: string,
+  code: string
+): readonly string[] {
+  const filePath = path.join(tempDir, `${label}.ts`);
+  writeFileSync(filePath, `${code}\n`, "utf8");
 
-  const compilerOptions = createCompilerOptions(projectRoot)
-  const program = ts.createProgram([filePath], compilerOptions)
+  const compilerOptions = createCompilerOptions(projectRoot);
+  const program = ts.createProgram([filePath], compilerOptions);
   const diagnostics = ts
     .getPreEmitDiagnostics(program)
-    .filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error)
+    .filter(
+      (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error
+    );
 
-  return diagnostics.map(formatDiagnostic)
+  return diagnostics.map(formatDiagnostic);
 }
 
 function buildRuntimeHarness(modulePath: string): string {
@@ -209,7 +237,7 @@ try {
     globalThis.fetch = originalFetch
   }
 }
-`
+`;
 }
 
 async function executeSnippet(
@@ -217,57 +245,70 @@ async function executeSnippet(
   label: string,
   code: string
 ): Promise<SnippetExecutionResult> {
-  const subjectPath = path.join(tempDir, `${label}.ts`)
-  const runnerPath = path.join(tempDir, `${label}.runner.mjs`)
-  writeFileSync(subjectPath, `${code}\n`, "utf8")
-  writeFileSync(runnerPath, buildRuntimeHarness(`./${path.basename(subjectPath)}`), "utf8")
+  const subjectPath = path.join(tempDir, `${label}.ts`);
+  const runnerPath = path.join(tempDir, `${label}.runner.mjs`);
+  writeFileSync(subjectPath, `${code}\n`, "utf8");
+  writeFileSync(
+    runnerPath,
+    buildRuntimeHarness(`./${path.basename(subjectPath)}`),
+    "utf8"
+  );
 
   const child = Bun.spawn({
     cmd: ["bun", runnerPath],
     cwd: tempDir,
     stdout: "pipe",
     stderr: "pipe",
-  })
+  });
 
   const timeoutId = setTimeout(() => {
-    child.kill()
-  }, 5_000)
+    child.kill();
+  }, 5000);
 
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(child.stdout).text(),
     new Response(child.stderr).text(),
     child.exited,
-  ])
+  ]);
 
-  clearTimeout(timeoutId)
+  clearTimeout(timeoutId);
 
   return {
     exitCode,
     stdout: normalizeText(stdout),
     stderr: normalizeText(stderr),
     timedOut: child.signalCode !== null,
-  }
+  };
 }
 
 function collectQualifiedUsages(code: string): ReadonlySet<string> {
-  const sourceFile = ts.createSourceFile("snippet.ts", code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-  const usages = new Set<string>()
+  const sourceFile = ts.createSourceFile(
+    "snippet.ts",
+    code,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const usages = new Set<string>();
 
   const visit = (node: ts.Node): void => {
     if (ts.isPropertyAccessExpression(node)) {
-      usages.add(node.getText(sourceFile))
+      usages.add(node.getText(sourceFile));
     }
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-      usages.add(node.expression.getText(sourceFile))
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression)
+    ) {
+      usages.add(node.expression.getText(sourceFile));
     }
     if (ts.isQualifiedName(node)) {
-      usages.add(node.getText(sourceFile))
+      usages.add(node.getText(sourceFile));
     }
-    ts.forEachChild(node, visit)
-  }
+    ts.forEachChild(node, visit);
+  };
 
-  visit(sourceFile)
-  return usages
+  visit(sourceFile);
+  return usages;
 }
 
 function collectOptimalityFailures(
@@ -275,7 +316,7 @@ function collectOptimalityFailures(
   metadata: TourMigrationContractMetadata,
   artifactStep: TourMigrationArtifact["lessons"][number]["steps"][number]
 ): readonly string[] {
-  const failures: string[] = []
+  const failures: string[] = [];
 
   if (
     artifactStep.migrationStatus === "auto-certified" &&
@@ -285,46 +326,50 @@ function collectOptimalityFailures(
       artifactStep.conceptMigrationReport?.snippetStatus === "review-needed" ||
       artifactStep.solutionMigrationReport?.snippetStatus === "review-needed")
   ) {
-    failures.push("auto-certified step still contains manual-review markers")
+    failures.push("auto-certified step still contains manual-review markers");
   }
 
-  const usages = collectQualifiedUsages(code)
+  const usages = collectQualifiedUsages(code);
   for (const blockedApi of metadata.blockedV3Apis) {
     if (usages.has(blockedApi)) {
-      failures.push(`still references non-v4 API ${blockedApi}`)
+      failures.push(`still references non-v4 API ${blockedApi}`);
     }
   }
 
-  return failures
+  return failures;
 }
 
 function collectReportBlockedV3ApiUsages(
   artifactStep: TourMigrationArtifactStep,
   metadata: TourMigrationContractMetadata
 ): readonly string[] {
-  const reports = [artifactStep.conceptMigrationReport, artifactStep.solutionMigrationReport].filter(
-    (value): value is NonNullable<typeof value> => Boolean(value)
-  )
+  const reports = [
+    artifactStep.conceptMigrationReport,
+    artifactStep.solutionMigrationReport,
+  ].filter((value): value is NonNullable<typeof value> => Boolean(value));
 
   if (reports.length === 0) {
-    return []
+    return [];
   }
 
-  const blocked = new Set<string>()
+  const blocked = new Set<string>();
   for (const report of reports) {
     for (const primitive of report.primitives) {
       if (metadata.blockedV3Apis.includes(primitive.original)) {
-        blocked.add(primitive.original)
+        blocked.add(primitive.original);
       }
     }
   }
 
-  return [...blocked].sort((left, right) => left.localeCompare(right))
+  return [...blocked].sort((left, right) => left.localeCompare(right));
 }
 
-function collectBlockedV3ApiUsages(code: string, metadata: TourMigrationContractMetadata): readonly string[] {
-  const usages = collectQualifiedUsages(code)
-  return metadata.blockedV3Apis.filter((blockedApi) => usages.has(blockedApi))
+function collectBlockedV3ApiUsages(
+  code: string,
+  metadata: TourMigrationContractMetadata
+): readonly string[] {
+  const usages = collectQualifiedUsages(code);
+  return metadata.blockedV3Apis.filter((blockedApi) => usages.has(blockedApi));
 }
 
 function collectArtifactBlockedV3ApiUsages(
@@ -334,167 +379,219 @@ function collectArtifactBlockedV3ApiUsages(
   const matchedPatternIds = [
     ...(artifactStep.conceptMatchedPatternIds ?? []),
     ...(artifactStep.solutionMatchedPatternIds ?? []),
-  ]
+  ];
   if (matchedPatternIds.length === 0) {
-    return []
+    return [];
   }
 
-  const blocked = new Set<string>()
+  const blocked = new Set<string>();
   for (const blockedApi of metadata.blockedV3Apis) {
     for (const patternId of matchedPatternIds) {
       if (patternId.endsWith(`:${blockedApi}`)) {
-        blocked.add(blockedApi)
+        blocked.add(blockedApi);
       }
     }
   }
 
-  return [...blocked].sort((left, right) => left.localeCompare(right))
+  return [...blocked].sort((left, right) => left.localeCompare(right));
 }
 
 function isHistoricalApiAvailableInCurrentEffect(api: string): boolean {
-  const parts = api.split(".")
+  const parts = api.split(".");
   if (parts.length !== 2) {
-    return false
+    return false;
   }
 
-  const [namespace, member] = parts
-  const moduleValue = EFFECT_MODULES[namespace]
+  const [namespace, member] = parts;
+  const moduleValue = EFFECT_MODULES[namespace];
   if (!moduleValue) {
-    return false
+    return false;
   }
 
-  return member in moduleValue
+  return member in moduleValue;
 }
 
-function compareExecutions(v3: SnippetExecutionResult, v4: SnippetExecutionResult): readonly string[] {
-  const failures: string[] = []
+function compareExecutions(
+  v3: SnippetExecutionResult,
+  v4: SnippetExecutionResult
+): readonly string[] {
+  const failures: string[] = [];
 
   if (v4.timedOut) {
-    failures.push("v4 execution timed out")
+    failures.push("v4 execution timed out");
   }
   if (v4.exitCode !== 0) {
-    failures.push(`v4 execution failed with exit code ${String(v4.exitCode)}`)
+    failures.push(`v4 execution failed with exit code ${String(v4.exitCode)}`);
   }
   if (v3.timedOut) {
-    failures.push("v3 execution timed out")
+    failures.push("v3 execution timed out");
   }
   if (v3.exitCode !== 0) {
-    failures.push(`v3 execution failed with exit code ${String(v3.exitCode)}`)
+    failures.push(`v3 execution failed with exit code ${String(v3.exitCode)}`);
   }
   if (v3.exitCode === 0 && v4.exitCode === 0 && v3.stdout !== v4.stdout) {
-    failures.push("v3/v4 stdout differs")
+    failures.push("v3/v4 stdout differs");
   }
   if (v3.exitCode === 0 && v4.exitCode === 0 && v3.stderr !== v4.stderr) {
-    failures.push("v3/v4 stderr differs")
+    failures.push("v3/v4 stderr differs");
   }
 
-  return failures
+  return failures;
 }
 
 function compareViewFailures(
   compareStep: TourStep,
   expected: {
-    readonly conceptIdentical: boolean
-    readonly solutionIdentical: boolean
-    readonly identical: boolean
+    readonly conceptIdentical: boolean;
+    readonly solutionIdentical: boolean;
+    readonly identical: boolean;
   }
 ): readonly string[] {
-  const failures: string[] = []
-  const view = getTourCompareView(compareStep)
+  const failures: string[] = [];
+  const view = getTourCompareView(compareStep);
 
   if (view.conceptIdentical !== expected.conceptIdentical) {
-    failures.push("compare view concept diff state is inconsistent")
+    failures.push("compare view concept diff state is inconsistent");
   }
   if (view.solutionIdentical !== expected.solutionIdentical) {
-    failures.push("compare view solution diff state is inconsistent")
+    failures.push("compare view solution diff state is inconsistent");
   }
   if (view.identical !== expected.identical) {
-    failures.push("compare view identical state is inconsistent")
+    failures.push("compare view identical state is inconsistent");
   }
   if (view.v4Code === EMPTY_COMPARE_CODE) {
-    failures.push("compare view is missing v4 code")
+    failures.push("compare view is missing v4 code");
   }
 
-  return failures
+  return failures;
 }
 
 export async function runTourV4Qa(options: {
-  readonly projectRoot: string
-  readonly manifestPath: string
-  readonly artifactPath: string
-  readonly metadataPath?: string
+  readonly projectRoot: string;
+  readonly manifestPath: string;
+  readonly artifactPath: string;
+  readonly metadataPath?: string;
 }): Promise<TourQaReport> {
-  const manifest = loadTourManifest(options.manifestPath)
-  const artifact = loadTourMigrationArtifact(options.artifactPath)
-  const metadata = options.metadataPath ? loadTourMigrationMetadata(options.metadataPath) : artifact.metadata
-  const stepMap = validateTourMigrationArtifact(artifact, manifest)
+  const manifest = loadTourManifest(options.manifestPath);
+  const artifact = loadTourMigrationArtifact(options.artifactPath);
+  const metadata = options.metadataPath
+    ? loadTourMigrationMetadata(options.metadataPath)
+    : artifact.metadata;
+  const stepMap = validateTourMigrationArtifact(artifact, manifest);
 
   if (metadata.artifactVersion !== artifact.version) {
     throw new Error(
       `Tour v4 metadata mismatch: metadata artifact version ${metadata.artifactVersion} does not match artifact version ${artifact.version}`
-    )
+    );
   }
-  if (metadata.generatedAt !== artifact.metadata.generatedAt || metadata.mappingVersion !== artifact.metadata.mappingVersion) {
-    throw new Error("Tour v4 metadata does not match the embedded artifact metadata")
+  if (
+    metadata.generatedAt !== artifact.metadata.generatedAt ||
+    metadata.mappingVersion !== artifact.metadata.mappingVersion
+  ) {
+    throw new Error(
+      "Tour v4 metadata does not match the embedded artifact metadata"
+    );
   }
 
-  const manifestStepMap = indexTourManifest(manifest)
-  const tempDir = mkdtempSync(path.join(options.projectRoot, ".tmp-tour-v4-qa-"))
+  const manifestStepMap = indexTourManifest(manifest);
+  const tempDir = mkdtempSync(
+    path.join(options.projectRoot, ".tmp-tour-v4-qa-")
+  );
 
   try {
-    const results: TourStepQaResult[] = []
+    const results: TourStepQaResult[] = [];
 
     for (const [stepKey, entry] of manifestStepMap) {
-      const artifactStep = stepMap.get(stepKey)
+      const artifactStep = stepMap.get(stepKey);
       if (!artifactStep) {
-        throw new Error(`Missing artifact step for ${stepKey}`)
+        throw new Error(`Missing artifact step for ${stepKey}`);
       }
 
-      const compareStep = buildTourStep(entry.lesson, entry.step, artifactStep)
-      const compareView = getTourCompareView(compareStep)
-      const typecheckBase = `${entry.lesson.slug}-${entry.step.orderIndex}`
-      const v4TypecheckErrors = typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v4`, compareView.v4Code)
+      const compareStep = buildTourStep(entry.lesson, entry.step, artifactStep);
+      const compareView = getTourCompareView(compareStep);
+      const typecheckBase = `${entry.lesson.slug}-${entry.step.orderIndex}`;
+      const v4TypecheckErrors = typecheckSnippet(
+        options.projectRoot,
+        tempDir,
+        `${typecheckBase}.v4`,
+        compareView.v4Code
+      );
       const blockedV3Usages = compareView.identical
         ? []
         : collectReportBlockedV3ApiUsages(artifactStep, metadata).length > 0
           ? collectReportBlockedV3ApiUsages(artifactStep, metadata)
           : collectArtifactBlockedV3ApiUsages(artifactStep, metadata).length > 0
             ? collectArtifactBlockedV3ApiUsages(artifactStep, metadata)
-          : collectBlockedV3ApiUsages(compareView.v3Code, metadata)
-      const blockedUnsupportedV3Usages = blockedV3Usages.filter((usage) => !isHistoricalApiAvailableInCurrentEffect(usage))
+            : collectBlockedV3ApiUsages(compareView.v3Code, metadata);
+      const blockedUnsupportedV3Usages = blockedV3Usages.filter(
+        (usage) => !isHistoricalApiAvailableInCurrentEffect(usage)
+      );
       const attemptedV3TypecheckErrors = compareView.identical
         ? []
-        : typecheckSnippet(options.projectRoot, tempDir, `${typecheckBase}.v3`, compareView.v3Code)
-      const skipHistoricalV3Validation = blockedUnsupportedV3Usages.length > 0 && attemptedV3TypecheckErrors.length > 0
+        : typecheckSnippet(
+            options.projectRoot,
+            tempDir,
+            `${typecheckBase}.v3`,
+            compareView.v3Code
+          );
+      const skipHistoricalV3Validation =
+        blockedUnsupportedV3Usages.length > 0 &&
+        attemptedV3TypecheckErrors.length > 0;
       const comparisonMode = compareView.identical
         ? "identical"
         : skipHistoricalV3Validation
           ? "historical-v3-skipped"
-          : "validated"
-      const v3TypecheckErrors = skipHistoricalV3Validation ? [] : attemptedV3TypecheckErrors
-      const [v3Execution, v4Execution] = compareView.identical || skipHistoricalV3Validation
-        ? [EMPTY_EXECUTION_RESULT, EMPTY_EXECUTION_RESULT]
-        : await Promise.all([
-            executeSnippet(tempDir, `${typecheckBase}.v3`, compareView.v3Code),
-            executeSnippet(tempDir, `${typecheckBase}.v4`, compareView.v4Code),
-          ])
+          : "validated";
+      const v3TypecheckErrors = skipHistoricalV3Validation
+        ? []
+        : attemptedV3TypecheckErrors;
+      const [v3Execution, v4Execution] =
+        compareView.identical || skipHistoricalV3Validation
+          ? [EMPTY_EXECUTION_RESULT, EMPTY_EXECUTION_RESULT]
+          : await Promise.all([
+              executeSnippet(
+                tempDir,
+                `${typecheckBase}.v3`,
+                compareView.v3Code
+              ),
+              executeSnippet(
+                tempDir,
+                `${typecheckBase}.v4`,
+                compareView.v4Code
+              ),
+            ]);
 
-      const conceptIdentical = (artifactStep.conceptCode ?? EMPTY_COMPARE_CODE) === artifactStep.migratedConceptCode
-      const solutionIdentical = (artifactStep.solutionCode ?? EMPTY_COMPARE_CODE) === artifactStep.migratedSolutionCode
-      const identical = conceptIdentical && solutionIdentical
+      const conceptIdentical =
+        (artifactStep.conceptCode ?? EMPTY_COMPARE_CODE) ===
+        artifactStep.migratedConceptCode;
+      const solutionIdentical =
+        (artifactStep.solutionCode ?? EMPTY_COMPARE_CODE) ===
+        artifactStep.migratedSolutionCode;
+      const identical = conceptIdentical && solutionIdentical;
 
       const failures = [
-        ...compareViewFailures(compareStep, { conceptIdentical, solutionIdentical, identical }),
-        ...(artifactStep.migrationStatus === "auto-certified" && artifactStep.expectedMigrationPolicy === "review-needed"
+        ...compareViewFailures(compareStep, {
+          conceptIdentical,
+          solutionIdentical,
+          identical,
+        }),
+        ...(artifactStep.migrationStatus === "auto-certified" &&
+        artifactStep.expectedMigrationPolicy === "review-needed"
           ? ["auto-certified step contradicts manifest review-needed policy"]
           : []),
         ...(artifactStep.conceptMigrationReport &&
-        artifactStep.conceptMigrationReport.resultCode !== artifactStep.migratedConceptCode
-          ? ["concept migration report result does not match migrated concept code"]
+        artifactStep.conceptMigrationReport.resultCode !==
+          artifactStep.migratedConceptCode
+          ? [
+              "concept migration report result does not match migrated concept code",
+            ]
           : []),
         ...(artifactStep.solutionMigrationReport &&
-        artifactStep.solutionMigrationReport.resultCode !== artifactStep.migratedSolutionCode
-          ? ["solution migration report result does not match migrated solution code"]
+        artifactStep.solutionMigrationReport.resultCode !==
+          artifactStep.migratedSolutionCode
+          ? [
+              "solution migration report result does not match migrated solution code",
+            ]
           : []),
         ...(artifactStep.conceptChanged &&
         artifactStep.conceptMigrationReport?.snippetStatus === "unchanged"
@@ -506,9 +603,15 @@ export async function runTourV4Qa(options: {
           : []),
         ...v3TypecheckErrors.map((error) => `v3 typecheck: ${error}`),
         ...v4TypecheckErrors.map((error) => `v4 typecheck: ${error}`),
-        ...(compareView.identical || skipHistoricalV3Validation ? [] : compareExecutions(v3Execution, v4Execution)),
-        ...collectOptimalityFailures(compareView.v4Code, metadata, artifactStep),
-      ]
+        ...(compareView.identical || skipHistoricalV3Validation
+          ? []
+          : compareExecutions(v3Execution, v4Execution)),
+        ...collectOptimalityFailures(
+          compareView.v4Code,
+          metadata,
+          artifactStep
+        ),
+      ];
 
       results.push({
         stepKey,
@@ -528,10 +631,12 @@ export async function runTourV4Qa(options: {
           typecheckErrors: v4TypecheckErrors,
           execution: v4Execution,
         },
-      })
+      });
     }
 
-    const failed = results.filter((result) => result.failures.length > 0).length
+    const failed = results.filter(
+      (result) => result.failures.length > 0
+    ).length;
 
     return {
       artifactPath: options.artifactPath,
@@ -541,16 +646,28 @@ export async function runTourV4Qa(options: {
         stepCount: results.length,
         passed: results.length - failed,
         failed,
-        identicalCount: results.filter((result) => result.comparisonMode === "identical").length,
-        validatedCount: results.filter((result) => result.comparisonMode === "validated").length,
-        historicalV3SkippedCount: results.filter((result) => result.comparisonMode === "historical-v3-skipped").length,
-        unchangedCount: results.filter((result) => result.migrationStatus === "unchanged").length,
-        autoCertifiedCount: results.filter((result) => result.migrationStatus === "auto-certified").length,
-        reviewNeededCount: results.filter((result) => result.migrationStatus === "review-needed").length,
+        identicalCount: results.filter(
+          (result) => result.comparisonMode === "identical"
+        ).length,
+        validatedCount: results.filter(
+          (result) => result.comparisonMode === "validated"
+        ).length,
+        historicalV3SkippedCount: results.filter(
+          (result) => result.comparisonMode === "historical-v3-skipped"
+        ).length,
+        unchangedCount: results.filter(
+          (result) => result.migrationStatus === "unchanged"
+        ).length,
+        autoCertifiedCount: results.filter(
+          (result) => result.migrationStatus === "auto-certified"
+        ).length,
+        reviewNeededCount: results.filter(
+          (result) => result.migrationStatus === "review-needed"
+        ).length,
       },
       results,
-    }
+    };
   } finally {
-    rmSync(tempDir, { recursive: true, force: true })
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }

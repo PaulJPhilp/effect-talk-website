@@ -8,34 +8,36 @@
  * Usage: bun run scripts/apply-feedback-migration.ts
  */
 
-import { config } from "dotenv"
-import fs from "node:fs"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
-import { drizzle } from "drizzle-orm/node-postgres"
-import { sql } from "drizzle-orm"
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { config } from "dotenv";
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
 
-const rootDir = path.dirname(fileURLToPath(import.meta.url))
-const projectRoot = path.join(rootDir, "..")
-config({ path: path.join(projectRoot, ".env.local") })
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(rootDir, "..");
+config({ path: path.join(projectRoot, ".env.local") });
 
-const databaseUrl = process.env.DATABASE_URL
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  console.error("Missing DATABASE_URL. Set it in .env.local or pass DATABASE_URL=... for production.")
-  process.exit(1)
+  console.error(
+    "Missing DATABASE_URL. Set it in .env.local or pass DATABASE_URL=... for production."
+  );
+  process.exit(1);
 }
 
-const db = drizzle(databaseUrl)
+const db = drizzle(databaseUrl);
 
-const migrationPath = path.join(projectRoot, "drizzle", "0004_feedback.sql")
-const migrationSql = fs.readFileSync(migrationPath, "utf-8").trim()
+const migrationPath = path.join(projectRoot, "drizzle", "0004_feedback.sql");
+const migrationSql = fs.readFileSync(migrationPath, "utf-8").trim();
 
 async function main(): Promise<void> {
-  await db.execute(sql.raw(migrationSql))
-  console.log("Feedback table created (or already exists).")
+  await db.execute(sql.raw(migrationSql));
+  console.log("Feedback table created (or already exists).");
 }
 
 main().catch((err) => {
-  console.error("Apply failed:", err)
-  process.exit(1)
-})
+  console.error("Apply failed:", err);
+  process.exit(1);
+});

@@ -19,7 +19,9 @@ EffectTalk is a Next.js 16 application for Effect.ts patterns, rules, the intera
 |---|---|
 | `bun run dev` | Start the local dev server |
 | `bun run build` | Production build |
-| `bun run lint` | ESLint |
+| `bun run lint` | Ultracite/Biome checks |
+| `bun run lint:fix` | Ultracite/Biome lint fixes |
+| `bun run format` | Biome formatting |
 | `bun run typecheck` | TypeScript check (`tsc --noEmit`) |
 | `bun run test:run` | Run all tests once |
 | `bun run test:coverage` | Run tests with coverage thresholds |
@@ -50,6 +52,14 @@ EffectTalk is a Next.js 16 application for Effect.ts patterns, rules, the intera
    ```bash
    bun run dev
    ```
+
+## Linting and formatting
+
+- `bun run lint` runs Ultracite on the Biome provider.
+- `bun run lint:fix` applies Biome-safe lint fixes.
+- `bun run format` applies repo-wide Biome formatting.
+- VS Code / Cursor should use the `Biome` extension and the checked-in workspace settings.
+- Pre-commit runs `lint-staged`, so staged source files are fixed before commit.
 
 ## Database safety
 

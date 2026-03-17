@@ -7,9 +7,9 @@
  * with fallback to our custom signed session cookie.
  */
 
-import { Effect } from "effect"
-import type { DbUser } from "@/services/Db/types"
-import { Auth } from "@/services/Auth/service"
+import { Effect } from "effect";
+import { Auth } from "@/services/Auth/service";
+import type { DbUser } from "@/services/Db/types";
 
 /**
  * Service interface for authentication and session management.
@@ -19,18 +19,18 @@ import { Auth } from "@/services/Auth/service"
  * 2. **Custom HMAC-signed cookie** — fallback for routes outside AuthKit middleware
  */
 export interface AuthService {
-  /** Check whether WorkOS environment variables are fully configured. */
-  readonly isWorkOSConfigured: () => boolean
-  /** Set the custom HMAC-signed session cookie after login. */
-  readonly setSessionCookie: (userId: string) => Effect.Effect<void, unknown>
   /** Delete the session cookie (sign out). */
-  readonly clearSessionCookie: () => Effect.Effect<void, unknown>
-  /** Read and verify the session cookie, returning the user's DB ID or null. */
-  readonly getSessionUserId: () => Effect.Effect<string | null, unknown>
+  readonly clearSessionCookie: () => Effect.Effect<void, unknown>;
   /** Get the current logged-in user, or null if unauthenticated. */
-  readonly getCurrentUser: () => Effect.Effect<DbUser | null, unknown>
+  readonly getCurrentUser: () => Effect.Effect<DbUser | null, unknown>;
+  /** Read and verify the session cookie, returning the user's DB ID or null. */
+  readonly getSessionUserId: () => Effect.Effect<string | null, unknown>;
+  /** Check whether WorkOS environment variables are fully configured. */
+  readonly isWorkOSConfigured: () => boolean;
   /** Require authentication — redirects to `/auth/sign-in` if not logged in. */
-  readonly requireAuth: () => Effect.Effect<DbUser, unknown>
+  readonly requireAuth: () => Effect.Effect<DbUser, unknown>;
+  /** Set the custom HMAC-signed session cookie after login. */
+  readonly setSessionCookie: (userId: string) => Effect.Effect<void, unknown>;
 }
 
 /**
@@ -39,10 +39,10 @@ export interface AuthService {
 export function isWorkOSConfigured(): boolean {
   return Effect.runSync(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return svc.isWorkOSConfigured()
+      const svc = yield* Auth;
+      return svc.isWorkOSConfigured();
     }).pipe(Effect.provide(Auth.Default))
-  )
+  );
 }
 
 /**
@@ -51,10 +51,13 @@ export function isWorkOSConfigured(): boolean {
 export async function setSessionCookie(userId: string): Promise<void> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return yield* svc.setSessionCookie(userId)
-    }).pipe(Effect.provide(Auth.Default), Effect.catchAll(() => Effect.void))
-  )
+      const svc = yield* Auth;
+      return yield* svc.setSessionCookie(userId);
+    }).pipe(
+      Effect.provide(Auth.Default),
+      Effect.catchAll(() => Effect.void)
+    )
+  );
 }
 
 /**
@@ -63,10 +66,13 @@ export async function setSessionCookie(userId: string): Promise<void> {
 export async function clearSessionCookie(): Promise<void> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return yield* svc.clearSessionCookie()
-    }).pipe(Effect.provide(Auth.Default), Effect.catchAll(() => Effect.void))
-  )
+      const svc = yield* Auth;
+      return yield* svc.clearSessionCookie();
+    }).pipe(
+      Effect.provide(Auth.Default),
+      Effect.catchAll(() => Effect.void)
+    )
+  );
 }
 
 /**
@@ -76,10 +82,13 @@ export async function clearSessionCookie(): Promise<void> {
 export async function getSessionUserId(): Promise<string | null> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return yield* svc.getSessionUserId()
-    }).pipe(Effect.provide(Auth.Default), Effect.catchAll(() => Effect.succeed(null)))
-  )
+      const svc = yield* Auth;
+      return yield* svc.getSessionUserId();
+    }).pipe(
+      Effect.provide(Auth.Default),
+      Effect.catchAll(() => Effect.succeed(null))
+    )
+  );
 }
 
 /**
@@ -88,10 +97,13 @@ export async function getSessionUserId(): Promise<string | null> {
 export async function getCurrentUser(): Promise<DbUser | null> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return yield* svc.getCurrentUser()
-    }).pipe(Effect.provide(Auth.Default), Effect.catchAll(() => Effect.succeed(null)))
-  )
+      const svc = yield* Auth;
+      return yield* svc.getCurrentUser();
+    }).pipe(
+      Effect.provide(Auth.Default),
+      Effect.catchAll(() => Effect.succeed(null))
+    )
+  );
 }
 
 /**
@@ -100,8 +112,8 @@ export async function getCurrentUser(): Promise<DbUser | null> {
 export async function requireAuth(): Promise<DbUser> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const svc = yield* Auth
-      return yield* svc.requireAuth()
+      const svc = yield* Auth;
+      return yield* svc.requireAuth();
     }).pipe(Effect.provide(Auth.Default))
-  )
+  );
 }

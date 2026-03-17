@@ -15,37 +15,45 @@
  *   --dry-run        Validate staging tables without swapping
  */
 
-import { config } from "dotenv"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
-import { drizzle } from "drizzle-orm/node-postgres"
-import { sql } from "drizzle-orm"
-import { contentDeployments } from "../src/db/schema"
-import { SWAP_GROUPS, validateStaging, swapTables, recreateStagingTables, type SwapGroupName } from "./lib/table-swap"
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { config } from "dotenv";
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { contentDeployments } from "../src/db/schema";
+import {
+  recreateStagingTables,
+  SWAP_GROUPS,
+  type SwapGroupName,
+  swapTables,
+  validateStaging,
+} from "./lib/table-swap";
 
-const rootDir = path.dirname(fileURLToPath(import.meta.url))
-config({ path: path.join(rootDir, "..", ".env.local") })
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+config({ path: path.join(rootDir, "..", ".env.local") });
 
-const databaseUrl = process.env.DATABASE_URL
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  console.error("Missing DATABASE_URL in .env.local")
-  process.exit(1)
+  console.error("Missing DATABASE_URL in .env.local");
+  process.exit(1);
 }
 
-const db = drizzle(databaseUrl)
+const db = drizzle(databaseUrl);
 
 // ---------------------------------------------------------------------------
 // Parse arguments
 // ---------------------------------------------------------------------------
 
-const args = process.argv.slice(2)
-const isDryRun = args.includes("--dry-run")
-const keepRetired = args.includes("--keep-retired")
-const target = args.find((a) => !a.startsWith("--"))
+const args = process.argv.slice(2);
+const isDryRun = args.includes("--dry-run");
+const keepRetired = args.includes("--keep-retired");
+const target = args.find((a) => !a.startsWith("--"));
 
-if (!target || !["rules", "tour", "all"].includes(target)) {
-  console.error("Usage: bun run scripts/promote.ts <rules|tour|all> [--dry-run] [--keep-retired]")
-  process.exit(1)
+if (!(target && ["rules", "tour", "all"].includes(target))) {
+  console.error(
+    "Usage: bun run scripts/promote.ts <rules|tour|all> [--dry-run] [--keep-retired]"
+  );
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -53,8 +61,10 @@ if (!target || !["rules", "tour", "all"].includes(target)) {
 // ---------------------------------------------------------------------------
 
 function getGroups(): SwapGroupName[] {
-  if (target === "all") return ["rules", "tour"]
-  return [target as SwapGroupName]
+  if (target === "all") {
+    return ["rules", "tour"];
+  }
+  return [target as SwapGroupName];
 }
 
 // ---------------------------------------------------------------------------
@@ -62,30 +72,30 @@ function getGroups(): SwapGroupName[] {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const groups = getGroups()
+  const groups = getGroups();
 
   for (const groupName of groups) {
-    const group = SWAP_GROUPS[groupName]
-    console.log(`\n--- Promoting: ${group.name} ---`)
+    const group = SWAP_GROUPS[groupName];
+    console.log(`\n--- Promoting: ${group.name} ---`);
 
     // Validate staging tables
-    console.log("Validating staging tables...")
-    const counts = await validateStaging(db, group)
+    console.log("Validating staging tables...");
+    const counts = await validateStaging(db, group);
     for (const [table, count] of counts) {
-      console.log(`  ${table}: ${count} rows`)
+      console.log(`  ${table}: ${count} rows`);
     }
 
     if (isDryRun) {
-      console.log("Dry run — skipping swap.")
-      continue
+      console.log("Dry run — skipping swap.");
+      continue;
     }
 
     // Perform the atomic swap
-    console.log("Swapping tables...")
-    await swapTables(db, group, { keepRetired })
+    console.log("Swapping tables...");
+    await swapTables(db, group, { keepRetired });
 
     // Record the deployment
-    const totalRows = Array.from(counts.values()).reduce((a, b) => a + b, 0)
+    const totalRows = Array.from(counts.values()).reduce((a, b) => a + b, 0);
     await db.insert(contentDeployments).values({
       tableGroup: group.name,
       status: "live",
@@ -96,13 +106,13 @@ async function main() {
         tables: group.tables,
       },
       promotedAt: sql`now()`,
-    })
+    });
 
     // Recreate empty staging tables for the next deployment
-    console.log("Recreating empty staging tables...")
-    await recreateStagingTables(db, group)
+    console.log("Recreating empty staging tables...");
+    await recreateStagingTables(db, group);
 
-    console.log(`✓ ${group.name} promoted successfully.`)
+    console.log(`✓ ${group.name} promoted successfully.`);
   }
 
   // Mark previous live deployments as retired
@@ -116,14 +126,14 @@ async function main() {
           SELECT MAX(promoted_at) FROM ${contentDeployments}
           WHERE table_group = ${groupName} AND status = 'live'
         )
-    `)
+    `);
   }
 
-  console.log("\nDone!")
-  process.exit(0)
+  console.log("\nDone!");
+  process.exit(0);
 }
 
 main().catch((err) => {
-  console.error("Promote failed:", err)
-  process.exit(1)
-})
+  console.error("Promote failed:", err);
+  process.exit(1);
+});

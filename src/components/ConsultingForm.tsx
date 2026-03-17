@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export function ConsultingForm() {
-  const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-    const formData = new FormData(e.currentTarget)
+    const formData = new FormData(e.currentTarget);
 
     try {
       const res = await fetch("/api/consulting", {
@@ -31,38 +31,44 @@ export function ConsultingForm() {
           company: formData.get("company"),
           description: formData.get("description"),
         }),
-      })
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? "Something went wrong")
+        const data = await res.json();
+        throw new Error(data.error ?? "Something went wrong");
       }
 
-      router.push("/thanks")
+      router.push("/thanks");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
-      setIsSubmitting(false)
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
+    <Card className="mx-auto w-full max-w-lg">
       <CardHeader>
         <CardTitle>Get in Touch</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
-              <Input id="name" name="name" required placeholder="Your name" />
+              <Input id="name" name="name" placeholder="Your name" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
-              <Input id="email" name="email" type="email" required placeholder="you@example.com" />
+              <Input
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+                required
+                type="email"
+              />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Input id="role" name="role" placeholder="e.g. CTO" />
@@ -77,19 +83,17 @@ export function ConsultingForm() {
             <Textarea
               id="description"
               name="description"
-              required
               placeholder="Describe your project, challenges, and what you're looking for..."
+              required
               rows={5}
             />
           </div>
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {error && <p className="text-destructive text-sm">{error}</p>}
+          <Button className="w-full" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Sending..." : "Submit Inquiry"}
           </Button>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

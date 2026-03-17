@@ -1,61 +1,78 @@
-"use client"
+"use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
-import { Bookmark, BookmarkCheck } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { getCachedPatternSections } from "@/lib/extractPatternSections"
-import { difficultyDisplayLabel } from "@/lib/difficulty"
-import { measureSync } from "@/lib/pattern-browser-perf"
-import { CodeHighlight } from "@/components/CodeHighlight"
-import type { Pattern } from "@/services/BackendApi"
+import { Bookmark, BookmarkCheck } from "lucide-react";
+import Link from "next/link";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CodeHighlight } from "@/components/CodeHighlight";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { difficultyDisplayLabel } from "@/lib/difficulty";
+import { getCachedPatternSections } from "@/lib/extractPatternSections";
+import { measureSync } from "@/lib/pattern-browser-perf";
+import type { Pattern } from "@/services/BackendApi";
 
 interface PatternCardProps {
-  readonly pattern: Pattern
-  readonly isBookmarked?: boolean
-  readonly onToggleBookmark?: (patternId: string) => void
+  readonly isBookmarked?: boolean;
+  readonly onToggleBookmark?: (patternId: string) => void;
+  readonly pattern: Pattern;
 }
 
-function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCardProps) {
+function PatternCardInner({
+  pattern,
+  isBookmarked,
+  onToggleBookmark,
+}: PatternCardProps) {
   const sections = useMemo(
     () =>
-      measureSync("cardExtractSectionsMs", () => getCachedPatternSections(pattern.id, pattern.content)),
-    [pattern.id, pattern.content],
-  )
+      measureSync("cardExtractSectionsMs", () =>
+        getCachedPatternSections(pattern.id, pattern.content)
+      ),
+    [pattern.id, pattern.content]
+  );
 
-  const goalText = sections.goal?.text ?? null
-  const patternCode = sections.pattern?.codeBlocks[0] ?? null
-  const antiPatternCode = sections.antiPattern?.codeBlocks[0] ?? null
+  const goalText = sections.goal?.text ?? null;
+  const patternCode = sections.pattern?.codeBlocks[0] ?? null;
+  const antiPatternCode = sections.antiPattern?.codeBlocks[0] ?? null;
 
   // Fallback: if we have neither pattern nor anti-pattern code,
   // show the first code block from any section
-  const fallbackCode = !patternCode && !antiPatternCode
-    ? sections.allSections.flatMap((s) => s.codeBlocks)[0] ?? null
-    : null
+  const fallbackCode =
+    patternCode || antiPatternCode
+      ? null
+      : (sections.allSections.flatMap((s) => s.codeBlocks)[0] ?? null);
 
-  const hasCodePreviews = patternCode || antiPatternCode || fallbackCode
+  const hasCodePreviews = patternCode || antiPatternCode || fallbackCode;
 
   const handleBookmarkClick = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      onToggleBookmark?.(pattern.id)
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleBookmark?.(pattern.id);
     },
-    [pattern.id, onToggleBookmark],
-  )
+    [pattern.id, onToggleBookmark]
+  );
 
   return (
-    <Link href={`/patterns/${pattern.id}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl">
-      <Card className="hover:bg-muted/50 hover:shadow-md transition-all duration-200 group h-full gap-4 py-4">
+    <Link
+      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      href={`/patterns/${pattern.id}`}
+    >
+      <Card className="group h-full gap-4 py-4 transition-all duration-200 hover:bg-muted/50 hover:shadow-md">
         {/* Header: category labels on top, then title + description */}
-        <CardHeader className="pb-1 pt-1 relative">
+        <CardHeader className="relative pt-1 pb-1">
           {onToggleBookmark && (
             <button
-              type="button"
-              onClick={handleBookmarkClick}
-              className="absolute top-1 right-2 p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
               aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+              className="absolute top-1 right-2 rounded-md p-1 text-muted-foreground transition-colors hover:text-primary"
+              onClick={handleBookmarkClick}
+              type="button"
             >
               {isBookmarked ? (
                 <BookmarkCheck className="h-4 w-4 text-primary" />
@@ -65,25 +82,34 @@ function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCa
             </button>
           )}
           {(pattern.new || pattern.difficulty || pattern.category) && (
-            <div className="flex flex-wrap gap-1 mb-1 pr-6">
+            <div className="mb-1 flex flex-wrap gap-1 pr-6">
               {pattern.new && (
-                <Badge variant="outline" className="text-xs bg-success/10 border-success/50 text-success">
+                <Badge
+                  className="border-success/50 bg-success/10 text-success text-xs"
+                  variant="outline"
+                >
                   New
                 </Badge>
               )}
               {pattern.difficulty && (
-                <Badge variant="outline" className="text-xs bg-tag-level/10 border-tag-level/50 text-tag-level">
+                <Badge
+                  className="border-tag-level/50 bg-tag-level/10 text-tag-level text-xs"
+                  variant="outline"
+                >
                   {difficultyDisplayLabel(pattern.difficulty)}
                 </Badge>
               )}
               {pattern.category && (
-                <Badge variant="outline" className="text-xs bg-tag-category/10 border-tag-category/50 text-tag-category">
+                <Badge
+                  className="border-tag-category/50 bg-tag-category/10 text-tag-category text-xs"
+                  variant="outline"
+                >
                   {pattern.category}
                 </Badge>
               )}
             </div>
           )}
-          <CardTitle className="text-sm group-hover:text-primary transition-colors">
+          <CardTitle className="text-sm transition-colors group-hover:text-primary">
             {pattern.title}
           </CardTitle>
           <CardDescription className="mt-0.5 line-clamp-1 text-xs">
@@ -91,14 +117,14 @@ function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCa
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="pt-0 space-y-2">
+        <CardContent className="space-y-2 pt-0">
           {/* Goal / background text */}
           {goalText && (
             <div className="mt-1">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+              <p className="mb-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wider">
                 Goal
               </p>
-              <p className="text-xs text-foreground/80 line-clamp-2 leading-snug">
+              <p className="line-clamp-2 text-foreground/80 text-xs leading-snug">
                 {goalText}
               </p>
             </div>
@@ -110,30 +136,30 @@ function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCa
               {/* Pattern (the good way) */}
               {patternCode && (
                 <CodePreviewBlock
-                  label="Pattern"
-                  variant="good"
                   code={patternCode.code}
+                  label="Pattern"
                   language={patternCode.language}
+                  variant="good"
                 />
               )}
 
               {/* Anti-Pattern (the bad way) */}
               {antiPatternCode && (
                 <CodePreviewBlock
-                  label="Anti-Pattern"
-                  variant="bad"
                   code={antiPatternCode.code}
+                  label="Anti-Pattern"
                   language={antiPatternCode.language}
+                  variant="bad"
                 />
               )}
 
               {/* Fallback: first code block when no explicit sections match */}
               {fallbackCode && (
                 <CodePreviewBlock
-                  label="Example"
-                  variant="good"
                   code={fallbackCode.code}
+                  label="Example"
                   language={fallbackCode.language}
+                  variant="good"
                 />
               )}
             </div>
@@ -145,7 +171,11 @@ function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCa
           <CardFooter className="pt-0">
             <div className="flex flex-wrap gap-1.5">
               {pattern.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs font-normal">
+                <Badge
+                  className="font-normal text-xs"
+                  key={tag}
+                  variant="outline"
+                >
                   {tag}
                 </Badge>
               ))}
@@ -154,83 +184,99 @@ function PatternCardInner({ pattern, isBookmarked, onToggleBookmark }: PatternCa
         )}
       </Card>
     </Link>
-  )
+  );
 }
 
-export const PatternCard = memo(PatternCardInner)
+export const PatternCard = memo(PatternCardInner);
 
 // ---------------------------------------------------------------------------
 // Code preview block sub-component (lazy: only render highlight when in view)
 // ---------------------------------------------------------------------------
 
 interface CodePreviewBlockProps {
-  readonly label: string
-  readonly variant: "good" | "bad"
-  readonly code: string
-  readonly language: string | null
+  readonly code: string;
+  readonly label: string;
+  readonly language: string | null;
+  readonly variant: "good" | "bad";
 }
 
-function CodePreviewBlock({ label, variant, code, language }: CodePreviewBlockProps) {
-  const borderColor = variant === "good"
-    ? "border-l-success/60"
-    : "border-l-destructive/60"
+function CodePreviewBlock({
+  label,
+  variant,
+  code,
+  language,
+}: CodePreviewBlockProps) {
+  const borderColor =
+    variant === "good" ? "border-l-success/60" : "border-l-destructive/60";
 
-  const labelColor = variant === "good"
-    ? "text-success"
-    : "text-destructive"
+  const labelColor = variant === "good" ? "text-success" : "text-destructive";
 
-  const dotColor = variant === "good"
-    ? "bg-success"
-    : "bg-destructive"
+  const dotColor = variant === "good" ? "bg-success" : "bg-destructive";
 
   return (
-    <div className={`relative rounded-md border border-l-[3px] ${borderColor} bg-muted/50 overflow-hidden flex flex-col min-h-0`}>
+    <div
+      className={`relative rounded-md border border-l-[3px] ${borderColor} flex min-h-0 flex-col overflow-hidden bg-muted/50`}
+    >
       {/* Label */}
-      <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1 shrink-0">
-        <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotColor}`} />
-        <span className={`text-[10px] font-semibold uppercase tracking-wider ${labelColor}`}>
+      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pt-2 pb-1">
+        <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotColor}`} />
+        <span
+          className={`font-semibold text-[10px] uppercase tracking-wider ${labelColor}`}
+        >
           {label}
         </span>
       </div>
 
       {/* Code block: defer highlight until in view to reduce initial JS cost */}
-      <div className="px-2.5 pb-2.5 overflow-x-auto">
-        <LazyCodeHighlight code={code} language={language} className="text-[10px] leading-snug" />
+      <div className="overflow-x-auto px-2.5 pb-2.5">
+        <LazyCodeHighlight
+          className="text-[10px] leading-snug"
+          code={code}
+          language={language}
+        />
       </div>
     </div>
-  )
+  );
 }
 
 interface LazyCodeHighlightProps {
-  readonly code: string
-  readonly language: string | null
-  readonly className?: string
+  readonly className?: string;
+  readonly code: string;
+  readonly language: string | null;
 }
 
-function LazyCodeHighlight({ code, language, className }: LazyCodeHighlightProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+function LazyCodeHighlight({
+  code,
+  language,
+  className,
+}: LazyCodeHighlightProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) setIsVisible(true)
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+        }
       },
-      { rootMargin: "100px", threshold: 0 },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+      { rootMargin: "100px", threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div ref={containerRef} style={{ minHeight: "2.5rem" }}>
       {isVisible ? (
-        <CodeHighlight code={code} language={language} className={className} />
+        <CodeHighlight className={className} code={code} language={language} />
       ) : (
-        <pre className="text-xs font-mono text-muted-foreground">…</pre>
+        <pre className="font-mono text-muted-foreground text-xs">…</pre>
       )}
     </div>
-  )
+  );
 }

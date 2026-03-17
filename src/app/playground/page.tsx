@@ -1,30 +1,34 @@
-import Link from "next/link"
-import { TabsBar } from "@/components/TabsBar"
-import { ComingSoon } from "@/components/ComingSoon"
-import { WaitlistForm } from "@/components/WaitlistForm"
-import { Button } from "@/components/ui/button"
-import { buildMetadata } from "@/lib/seo"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { ComingSoon } from "@/components/ComingSoon";
+import { TabsBar } from "@/components/TabsBar";
+import { Button } from "@/components/ui/button";
+import { WaitlistForm } from "@/components/WaitlistForm";
+import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
   title: "EffectPatterns Playground",
-  description: "Interactive playground for experimenting with Effect.ts patterns. Coming soon — join the waitlist.",
-})
+  description:
+    "Interactive playground for experimenting with Effect.ts patterns. Coming soon — join the waitlist.",
+});
 
 export default function PlaygroundPage() {
   return (
     <>
       <TabsBar />
-      <div className="container px-4 md:px-6 py-10">
+      <div className="container px-4 py-10 md:px-6">
         <ComingSoon
-          title="EffectPatterns Playground"
           description="An interactive playground where you can experiment with Effect.ts patterns in the browser. Write, run, and share code snippets — no setup required."
+          title="EffectPatterns Playground"
         />
-        <div className="mt-8 p-6 rounded-lg border bg-muted/50">
-          <h3 className="text-lg font-semibold mb-2">Try the Interactive Tour</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            While you wait for the playground, check out our interactive tour where you can learn Effect.ts patterns
-            step-by-step with hands-on exercises.
+        <div className="mt-8 rounded-lg border bg-muted/50 p-6">
+          <h3 className="mb-2 font-semibold text-lg">
+            Try the Interactive Tour
+          </h3>
+          <p className="mb-4 text-muted-foreground text-sm">
+            While you wait for the playground, check out our interactive tour
+            where you can learn Effect.ts patterns step-by-step with hands-on
+            exercises.
           </p>
           <Link href="/tour">
             <Button>
@@ -38,5 +42,5 @@ export default function PlaygroundPage() {
         </div>
       </div>
     </>
-  )
+  );
 }

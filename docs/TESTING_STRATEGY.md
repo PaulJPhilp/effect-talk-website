@@ -77,7 +77,8 @@ Coverage exclusions are intentional for infrastructure and thin adapters. If you
 Before merging substantial work, run at minimum:
 
 1. `bun run lint`
-2. `bun run typecheck`
-3. `bun run test:run`
+2. `bun run format`
+3. `bun run typecheck`
+4. `bun run test:run`
 
 Use `bun run test:coverage` when changing uncovered code or when touching thresholds-sensitive areas such as routes, UI primitives, and auth flows.

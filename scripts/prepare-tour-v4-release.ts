@@ -1,121 +1,143 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
-import path from "node:path"
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 
-type ReleaseEnvironment = "local" | "staging" | "production"
+type ReleaseEnvironment = "local" | "staging" | "production";
 
 interface ParsedArgs {
-  readonly manifestPath: string
-  readonly v3DocsRoot: string
-  readonly toolRoot: string
-  readonly environment: ReleaseEnvironment
-  readonly outputDir: string
-  readonly artifactPath: string
-  readonly metadataPath: string
-  readonly reportPath: string
-  readonly apply: boolean
-  readonly envFile?: string
-  readonly skipDbCheck: boolean
+  readonly apply: boolean;
+  readonly artifactPath: string;
+  readonly envFile?: string;
+  readonly environment: ReleaseEnvironment;
+  readonly manifestPath: string;
+  readonly metadataPath: string;
+  readonly outputDir: string;
+  readonly reportPath: string;
+  readonly skipDbCheck: boolean;
+  readonly toolRoot: string;
+  readonly v3DocsRoot: string;
 }
 
 function parseEnvFile(filePath: string): Record<string, string> {
-  const content = readFileSync(filePath, "utf8")
-  const out: Record<string, string> = {}
+  const content = readFileSync(filePath, "utf8");
+  const out: Record<string, string> = {};
 
   for (const line of content.split("\n")) {
-    const trimmed = line.trim()
+    const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) {
-      continue
+      continue;
     }
-    const eq = trimmed.indexOf("=")
+    const eq = trimmed.indexOf("=");
     if (eq === -1) {
-      continue
+      continue;
     }
 
-    const key = trimmed.slice(0, eq).trim()
-    let value = trimmed.slice(eq + 1).trim()
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1)
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
     }
-    out[key] = value
+    out[key] = value;
   }
 
-  return out
+  return out;
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
-  const environmentDefault: ReleaseEnvironment = "local"
-  let manifestPath = path.resolve(process.cwd(), "content", "tour", "tour-manifest.json")
-  let v3DocsRoot = path.resolve(process.cwd(), "content", "tour-docs", "v3")
-  let toolRoot = path.resolve(process.cwd(), "..", "effect-refactoring-tool")
-  let environment: ReleaseEnvironment = environmentDefault
-  let outputDir = path.resolve(process.cwd(), ".generated", "tour-v4-release", environment)
-  let artifactPath = path.join(outputDir, "tour-v4-snippets.json")
-  let metadataPath = path.join(outputDir, "tour-v4-metadata.json")
-  let reportPath = path.join(outputDir, "tour-v4-qa.json")
-  let apply = false
-  let envFile: string | undefined
-  let skipDbCheck = false
+  const environmentDefault: ReleaseEnvironment = "local";
+  let manifestPath = path.resolve(
+    process.cwd(),
+    "content",
+    "tour",
+    "tour-manifest.json"
+  );
+  let v3DocsRoot = path.resolve(process.cwd(), "content", "tour-docs", "v3");
+  let toolRoot = path.resolve(process.cwd(), "..", "effect-refactoring-tool");
+  let environment: ReleaseEnvironment = environmentDefault;
+  let outputDir = path.resolve(
+    process.cwd(),
+    ".generated",
+    "tour-v4-release",
+    environment
+  );
+  let artifactPath = path.join(outputDir, "tour-v4-snippets.json");
+  let metadataPath = path.join(outputDir, "tour-v4-metadata.json");
+  let reportPath = path.join(outputDir, "tour-v4-qa.json");
+  let apply = false;
+  let envFile: string | undefined;
+  let skipDbCheck = false;
 
   for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
+    const arg = argv[index];
     switch (arg) {
       case "--manifest":
-        manifestPath = path.resolve(argv[index + 1] ?? manifestPath)
-        index += 1
-        break
+        manifestPath = path.resolve(argv[index + 1] ?? manifestPath);
+        index += 1;
+        break;
       case "--v3-docs-root":
-        v3DocsRoot = path.resolve(argv[index + 1] ?? v3DocsRoot)
-        index += 1
-        break
+        v3DocsRoot = path.resolve(argv[index + 1] ?? v3DocsRoot);
+        index += 1;
+        break;
       case "--tool-root":
-        toolRoot = path.resolve(argv[index + 1] ?? toolRoot)
-        index += 1
-        break
+        toolRoot = path.resolve(argv[index + 1] ?? toolRoot);
+        index += 1;
+        break;
       case "--environment": {
-        const value = (argv[index + 1] ?? "").trim()
-        if (value === "local" || value === "staging" || value === "production") {
-          environment = value
+        const value = (argv[index + 1] ?? "").trim();
+        if (
+          value === "local" ||
+          value === "staging" ||
+          value === "production"
+        ) {
+          environment = value;
         } else {
-          throw new Error(`Invalid --environment value: ${value || "<empty>"}`)
+          throw new Error(`Invalid --environment value: ${value || "<empty>"}`);
         }
-        outputDir = path.resolve(process.cwd(), ".generated", "tour-v4-release", environment)
-        artifactPath = path.join(outputDir, "tour-v4-snippets.json")
-        metadataPath = path.join(outputDir, "tour-v4-metadata.json")
-        reportPath = path.join(outputDir, "tour-v4-qa.json")
-        index += 1
-        break
+        outputDir = path.resolve(
+          process.cwd(),
+          ".generated",
+          "tour-v4-release",
+          environment
+        );
+        artifactPath = path.join(outputDir, "tour-v4-snippets.json");
+        metadataPath = path.join(outputDir, "tour-v4-metadata.json");
+        reportPath = path.join(outputDir, "tour-v4-qa.json");
+        index += 1;
+        break;
       }
       case "--output-dir":
-        outputDir = path.resolve(argv[index + 1] ?? outputDir)
-        artifactPath = path.join(outputDir, "tour-v4-snippets.json")
-        metadataPath = path.join(outputDir, "tour-v4-metadata.json")
-        reportPath = path.join(outputDir, "tour-v4-qa.json")
-        index += 1
-        break
+        outputDir = path.resolve(argv[index + 1] ?? outputDir);
+        artifactPath = path.join(outputDir, "tour-v4-snippets.json");
+        metadataPath = path.join(outputDir, "tour-v4-metadata.json");
+        reportPath = path.join(outputDir, "tour-v4-qa.json");
+        index += 1;
+        break;
       case "--artifact-out":
-        artifactPath = path.resolve(argv[index + 1] ?? artifactPath)
-        index += 1
-        break
+        artifactPath = path.resolve(argv[index + 1] ?? artifactPath);
+        index += 1;
+        break;
       case "--metadata-out":
-        metadataPath = path.resolve(argv[index + 1] ?? metadataPath)
-        index += 1
-        break
+        metadataPath = path.resolve(argv[index + 1] ?? metadataPath);
+        index += 1;
+        break;
       case "--report-out":
-        reportPath = path.resolve(argv[index + 1] ?? reportPath)
-        index += 1
-        break
+        reportPath = path.resolve(argv[index + 1] ?? reportPath);
+        index += 1;
+        break;
       case "--apply":
-        apply = true
-        break
+        apply = true;
+        break;
       case "--env-file":
-        envFile = path.resolve(argv[index + 1] ?? "")
-        index += 1
-        break
+        envFile = path.resolve(argv[index + 1] ?? "");
+        index += 1;
+        break;
       case "--skip-db-check":
-        skipDbCheck = true
-        break
+        skipDbCheck = true;
+        break;
       case "--help":
         console.log(`prepare tour v4 release
 
@@ -136,10 +158,23 @@ Behavior:
   - writes the artifact and report to a stable output directory
   - only seeds/promotes the database when --apply is passed
   - requires --env-file for non-local --apply runs
-`)
-        process.exit(0)
+`);
+        process.exit(0);
+        return {
+          manifestPath,
+          v3DocsRoot,
+          toolRoot,
+          environment,
+          outputDir,
+          artifactPath,
+          metadataPath,
+          reportPath,
+          apply,
+          envFile,
+          skipDbCheck,
+        };
       default:
-        break
+        break;
     }
   }
 
@@ -155,42 +190,50 @@ Behavior:
     apply,
     envFile,
     skipDbCheck,
-  }
+  };
 }
 
 function ensurePaths(args: ParsedArgs): void {
-  const migrationPackageRoot = path.join(args.toolRoot, "packages", "v4-migration")
+  const migrationPackageRoot = path.join(
+    args.toolRoot,
+    "packages",
+    "v4-migration"
+  );
   if (!existsSync(migrationPackageRoot)) {
-    throw new Error(`Unable to find effect-v4-migration package at ${migrationPackageRoot}`)
+    throw new Error(
+      `Unable to find effect-v4-migration package at ${migrationPackageRoot}`
+    );
   }
   if (args.apply && args.environment !== "local" && !args.envFile) {
-    throw new Error(`--env-file is required when using --apply for ${args.environment}`)
+    throw new Error(
+      `--env-file is required when using --apply for ${args.environment}`
+    );
   }
 }
 
 function mergeEnv(extra?: Record<string, string>): Record<string, string> {
-  const env: Record<string, string> = {}
+  const env: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
-      env[key] = value
+      env[key] = value;
     }
   }
 
   if (extra) {
     for (const [key, value] of Object.entries(extra)) {
-      env[key] = value
+      env[key] = value;
     }
   }
 
-  return env
+  return env;
 }
 
 async function runCommand(
   cmd: string[],
   options: {
-    readonly cwd: string
-    readonly env?: Record<string, string>
+    readonly cwd: string;
+    readonly env?: Record<string, string>;
   }
 ): Promise<void> {
   const child = Bun.spawn({
@@ -199,20 +242,20 @@ async function runCommand(
     env: options.env,
     stdout: "inherit",
     stderr: "inherit",
-  })
+  });
 
-  const exitCode = await child.exited
+  const exitCode = await child.exited;
   if (exitCode !== 0) {
-    throw new Error(`Command failed with exit code ${exitCode}: ${cmd.join(" ")}`)
+    throw new Error(
+      `Command failed with exit code ${exitCode}: ${cmd.join(" ")}`
+    );
   }
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2))
-  ensurePaths(args)
-  mkdirSync(args.outputDir, { recursive: true })
-
-  const migrationPackageRoot = path.join(args.toolRoot, "packages", "v4-migration")
+  const args = parseArgs(process.argv.slice(2));
+  ensurePaths(args);
+  mkdirSync(args.outputDir, { recursive: true });
 
   await runCommand(
     [
@@ -234,7 +277,7 @@ async function main(): Promise<void> {
       args.metadataPath,
     ],
     { cwd: args.toolRoot }
-  )
+  );
 
   await runCommand(
     [
@@ -256,31 +299,36 @@ async function main(): Promise<void> {
       args.reportPath,
     ],
     { cwd: process.cwd() }
-  )
+  );
 
-  console.log(`Tour release artifact: ${args.artifactPath}`)
-  console.log(`Tour release metadata: ${args.metadataPath}`)
-  console.log(`Tour release QA report: ${args.reportPath}`)
+  console.log(`Tour release artifact: ${args.artifactPath}`);
+  console.log(`Tour release metadata: ${args.metadataPath}`);
+  console.log(`Tour release QA report: ${args.reportPath}`);
 
   if (!args.apply) {
-    console.log("QA passed. Database mutation was skipped because --apply was not provided.")
-    return
+    console.log(
+      "QA passed. Database mutation was skipped because --apply was not provided."
+    );
+    return;
   }
 
-  const env = mergeEnv(args.envFile ? parseEnvFile(args.envFile) : undefined)
-  env.TOUR_V4_ARTIFACT_PATH = args.artifactPath
-  env.TOUR_MANIFEST_PATH = args.manifestPath
+  const env = mergeEnv(args.envFile ? parseEnvFile(args.envFile) : undefined);
+  env.TOUR_V4_ARTIFACT_PATH = args.artifactPath;
+  env.TOUR_MANIFEST_PATH = args.manifestPath;
 
-  await runCommand(["bun", "run", "db:seed:tour"], { cwd: process.cwd(), env })
-  await runCommand(["bun", "run", "db:promote", "tour"], { cwd: process.cwd(), env })
+  await runCommand(["bun", "run", "db:seed:tour"], { cwd: process.cwd(), env });
+  await runCommand(["bun", "run", "db:promote", "tour"], {
+    cwd: process.cwd(),
+    env,
+  });
   if (!args.skipDbCheck) {
-    await runCommand(["bun", "run", "db:check"], { cwd: process.cwd(), env })
+    await runCommand(["bun", "run", "db:check"], { cwd: process.cwd(), env });
   }
 
-  console.log(`Tour release apply completed for ${args.environment}.`)
+  console.log(`Tour release apply completed for ${args.environment}.`);
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
-})
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

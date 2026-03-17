@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest"
-import { mapLesson, mapStep, mapStepWithPatternNew, mapProgress } from "@/services/TourProgress/helpers"
+import { describe, expect, it } from "vitest";
+import {
+  mapLesson,
+  mapProgress,
+  mapStep,
+  mapStepWithPatternNew,
+} from "@/services/TourProgress/helpers";
 
-const createdAt = new Date("2026-03-08T00:00:00.000Z")
+const createdAt = new Date("2026-03-08T00:00:00.000Z");
 
 const stepRow = {
   id: "step-1",
@@ -19,7 +24,7 @@ const stepRow = {
   feedbackOnComplete: "Nice work",
   patternId: null,
   createdAt,
-} as never
+} as never;
 
 describe("TourProgress helpers", () => {
   it("maps v4 tour step fields when present", () => {
@@ -29,8 +34,8 @@ describe("TourProgress helpers", () => {
       solution_code: "v3 solution",
       solution_code_v4: "v4 solution",
       created_at: createdAt.toISOString(),
-    })
-  })
+    });
+  });
 
   it("mapLesson converts DB row to domain type", () => {
     const result = mapLesson({
@@ -43,7 +48,7 @@ describe("TourProgress helpers", () => {
       difficulty: "beginner",
       estimatedMinutes: 10,
       createdAt,
-    } as never)
+    } as never);
 
     expect(result).toEqual({
       id: "lesson-1",
@@ -55,11 +60,11 @@ describe("TourProgress helpers", () => {
       difficulty: "beginner",
       estimated_minutes: 10,
       created_at: createdAt.toISOString(),
-    })
-  })
+    });
+  });
 
   it("mapProgress converts DB row to domain type", () => {
-    const completedAt = new Date("2026-03-09T00:00:00.000Z")
+    const completedAt = new Date("2026-03-09T00:00:00.000Z");
     const result = mapProgress({
       id: "prog-1",
       userId: "user-1",
@@ -68,7 +73,7 @@ describe("TourProgress helpers", () => {
       feedback: "Great",
       completedAt,
       createdAt,
-    } as never)
+    } as never);
 
     expect(result).toEqual({
       id: "prog-1",
@@ -78,48 +83,48 @@ describe("TourProgress helpers", () => {
       feedback: "Great",
       completed_at: completedAt.toISOString(),
       created_at: createdAt.toISOString(),
-    })
-  })
+    });
+  });
 
   describe("mapStepWithPatternNew", () => {
     it("marks pattern_new when release version meets cutoff", () => {
       const result = mapStepWithPatternNew({
         ...(stepRow as Record<string, unknown>),
         patternReleaseVersion: "0.12.0",
-      } as never)
-      expect(result.pattern_new).toBe(true)
-    })
+      } as never);
+      expect(result.pattern_new).toBe(true);
+    });
 
     it("does not mark pattern_new when release version is below cutoff", () => {
       const result = mapStepWithPatternNew({
         ...(stepRow as Record<string, unknown>),
         patternReleaseVersion: "0.11.0",
-      } as never)
-      expect(result.pattern_new).toBeUndefined()
-    })
+      } as never);
+      expect(result.pattern_new).toBeUndefined();
+    });
 
     it("handles semver correctly at version boundaries (1.0.0 > 0.12.0)", () => {
       const result = mapStepWithPatternNew({
         ...(stepRow as Record<string, unknown>),
         patternReleaseVersion: "1.0.0",
-      } as never)
-      expect(result.pattern_new).toBe(true)
-    })
+      } as never);
+      expect(result.pattern_new).toBe(true);
+    });
 
     it("handles the pre-1.0 edge case that breaks string comparison (0.9.0 < 0.12.0)", () => {
       const result = mapStepWithPatternNew({
         ...(stepRow as Record<string, unknown>),
         patternReleaseVersion: "0.9.0",
-      } as never)
-      expect(result.pattern_new).toBeUndefined()
-    })
+      } as never);
+      expect(result.pattern_new).toBeUndefined();
+    });
 
     it("does not mark pattern_new when release version is null", () => {
       const result = mapStepWithPatternNew({
         ...(stepRow as Record<string, unknown>),
         patternReleaseVersion: null,
-      } as never)
-      expect(result.pattern_new).toBeUndefined()
-    })
-  })
-})
+      } as never);
+      expect(result.pattern_new).toBeUndefined();
+    });
+  });
+});

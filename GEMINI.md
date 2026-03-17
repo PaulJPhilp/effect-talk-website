@@ -15,7 +15,9 @@ Project guidance for **effect-talk-website**.
 | `bun run build` | Production build |
 | `bun run test` | Run tests (watch mode) |
 | `bun run test:run` | Run tests once |
-| `bun run lint` | ESLint |
+| `bun run lint` | Ultracite/Biome checks |
+| `bun run lint:fix` | Ultracite/Biome lint fixes |
+| `bun run format` | Biome formatting |
 | `bun run env:check` | Verify env vars for deploy |
 | `bun run db:check` | Verify DB connection + tables |
 

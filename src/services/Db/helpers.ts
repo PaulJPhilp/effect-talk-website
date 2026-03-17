@@ -2,31 +2,34 @@
  * Database service helpers.
  */
 
-import { DbError } from "@/services/Db/errors"
-import type { patterns, rules, users, apiKeys } from "@/db/schema"
-import { NEW_PATTERN_RELEASE_CUTOFF } from "@/db/schema"
-import { semverGte } from "@/lib/semverCompare"
-import type { DbPattern, DbRule, DbUser, DbApiKey } from "@/services/Db/types"
+import type { apiKeys, patterns, rules, users } from "@/db/schema";
+import { NEW_PATTERN_RELEASE_CUTOFF } from "@/db/schema";
+import { semverGte } from "@/lib/semverCompare";
+import { DbError } from "@/services/Db/errors";
+import type { DbApiKey, DbPattern, DbRule, DbUser } from "@/services/Db/types";
 
 export function toDbError(error: unknown): DbError {
   return new DbError({
     message: error instanceof Error ? error.message : "Database query failed",
     cause: error,
-  })
+  });
 }
 
 export function parseTagsJsonb(tags: unknown): readonly string[] | null {
-  if (tags == null) return null
-  if (Array.isArray(tags)) {
-    const arr = tags.filter((x): x is string => typeof x === "string")
-    return arr.length > 0 ? arr : null
+  if (tags == null) {
+    return null;
   }
-  return null
+  if (Array.isArray(tags)) {
+    const arr = tags.filter((x): x is string => typeof x === "string");
+    return arr.length > 0 ? arr : null;
+  }
+  return null;
 }
 
 export function mapPattern(row: typeof patterns.$inferSelect): DbPattern {
   const isNewFromRelease =
-    row.releaseVersion != null && semverGte(row.releaseVersion, NEW_PATTERN_RELEASE_CUTOFF)
+    row.releaseVersion != null &&
+    semverGte(row.releaseVersion, NEW_PATTERN_RELEASE_CUTOFF);
   return {
     id: row.id,
     title: row.title,
@@ -38,7 +41,7 @@ export function mapPattern(row: typeof patterns.$inferSelect): DbPattern {
     new: isNewFromRelease,
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
-  }
+  };
 }
 
 export function mapRule(row: typeof rules.$inferSelect): DbRule {
@@ -52,7 +55,7 @@ export function mapRule(row: typeof rules.$inferSelect): DbRule {
     tags: row.tags as readonly string[] | null,
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
-  }
+  };
 }
 
 export function mapUser(row: typeof users.$inferSelect): DbUser {
@@ -65,7 +68,7 @@ export function mapUser(row: typeof users.$inferSelect): DbUser {
     preferences: row.preferences as Record<string, unknown>,
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
-  }
+  };
 }
 
 export function mapApiKey(row: typeof apiKeys.$inferSelect): DbApiKey {
@@ -77,5 +80,5 @@ export function mapApiKey(row: typeof apiKeys.$inferSelect): DbApiKey {
     key_hash: row.keyHash,
     created_at: row.createdAt.toISOString(),
     revoked_at: row.revokedAt?.toISOString() ?? null,
-  }
+  };
 }

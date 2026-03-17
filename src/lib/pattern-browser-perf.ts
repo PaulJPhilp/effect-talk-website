@@ -10,25 +10,26 @@
  * source of truth.
  */
 
-const isDev = typeof process !== "undefined" && process.env.NODE_ENV === "development"
+const isDev =
+  typeof process !== "undefined" && process.env.NODE_ENV === "development";
 
 export interface PatternBrowserPerfSnapshot {
-  readonly searchFilterMs: number
-  readonly facetCountMs: number
-  readonly filterApplyMs: number
-  readonly sortMs: number
-  readonly cardExtractSectionsMs: number
-  readonly lastPaintFromInputMs: number | null
+  readonly cardExtractSectionsMs: number;
+  readonly facetCountMs: number;
+  readonly filterApplyMs: number;
+  readonly lastPaintFromInputMs: number | null;
+  readonly searchFilterMs: number;
+  readonly sortMs: number;
 }
 
 const snapshot: {
-  searchFilterMs: number
-  facetCountMs: number
-  filterApplyMs: number
-  sortMs: number
-  cardExtractSectionsMs: number
-  lastPaintFromInputMs: number | null
-  inputTimestamp: number | null
+  searchFilterMs: number;
+  facetCountMs: number;
+  filterApplyMs: number;
+  sortMs: number;
+  cardExtractSectionsMs: number;
+  lastPaintFromInputMs: number | null;
+  inputTimestamp: number | null;
 } = {
   searchFilterMs: 0,
   facetCountMs: 0,
@@ -37,37 +38,46 @@ const snapshot: {
   cardExtractSectionsMs: 0,
   lastPaintFromInputMs: null,
   inputTimestamp: null,
-}
+};
 
 /**
  * Run a synchronous computation and record its duration under a label.
  * No-op in production; in dev updates internal snapshot and optionally logs.
  */
-export function measureSync<T>(label: keyof PatternBrowserPerfSnapshot, fn: () => T): T {
-  if (!isDev) return fn()
-  const start = performance.now()
+export function measureSync<T>(
+  label: keyof PatternBrowserPerfSnapshot,
+  fn: () => T
+): T {
+  if (!isDev) {
+    return fn();
+  }
+  const start = performance.now();
   try {
-    return fn()
+    return fn();
   } finally {
-    const ms = performance.now() - start
-    const key = label as keyof typeof snapshot
+    const ms = performance.now() - start;
+    const key = label as keyof typeof snapshot;
     if (key in snapshot && typeof snapshot[key] === "number") {
-      (snapshot as Record<string, number>)[key] = ms
+      (snapshot as Record<string, number>)[key] = ms;
     }
   }
 }
 
 /** Record that user input (search or filter) just occurred; used to measure keystroke-to-paint. */
 export function markInput(): void {
-  if (!isDev) return
-  snapshot.inputTimestamp = performance.now()
+  if (!isDev) {
+    return;
+  }
+  snapshot.inputTimestamp = performance.now();
 }
 
 /** Call after paint (e.g. in requestAnimationFrame) to record last input-to-paint latency. */
 export function recordPaintFromInput(): void {
-  if (!isDev || snapshot.inputTimestamp === null) return
-  snapshot.lastPaintFromInputMs = performance.now() - snapshot.inputTimestamp
-  snapshot.inputTimestamp = null
+  if (!isDev || snapshot.inputTimestamp === null) {
+    return;
+  }
+  snapshot.lastPaintFromInputMs = performance.now() - snapshot.inputTimestamp;
+  snapshot.inputTimestamp = null;
 }
 
 /** Get current snapshot for baseline or comparison. */
@@ -79,12 +89,14 @@ export function getPerfSnapshot(): Readonly<PatternBrowserPerfSnapshot> {
     sortMs: snapshot.sortMs,
     cardExtractSectionsMs: snapshot.cardExtractSectionsMs,
     lastPaintFromInputMs: snapshot.lastPaintFromInputMs,
-  }
+  };
 }
 
 /** Log current snapshot to console (dev only). */
 export function logPerfSnapshot(): void {
-  if (!isDev) return
-  const s = getPerfSnapshot()
-  console.debug("[pattern-browser-perf]", s)
+  if (!isDev) {
+    return;
+  }
+  const s = getPerfSnapshot();
+  console.debug("[pattern-browser-perf]", s);
 }

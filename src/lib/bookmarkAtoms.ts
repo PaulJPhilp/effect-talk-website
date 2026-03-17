@@ -1,7 +1,9 @@
-import { Atom } from "@effect-atom/atom"
+import { Atom } from "@effect-atom/atom";
 
 /** All bookmarked pattern IDs. */
-export const bookmarkedPatternIdsAtom = Atom.make(new Set<string>()).pipe(Atom.keepAlive)
+export const bookmarkedPatternIdsAtom = Atom.make(new Set<string>()).pipe(
+  Atom.keepAlive
+);
 
 /** Whether initial bookmark data has been loaded from storage/API. */
-export const bookmarksLoadedAtom = Atom.make(false).pipe(Atom.keepAlive)
+export const bookmarksLoadedAtom = Atom.make(false).pipe(Atom.keepAlive);

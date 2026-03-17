@@ -6,13 +6,16 @@
  * should import { TourProgress as TourProgressType } from types.ts directly.
  */
 
-export * from "@/services/TourProgress/api"
+export * from "@/services/TourProgress/api";
 export {
-  type TourLesson,
-  type TourStep,
-  type TourProgressStatus,
-  type TourLessonWithSteps,
-  type TourStepWithProgress,
-  type TourLessonListItem,
-} from "@/services/TourProgress/types"
-export { TourProgress, TourProgressNoOp } from "@/services/TourProgress/service"
+  TourProgress,
+  TourProgressNoOp,
+} from "@/services/TourProgress/service";
+export type {
+  TourLesson,
+  TourLessonListItem,
+  TourLessonWithSteps,
+  TourProgressStatus,
+  TourStep,
+  TourStepWithProgress,
+} from "@/services/TourProgress/types";
